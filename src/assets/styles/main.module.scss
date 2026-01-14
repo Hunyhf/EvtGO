@@ -1,6 +1,6 @@
 // import tất cả
-@import 'normalize.css';
-@import './variables.module.scss';
-@import './mixins.module.scss';
-@import './global.module.scss';
-@import './grid.scss';
+@use 'normalize.css';
+@use './variables.module.scss';
+@use './mixins.module.scss';
+@use './global.module.scss';
+@use './grid.scss';
