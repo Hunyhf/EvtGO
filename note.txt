@@ -1,3 +1,6 @@
+Sau Khi làm xong dự án nhớ chỉnh lại setting import module lại thành default
+
+
 header-wrapper full màn hình, header 1275 hoặc tùy theo grid h:76, logo: 180x35, logo cách đến phần còn lại bên kìa w:220px, div thứ bên phải bao trùm các phần khá h:72, div search 359x43 (1 svg icon 16x16, div bọc nó là 29x29, search input: 194x18)
 
 

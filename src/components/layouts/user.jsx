@@ -1,5 +1,6 @@
+import Footer from '@components/Footer';
 import Header from '@components/Header/index.jsx';
-import Footer from '@components/Footer/index.jsx';
+
 function UserLayout({ children }) {
     return (
         <div>
