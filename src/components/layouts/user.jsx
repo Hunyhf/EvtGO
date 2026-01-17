@@ -3,11 +3,12 @@ import Header from '@components/Header/index.jsx';
 
 function UserLayout({ children }) {
     return (
-        <div>
+        <div className='grid wide'>
             <Header />
             <div className='container'>
                 <div className='content'>{children}</div>
             </div>
+
             <Footer />
         </div>
     );

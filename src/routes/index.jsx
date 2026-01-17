@@ -1,5 +1,5 @@
 import Home from '@pages/user/home.jsx';
-import Staff from '@pages/staff/staff.jsx';
+import Staff from '@pages/staff/homeStaff.jsx';
 import Category from '@pages/user/category.jsx';
 import Profile from '@pages/user/profile.jsx';
 // Các router ko cần đăng nhập vào app

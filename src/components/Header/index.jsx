@@ -1,5 +1,12 @@
+import './styles.module.scss';
 function Header() {
-    return <h2>Header</h2>;
+    return (
+        <div>
+            <header className='userHeader'>
+                <h1>Header Component</h1>
+            </header>
+        </div>
+    );
 }
 
 export default Header;
