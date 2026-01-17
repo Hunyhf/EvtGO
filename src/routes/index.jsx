@@ -2,6 +2,7 @@ import Home from '@pages/user/home.jsx';
 import Staff from '@pages/staff/homeStaff.jsx';
 import Category from '@pages/user/category.jsx';
 import Profile from '@pages/user/profile.jsx';
+import Ticket from '@pages/user/ticket.jsx';
 // Các router ko cần đăng nhập vào app
 
 const publicRoutes = [
@@ -12,6 +13,6 @@ const publicRoutes = [
 ];
 // Các router sau khi đã đăng nhập vào app
 
-const privateRoutes = [];
+const privateRoutes = [{ path: '/my-tickets', component: Ticket }];
 
 export { publicRoutes, privateRoutes };

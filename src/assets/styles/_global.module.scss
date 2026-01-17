@@ -1,9 +1,34 @@
-// Các class, thẻ, styles dùng chung cho dự án
+/* globals.scss */
+
 html {
-    /* HACK */
-    font-size: 62.5%; /* 10px */
-    line-height: 1.6rem;
-    font-family: 'Roboto', sans-serif;
-    box-sizing: border-box;
+    font-size: 62.5%; /* 1rem = 10px */
     scroll-behavior: smooth;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Roboto', sans-serif;
+    font-size: 1.6rem;
+    line-height: 1.6;
+    margin: 0;
+}
+
+/* LIST */
+ul,
+ol {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+/* LINK */
+a {
+    text-decoration: none;
+    color: inherit;
+}
+
+/* IMAGE */
+img {
+    max-width: 100%;
+    display: block;
 }

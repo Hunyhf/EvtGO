@@ -3,9 +3,9 @@ import Header from '@components/Header/index.jsx';
 
 function UserLayout({ children }) {
     return (
-        <div className='grid wide'>
+        <div>
             <Header />
-            <div className='container'>
+            <div className='container '>
                 <div className='content'>{children}</div>
             </div>
 
