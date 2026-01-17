@@ -1,0 +1,29 @@
+@import '@styles/variables.module.scss';
+
+.nav {
+    height: 60px;
+    background-color: black;
+    display: flex;
+    align-items: center;
+
+    &-item {
+        ul {
+            display: flex;
+            align-items: center;
+            gap: 24px;
+            padding: 0;
+            margin: 0;
+            height: 60px;
+        }
+
+        li {
+            color: $white-color;
+            font-size: 1.4rem;
+            cursor: pointer;
+
+            &:hover {
+                opacity: 0.8;
+            }
+        }
+    }
+}

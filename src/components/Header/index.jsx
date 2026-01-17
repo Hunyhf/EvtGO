@@ -2,7 +2,8 @@ import { Link } from 'react-router-dom';
 import classNames from 'classnames/bind';
 import styles from './styles.module.scss';
 import { useNavigate } from 'react-router-dom';
-
+import searchIcon from '@/assets/icons/svgs/searchIcon.svg';
+import ticketIcon from '@/assets/icons/svgs/ticketIcon.svg';
 const cx = classNames.bind(styles);
 
 function Header() {
@@ -21,7 +22,7 @@ function Header() {
                     <div className={cx('header__right')}>
                         <div className={cx('header__search')}>
                             <div className={cx('header__search-icon')}>
-                                {/* svg 16x16 */}
+                                <img src={searchIcon} alt='Search Icon' />
                             </div>
                             <input
                                 className={cx('header__search-input')}
@@ -39,6 +40,11 @@ function Header() {
                                 to='/my-tickets'
                                 className={cx('header__tickets')}
                             >
+                                <img
+                                    src={ticketIcon}
+                                    alt='Ticket Icon'
+                                    className={cx('header__tickets-icon')}
+                                />
                                 Vé của tôi
                             </Link>
                             <span

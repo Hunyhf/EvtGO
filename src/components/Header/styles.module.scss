@@ -53,7 +53,7 @@
         align-items: center;
         justify-content: center;
 
-        svg {
+        img {
             width: 16px;
             height: 16px;
         }
@@ -91,6 +91,9 @@
 
     &__tickets,
     &__auth {
+        display: flex;
+        align-items: center;
+        height: 100%;
         font-size: 1.6rem;
         font-weight: bold;
         color: $white-color;
@@ -98,5 +101,11 @@
         padding: 0 8px;
         white-space: nowrap;
         cursor: pointer;
+
+        img {
+            width: 16px;
+            height: 16px;
+            margin-right: 6px;
+        }
     }
 }
