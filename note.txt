@@ -1,7 +1,8 @@
 Sau Khi làm xong dự án nhớ chỉnh lại setting import module lại thành default
 
 
-header-wrapper full màn hình, header 1275 hoặc tùy theo grid h:76, logo: 180x35, logo cách đến phần còn lại bên kìa w:220px, div thứ bên phải bao trùm các phần khá h:72, div search 359x43 (1 svg icon 16x16, div bọc nó là 29x29, search input: 194x18)
+header-wrapper full màn hình, header 1275 hoặc tùy theo grid h:76, logo: 180x35, logo cách đến phần còn lại bên kìa w:220px, div thứ bên phải bao trùm các phần khá h:72, div search 359x43 (1 svg icon 16x16, div bọc nó là 29x29, search input: 194x18), khi responsive header vẫn h:76px, chỉ có các phần như tìm kiếm bị thu nhỏ lại khi về tablet và mobile chỉ còn icon, các font chữ khi thu nhỏ vẫn giữ size đó 
 
 
 Events card list 304x297 1 div to bao ở ngoài, trong đó có 1 ảnh 304x177, 1 div dưới 304x91 (bên trong có 1 span/div có title h-42px, 1 span price h-16px, 1 span date h-16)
+

@@ -1,4 +1,19 @@
 // Các khối code dùng chung và tái sử dựng lại được, có thể dynamic các giá trị bên trong khối code đó
+@use './variables.module.scss';
 @mixin radius_common($radius: 10px) {
     border-radius: $radius;
+}
+
+// Mixin cho Mobile
+@mixin mobile {
+    @media (max-width: #{$mobile-width}) {
+        @content;
+    }
+}
+
+// Mixin cho Tablet
+@mixin tablet {
+    @media (min-width: #{$tablet-min-width}) and (max-width: #{$tablet-max-width}) {
+        @content;
+    }
 }
