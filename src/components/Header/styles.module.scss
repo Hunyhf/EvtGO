@@ -29,6 +29,7 @@
             color: $white-color;
             line-height: 35px;
             text-decoration: none;
+            font-weight: bold;
         }
     }
 
@@ -41,12 +42,13 @@
 
         @include tablet {
             margin-left: auto;
-            justify-content: flex-end;
             gap: 16px;
         }
 
         @include mobile {
             margin-left: 0;
+            flex: 1;
+            justify-content: space-between;
         }
     }
 
@@ -58,16 +60,26 @@
         padding: 0 12px;
         @include flex(flex-start, center);
         @include radius_common(6px);
+        transition: all 0.3s ease;
 
-        /* ❗ Tablet giữ NGUYÊN như desktop */
-
+        /* Tablet giữ NGUYÊN như desktop */
+        &-divider {
+            margin-left: 42px;
+            color: $sub-color;
+        }
         @include mobile {
-            position: absolute;
-            left: 50%;
-            transform: translateX(-50%);
-            width: auto;
-            background: transparent;
+            width: 40px;
+            height: 40px;
             padding: 0;
+            background-color: transparent;
+            border: 2px solid $white-color;
+            border-radius: 50%;
+            justify-content: center;
+            flex-shrink: 0;
+            margin: 0 auto;
+            &-divider {
+                display: none;
+            }
         }
     }
 
@@ -76,20 +88,22 @@
         height: 29px;
         cursor: pointer;
         @include flex(center, center);
+        flex-shrink: 0;
 
         img {
             width: 16px;
             height: 16px;
+            filter: $sub-color;
         }
 
-        /* chỉ mobile icon to hơn */
         @include mobile {
-            width: 32px;
-            height: 32px;
+            width: 24px;
+            height: 24px;
 
             img {
-                width: 32px;
-                height: 32px;
+                width: 20px;
+                height: 20px;
+                filter: brightness(0) invert(1);
             }
         }
     }
@@ -101,6 +115,15 @@
         outline: none;
         font-size: 1.6rem;
         margin-left: 8px;
+        color: $text-color;
+
+        &::placeholder {
+            color: $sub-color;
+        }
+
+        @include mobile {
+            display: none;
+        }
     }
 
     &__search-btn {
@@ -114,11 +137,14 @@
         font-weight: 500;
         cursor: pointer;
         @include radius_common(4px);
-    }
+        transition: opacity 0.3s ease;
+        white-space: nowrap; // chữ không xuống dòng
+        flex-shrink: 0; // KHÔNG cho co
+        min-width: max-content;
+        &:hover {
+            opacity: 0.9;
+        }
 
-    /* ✅ CHỈ MOBILE mới ẩn */
-    &__search-input,
-    &__search-btn {
         @include mobile {
             display: none;
         }
@@ -132,7 +158,10 @@
 
         @include tablet {
             margin-left: 0;
-            order: 2;
+        }
+
+        @include mobile {
+            margin-left: 0;
         }
     }
 
@@ -142,10 +171,19 @@
         color: $white-color;
         padding: 0 8px;
         @include flex(center, center, 6px);
+        transition: opacity 0.3s ease;
+
+        &:hover {
+            opacity: 0.85;
+        }
 
         img {
             width: 16px;
             height: 16px;
+        }
+
+        @include tablet {
+            display: none;
         }
 
         @include mobile {
@@ -162,10 +200,27 @@
         cursor: pointer;
         white-space: nowrap;
         @include flex(center, center, 8px);
+        transition: opacity 0.3s ease;
+
+        &:hover {
+            opacity: 0.85;
+        }
+
+        @include tablet {
+            padding: 0;
+        }
+
+        @include mobile {
+            padding: 0;
+        }
     }
 
     &__divider {
         opacity: 0.9;
+
+        @include tablet {
+            display: none;
+        }
 
         @include mobile {
             display: none;
@@ -173,6 +228,10 @@
     }
 
     &__text-hidable {
+        @include tablet {
+            display: none;
+        }
+
         @include mobile {
             display: none;
         }

@@ -27,7 +27,10 @@ function Header() {
                             <input
                                 className={cx('header__search-input')}
                                 placeholder='Search...'
-                            />
+                            />{' '}
+                            <span className={cx('header__search-divider')}>
+                                |
+                            </span>
                             <button
                                 type='button'
                                 className={cx('header__search-btn')}
