@@ -4,11 +4,7 @@ import styles from './styles.module.scss';
 const cx = classNames.bind(styles);
 
 function Home() {
-    return (
-        <div className={cx('grid', 'home')}>
-            <nav></nav>
-        </div>
-    );
+    return <div className={cx('grid', 'home')}></div>;
 }
 
 export default Home;

@@ -1,7 +1,7 @@
-/* globals.scss */
+// globals.scss
 
 html {
-    font-size: 62.5%; /* 1rem = 10px */
+    font-size: 62.5%; //1rem = 10px
     scroll-behavior: smooth;
     box-sizing: border-box;
 }
@@ -13,7 +13,7 @@ body {
     margin: 0;
 }
 
-/* LIST */
+// lists
 ul,
 ol {
     list-style: none;
@@ -21,13 +21,12 @@ ol {
     margin: 0;
 }
 
-/* LINK */
+// links
 a {
     text-decoration: none;
-    color: inherit;
 }
 
-/* IMAGE */
+// images
 img {
     max-width: 100%;
     display: block;
