@@ -11,9 +11,14 @@
     }
 }
 
-// Mixin cho Tablet
 @mixin tablet {
-    @media (min-width: #{$tablet-min-width}) and (max-width: #{$tablet-max-width}) {
+    @media (min-width: 740px) and (max-width: #{$tablet-width}) {
+        @content;
+    }
+}
+
+@mixin mobile-tablet {
+    @media (max-width: #{$tablet-width}) {
         @content;
     }
 }

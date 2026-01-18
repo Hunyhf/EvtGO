@@ -40,19 +40,21 @@ function Header() {
                                 to='/my-tickets'
                                 className={cx('header__tickets')}
                             >
-                                <img
-                                    src={ticketIcon}
-                                    alt='Ticket Icon'
-                                    className={cx('header__tickets-icon')}
-                                />
-                                Vé của tôi
+                                <img src={ticketIcon} alt='Ticket Icon' />
+                                <span className={cx('header__text-hidable')}>
+                                    Vé của tôi
+                                </span>
                             </Link>
-                            <span
+                            <div
                                 className={cx('header__auth')}
                                 onClick={() => navigate('/login')}
                             >
-                                Đăng nhập | Đăng ký
-                            </span>
+                                <span>Đăng nhập</span>
+                                <span className={cx('header__divider')}>|</span>
+                                <span className={cx('header__text-hidable')}>
+                                    Đăng ký
+                                </span>
+                            </div>
                         </div>
                     </div>
                 </div>
