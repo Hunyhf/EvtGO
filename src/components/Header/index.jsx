@@ -11,7 +11,7 @@ function Header() {
 
     return (
         <header className={cx('header')}>
-            <div className='grid wide'>
+            <div className={cx('grid', 'wide')}>
                 <div className={cx('header__inner')}>
                     {/* LOGO */}
                     <div className={cx('header__logo')}>
