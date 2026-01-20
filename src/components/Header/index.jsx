@@ -44,7 +44,7 @@ function Header() {
                                 Vé của tôi
                             </span>
                         </Link>
-                        <div
+                        {/* <div
                             className={cx('header__guest')}
                             onClick={() => navigate('/login')}
                         >
@@ -53,18 +53,36 @@ function Header() {
                             <span className={cx('header__text--hide')}>
                                 Đăng ký
                             </span>
-                        </div>{' '}
-                        {/* <div className={cx('header__user')}>
+                        </div>{' '} */}
+                        <div className={cx('header__user')}>
                             <img
                                 src='https://static.ticketbox.vn/avatar.png'
                                 alt='avatar'
-                            />{' '}
-                            Tài khoản
-                            <DropDownIcon />
-                                alt='Dropdown Icon'
-                                className={cx('header__dropdown-icon')}
                             />
-                        </div> */}
+                            Tài khoản
+                            <div className={cx('header__user-dropdown-icon')}>
+                                <DropDownIcon />
+                            </div>
+                            <div className={cx('header__user-dropdown')}>
+                                {' '}
+                                <span
+                                    className={cx('header__user-dropdown-item')}
+                                >
+                                    <TicketIcon />
+                                    Vé của tôi
+                                </span>
+                                <div
+                                    className={cx('header__user-dropdown-item')}
+                                >
+                                    <span>Thông tin cá nhân</span>
+                                </div>
+                                <div
+                                    className={cx('header__user-dropdown-item')}
+                                >
+                                    <span>Đăng xuất</span>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
