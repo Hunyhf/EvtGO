@@ -1,6 +1,6 @@
 // Các khối code dùng chung và tái sử dựng lại được, có thể dynamic các giá trị bên trong khối code đó
 @import './variables.module.scss';
-@mixin radius_common($radius: 10px) {
+@mixin radius-common($radius: 10px) {
     border-radius: $radius;
 }
 
@@ -11,20 +11,33 @@
     gap: $gap;
 }
 // Mixin cho Mobile
-@mixin mobile {
+@mixin mobile-width {
     @media (max-width: #{$mobile-width}) {
         @content;
     }
 }
 
-@mixin tablet {
+@mixin tablet-width {
     @media (min-width: 740px) and (max-width: #{$tablet-width}) {
         @content;
     }
 }
 
-@mixin mobile-tablet {
+@mixin mobile-tablet-width {
     @media (max-width: #{$tablet-width}) {
         @content;
     }
+}
+@mixin hide-on-mobile-tablet {
+    display: none !important;
+}
+
+@mixin grid-wide($max-width: 1200px) {
+    max-width: $max-width;
+    margin: 0 auto;
+}
+@mixin grid($width: 100%) {
+    width: $width;
+    display: block;
+    padding: 0;
 }

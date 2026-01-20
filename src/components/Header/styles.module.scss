@@ -8,15 +8,17 @@
 
     &__inner {
         height: 100%;
+        @include grid-wide();
         position: relative;
         @include flex(center, center);
-
-        @include mobile {
+        @include tablet-width {
+            padding: 0 24px;
+        }
+        @include mobile-width {
             padding: 0 16px;
         }
     }
 
-    /* LOGO */
     &__logo {
         width: 180px;
         height: 35px;
@@ -33,26 +35,24 @@
         }
     }
 
-    /* RIGHT BLOCK */
     &__right {
         margin-left: 220px;
         height: 76px;
         flex: 1;
         @include flex(center, center);
 
-        @include tablet {
+        @include tablet-width {
             margin-left: auto;
             gap: 16px;
+            flex: none;
         }
 
-        @include mobile {
+        @include mobile-width {
             margin-left: 0;
-            flex: 1;
             justify-content: space-between;
         }
     }
 
-    /* SEARCH */
     &__search {
         width: 359px;
         height: 43px;
@@ -62,21 +62,22 @@
         @include radius_common(6px);
         transition: all 0.3s ease;
 
-        /* Tablet giữ NGUYÊN như desktop */
         &-divider {
             margin-left: 42px;
             color: $sub-color;
         }
-        @include mobile {
+
+        @include mobile-width {
             width: 40px;
             height: 40px;
             padding: 0;
             background-color: transparent;
             border: 2px solid $white-color;
-            border-radius: 50%;
+            @include radius-common(50%);
             justify-content: center;
             flex-shrink: 0;
             margin: 0 auto;
+
             &-divider {
                 display: none;
             }
@@ -90,19 +91,19 @@
         @include flex(center, center);
         flex-shrink: 0;
 
-        img {
+        svg {
             width: 16px;
             height: 16px;
             filter: $sub-color;
         }
 
-        @include mobile {
-            width: 24px;
-            height: 24px;
+        @include mobile-width {
+            width: 36px;
+            height: 36px;
 
-            img {
-                width: 20px;
-                height: 20px;
+            svg {
+                width: 40px;
+                height: 40px;
                 filter: brightness(0) invert(1);
             }
         }
@@ -121,7 +122,7 @@
             color: $sub-color;
         }
 
-        @include mobile {
+        @include mobile-width {
             display: none;
         }
     }
@@ -138,29 +139,29 @@
         cursor: pointer;
         @include radius_common(4px);
         transition: opacity 0.3s ease;
-        white-space: nowrap; // chữ không xuống dòng
-        flex-shrink: 0; // KHÔNG cho co
+        white-space: nowrap;
+        flex-shrink: 0;
         min-width: max-content;
+
         &:hover {
             opacity: 0.9;
         }
 
-        @include mobile {
+        @include mobile-width {
             display: none;
         }
     }
 
-    /* ACTIONS */
     &__actions {
         height: 100%;
         margin-left: auto;
         @include flex(center, center, 8px);
 
-        @include tablet {
+        @include tablet-width {
             margin-left: 0;
         }
 
-        @include mobile {
+        @include mobile-width {
             margin-left: 0;
         }
     }
@@ -177,21 +178,21 @@
             opacity: 0.85;
         }
 
-        img {
-            width: 16px;
-            height: 16px;
+        svg {
+            width: 24px;
+            height: 24px;
         }
 
-        @include tablet {
+        @include tablet-width {
             display: none;
         }
 
-        @include mobile {
+        @include mobile-width {
             display: none;
         }
     }
 
-    &__auth {
+    &__guest {
         height: 100%;
         font-size: 1.6rem;
         font-weight: bold;
@@ -200,39 +201,48 @@
         cursor: pointer;
         white-space: nowrap;
         @include flex(center, center, 8px);
-        transition: opacity 0.3s ease;
 
-        &:hover {
-            opacity: 0.85;
-        }
-
-        @include tablet {
+        @include tablet-width {
             padding: 0;
         }
 
-        @include mobile {
+        @include mobile-width {
             padding: 0;
+        }
+    }
+    &__user {
+        @include flex(center, center, 8px);
+        color: $white-color;
+        font-size: 1.6rem;
+        font-weight: bold;
+        svg {
+            width: 24px;
+            height: 24px;
+        }
+        cursor: pointer;
+        &__dropdown-icon {
+            filter: $white-color;
         }
     }
 
     &__divider {
         opacity: 0.9;
 
-        @include tablet {
+        @include tablet-width {
             display: none;
         }
 
-        @include mobile {
+        @include mobile-width {
             display: none;
         }
     }
 
-    &__text-hidable {
-        @include tablet {
+    &__text--hide {
+        @include tablet-width {
             display: none;
         }
 
-        @include mobile {
+        @include mobile-width {
             display: none;
         }
     }

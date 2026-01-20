@@ -4,7 +4,7 @@ import styles from './styles.module.scss';
 const cx = classNames.bind(styles);
 function Nav() {
     return (
-        <nav className={cx('grid', 'nav')}>
+        <nav className={cx('nav')}>
             <div className={cx('grid', 'wide', 'nav-item')}>
                 <ul>
                     <li>1</li>
