@@ -215,15 +215,23 @@
         color: $white-color;
         font-size: 1.6rem;
         font-weight: bold;
+        padding: 5px;
+        position: relative;
         &:hover {
             background-color: rgba(255, 255, 255, 0.1);
+            @include radius-common(6px);
         }
+        &:hover &-dropdown {
+            opacity: 1;
+            visibility: visible;
+            transform: translateY(0);
+        }
+
         img {
             width: 24px;
             height: 24px;
         }
         cursor: pointer;
-
         &-dropdown-icon {
             svg {
                 width: 12px;
@@ -231,7 +239,6 @@
                 fill: $white-color;
             }
         }
-        position: relative;
         &-dropdown {
             position: absolute;
             top: 110%;
@@ -239,41 +246,57 @@
             background: $white-color;
             width: max-content;
             @include radius-common(2px);
+            opacity: 0;
+            visibility: hidden;
+            transform: translateY(6px);
+            transition: all 0.2s ease;
+            z-index: 1000;
             &-item {
                 @include flex(flex-start, center, 8px);
                 margin: 10px 10px;
                 color: $text-color;
                 font-weight: 400;
-                font-size: 1.4rem;
+                font-size: 1.6rem;
                 svg {
                     stroke: $primary-color;
-                    stroke-width: 1.5px;
-                    height: 14px;
-                    width: 14px;
+
+                    height: 20px;
+                    width: 20px;
+                }
+
+                &-icon {
+                    &-profile {
+                        margin-left: -1px;
+                        @include radius-common(50%);
+                        border: solid 2px $text-color;
+                    }
+                    &-logout {
+                        margin-left: 3px;
+                    }
                 }
             }
         }
-    }
 
-    &__divider {
-        opacity: 0.9;
+        &__divider {
+            opacity: 0.9;
 
-        @include tablet-width {
-            display: none;
+            @include tablet-width {
+                display: none;
+            }
+
+            @include mobile-width {
+                display: none;
+            }
         }
 
-        @include mobile-width {
-            display: none;
-        }
-    }
+        &__text--hide {
+            @include tablet-width {
+                display: none;
+            }
 
-    &__text--hide {
-        @include tablet-width {
-            display: none;
-        }
-
-        @include mobile-width {
-            display: none;
+            @include mobile-width {
+                display: none;
+            }
         }
     }
 }

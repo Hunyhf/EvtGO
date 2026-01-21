@@ -4,6 +4,9 @@ import styles from './styles.module.scss';
 import SearchIcon from '@/assets/icons/svgs/searchIcon.svg?react';
 import TicketIcon from '@/assets/icons/svgs/ticketIcon.svg?react';
 import DropDownIcon from '@/assets/icons/svgs/dropdownIcon.svg?react';
+import UserIcon from '@/assets/icons/svgs/userIcon.svg?react';
+import LogOutIcon from '@/assets/icons/svgs/logOutIcon.svg?react';
+
 const cx = classNames.bind(styles);
 
 function Header() {
@@ -64,23 +67,36 @@ function Header() {
                                 <DropDownIcon />
                             </div>
                             <div className={cx('header__user-dropdown')}>
-                                {' '}
                                 <span
                                     className={cx('header__user-dropdown-item')}
                                 >
-                                    <TicketIcon />
+                                    <TicketIcon
+                                        className={cx(
+                                            'header__user-dropdown-item-icon-ticket'
+                                        )}
+                                    />
                                     Vé của tôi
                                 </span>
-                                <div
+                                <span
                                     className={cx('header__user-dropdown-item')}
                                 >
-                                    <span>Thông tin cá nhân</span>
-                                </div>
-                                <div
+                                    <UserIcon
+                                        className={cx(
+                                            'header__user-dropdown-item-icon-profile'
+                                        )}
+                                    />
+                                    Thông tin cá nhân
+                                </span>
+                                <span
                                     className={cx('header__user-dropdown-item')}
                                 >
-                                    <span>Đăng xuất</span>
-                                </div>
+                                    <LogOutIcon
+                                        className={cx(
+                                            'header__user-dropdown-item-icon-logout'
+                                        )}
+                                    />
+                                    Đăng xuất
+                                </span>
                             </div>
                         </div>
                     </div>
