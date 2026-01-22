@@ -1,7 +1,7 @@
-import Home from '@pages/user/home.jsx';
-import Staff from '@pages/staff/homeStaff.jsx';
-import Category from '@pages/user/category.jsx';
-import Profile from '@pages/user/profile.jsx';
+import Home from '@pages/User/home.jsx';
+import Staff from '@pages/Staff/homeStaff.jsx';
+import Category from '@pages/User/category.jsx';
+import Profile from '@pages/User/profile.jsx';
 import Ticket from '@/pages/User/tickets.jsx';
 // Các router ko cần đăng nhập vào app
 
