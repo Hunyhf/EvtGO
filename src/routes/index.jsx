@@ -1,8 +1,8 @@
-import Home from '@pages/User/home.jsx';
-import Staff from '@pages/Staff/homeStaff.jsx';
-import Category from '@pages/User/category.jsx';
-import Profile from '@pages/User/profile.jsx';
-import Ticket from '@/pages/User/tickets.jsx';
+import Home from '@/pages/user/Home.jsx';
+import Staff from '@/pages/staff/Staff.jsx';
+import Category from '@/pages/user/Category.jsx';
+import Profile from '@/pages/user/Profile.jsx';
+import Ticket from '@/pages/user/Tickets.jsx';
 // Các router ko cần đăng nhập vào app
 
 const publicRoutes = [

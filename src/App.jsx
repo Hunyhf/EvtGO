@@ -1,7 +1,7 @@
 import { Fragment } from 'react';
 import { Routes, Route } from 'react-router-dom';
 import { publicRoutes } from './routes';
-import UserLayout from '@/components/layouts/user';
+import UserLayout from '@/components/layouts/UserLayout';
 function App() {
     return (
         <div className='App'>

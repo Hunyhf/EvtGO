@@ -1,6 +1,6 @@
 import { Link, useNavigate } from 'react-router-dom';
 import classNames from 'classnames/bind';
-import styles from './styles.module.scss';
+import styles from './Header.module.scss';
 import SearchIcon from '@/assets/icons/svgs/searchIcon.svg?react';
 import TicketIcon from '@/assets/icons/svgs/ticketIcon.svg?react';
 import DropDownIcon from '@/assets/icons/svgs/dropdownIcon.svg?react';

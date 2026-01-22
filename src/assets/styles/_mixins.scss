@@ -1,5 +1,5 @@
 // Các khối code dùng chung và tái sử dựng lại được, có thể dynamic các giá trị bên trong khối code đó
-@import './variables.module.scss';
+@import './variables';
 @mixin radius-common($radius: 10px) {
     border-radius: $radius;
 }
