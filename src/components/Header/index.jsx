@@ -16,22 +16,30 @@ function Header() {
         <header className={cx('header')}>
             <div className={cx('header__inner')}>
                 <div className={cx('header__logo')}>
-                    <Link to='/'>EvtGO</Link>
+                    <Link to='/'>
+                        <img
+                            src='https://ticketbox.vn/_next/static/images/logo-for-tet.png'
+                            alt='logo'
+                        />
+                    </Link>
                 </div>
 
                 <div className={cx('header__right')}>
-                    <div className={cx('header__search')}>
-                        <div className={cx('header__search-icon')}>
+                    <div className={cx('header-search')}>
+                        <div className={cx('header-search__icon')}>
                             <SearchIcon />
                         </div>
+
                         <input
-                            className={cx('header__search-input')}
+                            className={cx('header-search__input')}
                             placeholder='Search...'
                         />
-                        <span className={cx('header__search-divider')}>|</span>
+
+                        <span className={cx('header__divider')}>|</span>
+
                         <button
                             type='button'
-                            className={cx('header__search-btn')}
+                            className={cx('header-search__btn')}
                         >
                             Tìm kiếm
                         </button>
@@ -47,58 +55,68 @@ function Header() {
                                 Vé của tôi
                             </span>
                         </Link>
-                        {/* <div
+                        <div
                             className={cx('header__guest')}
                             onClick={() => navigate('/login')}
                         >
                             <span>Đăng nhập</span>
-                            <span className={cx('header__divider')}>|</span>
+                            <span className={cx('header__text--hide')}>|</span>
                             <span className={cx('header__text--hide')}>
                                 Đăng ký
                             </span>
-                        </div>{' '} */}
-                        <div className={cx('header__user')}>
+                        </div>{' '}
+                        {/* <div className={cx('header-user')}>
                             <img
+                                className={cx('header-user__avatar')}
                                 src='https://static.ticketbox.vn/avatar.png'
                                 alt='avatar'
                             />
-                            Tài khoản
-                            <div className={cx('header__user-dropdown-icon')}>
+
+                            <span className={cx('header__text--hide')}>
+                                Tài khoản
+                            </span>
+
+                            <div className={cx('header-user__toggle')}>
                                 <DropDownIcon />
                             </div>
-                            <div className={cx('header__user-dropdown')}>
+
+                            <div className={cx('header-user__dropdown')}>
                                 <span
-                                    className={cx('header__user-dropdown-item')}
+                                    className={cx('header-user__dropdown-item')}
                                 >
                                     <TicketIcon
                                         className={cx(
-                                            'header__user-dropdown-item-icon-ticket'
+                                            'header-user__dropdown-icon'
                                         )}
                                     />
                                     Vé của tôi
                                 </span>
+
                                 <span
-                                    className={cx('header__user-dropdown-item')}
+                                    className={cx('header-user__dropdown-item')}
                                 >
                                     <UserIcon
                                         className={cx(
-                                            'header__user-dropdown-item-icon-profile'
+                                            'header-user__dropdown-icon',
+                                            'header-user__dropdown-icon--profile'
                                         )}
                                     />
                                     Thông tin cá nhân
                                 </span>
+
                                 <span
-                                    className={cx('header__user-dropdown-item')}
+                                    className={cx('header-user__dropdown-item')}
                                 >
                                     <LogOutIcon
                                         className={cx(
-                                            'header__user-dropdown-item-icon-logout'
+                                            'header-user__dropdown-icon',
+                                            'header-user__dropdown-icon--logout'
                                         )}
                                     />
                                     Đăng xuất
                                 </span>
                             </div>
-                        </div>
+                        </div> */}
                     </div>
                 </div>
             </div>
