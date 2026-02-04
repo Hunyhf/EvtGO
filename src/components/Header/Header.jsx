@@ -1,17 +1,18 @@
-import { Link, useNavigate } from 'react-router-dom';
+import { useState } from 'react';
+import { Link } from 'react-router-dom';
 import classNames from 'classnames/bind';
 import styles from './Header.module.scss';
-import SearchIcon from '@/assets/icons/svgs/searchIcon.svg?react';
-import TicketIcon from '@/assets/icons/svgs/ticketIcon.svg?react';
-import DropDownIcon from '@/assets/icons/svgs/dropdownIcon.svg?react';
-import UserIcon from '@/assets/icons/svgs/userIcon.svg?react';
-import LogOutIcon from '@/assets/icons/svgs/logOutIcon.svg?react';
+import AuthModal from '@components/AuthModal/AuthModal';
+import SearchIcon from '@icons/svgs/searchIcon.svg?react';
+import TicketIcon from '@icons/svgs/ticketIcon.svg?react';
+import DropDownIcon from '@icons/svgs/dropdownIcon.svg?react';
+import UserIcon from '@icons/svgs/userIcon.svg?react';
+import LogOutIcon from '@icons/svgs/logOutIcon.svg?react';
 
 const cx = classNames.bind(styles);
 
 function Header() {
-    const navigate = useNavigate();
-
+    const [showAuthModal, setShowAuthModal] = useState(false);
     return (
         <header className={cx('header')}>
             <div className={cx('header__inner')}>
@@ -57,7 +58,7 @@ function Header() {
                         </Link>
                         <div
                             className={cx('header__guest')}
-                            onClick={() => navigate('/login')}
+                            onClick={() => setShowAuthModal(true)}
                         >
                             <span>Đăng nhập</span>
                             <span className={cx('header__text--hide')}>|</span>
@@ -120,6 +121,10 @@ function Header() {
                     </div>
                 </div>
             </div>
+            <AuthModal
+                isOpen={showAuthModal}
+                onClose={() => setShowAuthModal(false)}
+            />
         </header>
     );
 }
