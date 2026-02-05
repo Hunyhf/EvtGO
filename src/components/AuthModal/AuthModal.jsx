@@ -21,7 +21,7 @@ function AuthModal({ isOpen, onClose }) {
         e.preventDefault();
         try {
             if (isLoginMode) {
-                // --- LOGIN ---
+                // Login
                 const res = await callLogin(email, password);
                 if (res?.data?.access_token) {
                     localStorage.setItem('access_token', res.data.access_token);
