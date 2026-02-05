@@ -1,33 +1,59 @@
 import { Fragment } from 'react';
 import { Routes, Route } from 'react-router-dom';
-import { publicRoutes } from './routes';
+import { publicRoutes, privateRoutes } from './routes';
 import UserLayout from '@/components/layouts/UserLayout';
+import { AuthProvider } from '@contexts/AuthContext'; // Import AuthProvider
+import ProtectedRoute from '@components/ProtectedRoute'; // Import ProtectedRoute
+
 function App() {
     return (
-        <div className='App'>
-            <Routes>
-                {publicRoutes.map((route, index) => {
-                    const Page = route.component;
-                    let Layout = UserLayout;
-                    if (route.layout) {
-                        Layout = route.layout;
-                    } else if (route.layout === null) {
-                        Layout = Fragment;
-                    }
-                    return (
-                        <Route
-                            key={index}
-                            path={route.path}
-                            element={
-                                <Layout>
-                                    <Page />
-                                </Layout>
-                            }
-                        />
-                    );
-                })}
-            </Routes>
-        </div>
+        <AuthProvider>
+            <div className='App'>
+                <Routes>
+                    {/* Public Routes */}
+                    {publicRoutes.map((route, index) => {
+                        const Page = route.component;
+                        let Layout =
+                            route.layout === null
+                                ? Fragment
+                                : route.layout || UserLayout;
+                        return (
+                            <Route
+                                key={index}
+                                path={route.path}
+                                element={
+                                    <Layout>
+                                        <Page />
+                                    </Layout>
+                                }
+                            />
+                        );
+                    })}
+
+                    {/* Private Routes */}
+                    {privateRoutes.map((route, index) => {
+                        const Page = route.component;
+                        let Layout =
+                            route.layout === null
+                                ? Fragment
+                                : route.layout || UserLayout;
+                        return (
+                            <Route
+                                key={index + 'private'}
+                                path={route.path}
+                                element={
+                                    <ProtectedRoute>
+                                        <Layout>
+                                            <Page />
+                                        </Layout>
+                                    </ProtectedRoute>
+                                }
+                            />
+                        );
+                    })}
+                </Routes>
+            </div>
+        </AuthProvider>
     );
 }
 
