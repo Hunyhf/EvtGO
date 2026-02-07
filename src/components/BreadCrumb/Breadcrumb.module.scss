@@ -4,6 +4,7 @@
     margin-bottom: 20px;
     padding: 10px 0;
     height: $header-height;
+    margin-bottom: 0;
     background-color: $secondary-color;
     @include mobile-width {
         display: none;

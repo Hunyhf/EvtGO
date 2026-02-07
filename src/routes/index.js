@@ -1,8 +1,8 @@
-import Home from '@pages/user/Home.jsx';
+import Home from '@pages/user/Home/Home.jsx';
 import Staff from '@pages/staff/Staff.jsx';
 import Category from '@pages/user/Category.jsx';
-import Profile from '@pages/user/Profile.jsx';
-import Ticket from '@pages/user/Tickets.jsx';
+import Profile from '@pages/user/Profile/Profile.jsx';
+import Ticket from '@pages/user/Ticket/Ticket.jsx';
 
 const publicRoutes = [
     { path: '/', component: Home },
