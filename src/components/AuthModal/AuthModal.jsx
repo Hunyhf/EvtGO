@@ -92,7 +92,7 @@ function AuthModal({ isOpen, onClose }) {
             } else {
                 setErrors({
                     ...errors,
-                    common: error?.message || 'Có lỗi xảy ra'
+                    common: 'Mật khẩu hoặc tài khoản không chính xác, vui lòng nhập lại'
                 });
             }
         }
