@@ -50,15 +50,14 @@ function AuthModal({ isOpen, onClose }) {
         } else if (password.length < 8) {
             newErrors.password = 'Mật khẩu phải có ít nhất 8 ký tự';
         }
-        // Kiểm tra Tên đăng nhập
-        if (!isLoginMode && !confirmPassword) {
-            // Kiểm tra khớp mật khẩu
-
-            newErrors.confirmPassword = 'Vui lòng xác nhận mật khẩu';
-        } else if (password !== confirmPassword) {
-            newErrors.confirmPassword = 'Mật khẩu không trùng khớp';
+        // Kiểm tra Mật khẩu xác nhận (Chỉ kiểm tra khi ở chế độ Đăng ký)
+        if (!isLoginMode) {
+            if (!confirmPassword) {
+                newErrors.confirmPassword = 'Vui lòng xác nhận mật khẩu';
+            } else if (password !== confirmPassword) {
+                newErrors.confirmPassword = 'Mật khẩu không trùng khớp';
+            }
         }
-
         setErrors(newErrors);
         return Object.keys(newErrors).length === 0; // Trả về true nếu không có lỗi
     };

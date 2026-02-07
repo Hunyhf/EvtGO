@@ -1,5 +1,10 @@
+import classNames from 'classnames/bind';
+import styles from './user.module.scss';
+
+const cx = classNames.bind(styles);
+
 function Profile() {
-    return <h1>User Profile Page</h1>;
+    return <div className={cx('wrapper')}></div>;
 }
 
 export default Profile;
