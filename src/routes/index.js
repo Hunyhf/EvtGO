@@ -11,8 +11,9 @@ const publicRoutes = [
 
 // Route cần đăng nhập mới vào được
 const privateRoutes = [
-    { path: '/my-tickets', component: Ticket },
-    { path: '/profile', component: Profile }
+    // Label là các tên hiển thị của breadcrum
+    { path: '/my-tickets', component: Ticket, label: 'Vé của tôi' },
+    { path: '/profile', component: Profile, label: 'Hồ sơ cá nhân' }
 ];
 
 export { publicRoutes, privateRoutes };

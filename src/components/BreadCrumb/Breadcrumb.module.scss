@@ -1,0 +1,43 @@
+@import '@styles/variables';
+@import '@styles/mixins';
+.wrapper {
+    margin-bottom: 20px;
+    padding: 10px 0;
+    height: $header-height;
+    background-color: $secondary-color;
+    @include mobile-width {
+        display: none;
+    }
+}
+
+.list {
+    display: flex;
+    padding: 0;
+    margin: 0;
+    @include grid-wide;
+    line-height: 76px;
+    @include tablet-width {
+        @include grid;
+        padding: 0 24px;
+        display: flex;
+    }
+}
+
+.item {
+    font-size: 1.4rem;
+    color: $text-color;
+}
+
+.link {
+    color: $text-color;
+}
+
+.current {
+    color: $primary-color;
+    font-weight: 500;
+}
+
+.separator {
+    margin: 0 10px;
+    color: $text-color;
+}
