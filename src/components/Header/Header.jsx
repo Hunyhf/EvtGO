@@ -85,7 +85,7 @@ function Header() {
                                 />
 
                                 <span className={cx('header__text--hide')}>
-                                    {user?.email || 'Tài khoản'}
+                                    Tài khoản
                                 </span>
 
                                 <div className={cx('header-user__toggle')}>

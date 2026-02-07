@@ -24,27 +24,53 @@
 
 .close-btn {
     position: absolute;
-    top: 0;
-    right: 0;
+    top: 12px;
+    right: 12px;
+    width: 24px;
+    height: 24px;
     padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: transparent;
+    border: none;
+    cursor: pointer;
+
     svg {
-        width: 20px;
-        height: 20px;
+        width: 24px;
+        height: 24px;
     }
 }
-
 .form {
     display: flex;
     flex-direction: column;
     gap: 15px;
     margin-top: 20px;
-
+    .input-group {
+        width: 100%;
+        margin-bottom: 15px; // Khoảng cách giữa các ô nhập
+        display: flex;
+        flex-direction: column;
+    }
     .input {
         padding: 10px;
         border: 1px solid #ddd;
         border-radius: 4px;
+        &.input-error {
+            border-color: $error-color;
+        }
     }
+    .error-msg {
+        color: $error-color;
+        font-size: 1.2rem;
+        margin-top: 4px;
+        text-align: left;
 
+        &.center {
+            text-align: center;
+            margin-bottom: 10px;
+        }
+    }
     .submit-btn {
         padding: 10px;
         background-color: $primary-color;

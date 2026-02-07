@@ -1,4 +1,4 @@
-import { useState, useContext } from 'react';
+import { useState, useContext, useEffect } from 'react';
 import classNames from 'classnames/bind';
 import styles from './AuthModal.module.scss';
 import CloseBtnIcon from '@icons/svgs/closeBtnIcon.svg?react';
@@ -9,16 +9,64 @@ const cx = classNames.bind(styles);
 
 function AuthModal({ isOpen, onClose }) {
     const { loginContext } = useContext(AuthContext);
-    const [isLoginMode, setIsLoginMode] = useState(true); // Toggle Login/Register
-
+    // Thay đổi từ headear guest thành header user
+    const [isLoginMode, setIsLoginMode] = useState(true);
     // Form states
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
-    const [name, setName] = useState('');
+    const [confirmPassword, setConfirmPassword] = useState('');
+    const [errors, setErrors] = useState({});
 
+    // Reset lỗi khi chuyển đổi giữa Đăng nhập/Đăng ký
+    useEffect(() => {
+        setErrors({});
+        setConfirmPassword('');
+    }, [isLoginMode]);
+
+    useEffect(() => {
+        if (Object.keys(errors).length > 0) {
+            const timer = setTimeout(() => {
+                setErrors({});
+            }, 3000); // 3 giây
+
+            return () => clearTimeout(timer); // Dọn dẹp timer nếu component unmount hoặc errors thay đổi
+        }
+    }, [errors]);
+
+    const validateForm = () => {
+        let newErrors = {};
+
+        // Kiểm tra Email
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!email) {
+            newErrors.email = 'Email không được để trống';
+        } else if (!emailRegex.test(email)) {
+            newErrors.email = 'Định dạng email không hợp lệ';
+        }
+
+        // Kiểm tra Mật khẩu
+        if (!password) {
+            newErrors.password = 'Mật khẩu không được để trống';
+        } else if (password.length < 8) {
+            newErrors.password = 'Mật khẩu phải có ít nhất 8 ký tự';
+        }
+        // Kiểm tra Tên đăng nhập
+        if (!isLoginMode && !confirmPassword) {
+            // Kiểm tra khớp mật khẩu
+
+            newErrors.confirmPassword = 'Vui lòng xác nhận mật khẩu';
+        } else if (password !== confirmPassword) {
+            newErrors.confirmPassword = 'Mật khẩu không trùng khớp';
+        }
+
+        setErrors(newErrors);
+        return Object.keys(newErrors).length === 0; // Trả về true nếu không có lỗi
+    };
     // Xử lý submit
+
     const handleSubmit = async e => {
         e.preventDefault();
+        if (!validateForm()) return;
         try {
             if (isLoginMode) {
                 // Login
@@ -30,15 +78,24 @@ function AuthModal({ isOpen, onClose }) {
                 }
             } else {
                 // Register
-
-                const res = await callRegister(email, password, name);
+                const res = await callRegister(email, password);
                 if (res?.data?.id) {
                     alert('Đăng ký thành công! Vui lòng đăng nhập.');
                     setIsLoginMode(true);
                 }
             }
         } catch (error) {
-            alert(error?.message || 'Có lỗi xảy ra');
+            if (error?.message?.includes('email')) {
+                setErrors({
+                    ...errors,
+                    email: 'Email này đã được sử dụng'
+                });
+            } else {
+                setErrors({
+                    ...errors,
+                    common: error?.message || 'Có lỗi xảy ra'
+                });
+            }
         }
     };
 
@@ -53,34 +110,68 @@ function AuthModal({ isOpen, onClose }) {
 
                 <div className={cx('content')}>
                     <h2>{isLoginMode ? 'Đăng nhập' : 'Đăng ký'}</h2>
-                    <form className={cx('form')} onSubmit={handleSubmit}>
-                        {!isLoginMode && (
+                    <form
+                        className={cx('form')}
+                        onSubmit={handleSubmit}
+                        noValidate
+                    >
+                        <div className={cx('input-group')}>
                             <input
-                                type='text'
-                                placeholder='Họ và tên'
-                                className={cx('input')}
-                                value={name}
-                                onChange={e => setName(e.target.value)}
-                                required
+                                type='email'
+                                placeholder='Email'
+                                className={cx('input', {
+                                    'input-error': errors.email
+                                })}
+                                value={email}
+                                onChange={e => setEmail(e.target.value)}
                             />
+                            {errors.email && (
+                                <span className={cx('error-msg')}>
+                                    {errors.email}
+                                </span>
+                            )}
+                        </div>
+                        <div className={cx('input-group')}>
+                            <input
+                                type='password'
+                                placeholder='Mật khẩu'
+                                className={cx('input', {
+                                    'input-error': errors.password
+                                })}
+                                value={password}
+                                onChange={e => setPassword(e.target.value)}
+                            />
+                            {errors.password && (
+                                <span className={cx('error-msg')}>
+                                    {errors.password}
+                                </span>
+                            )}
+                        </div>
+                        {!isLoginMode && (
+                            <div className={cx('input-group')}>
+                                <input
+                                    type='password'
+                                    placeholder='Nhập lại mật khẩu'
+                                    className={cx('input', {
+                                        'input-error': errors.confirmPassword
+                                    })}
+                                    value={confirmPassword}
+                                    onChange={e =>
+                                        setConfirmPassword(e.target.value)
+                                    }
+                                />
+                                {errors.confirmPassword && (
+                                    <span className={cx('error-msg')}>
+                                        {errors.confirmPassword}
+                                    </span>
+                                )}
+                            </div>
                         )}
-                        <input
-                            type='email'
-                            placeholder='Email'
-                            className={cx('input')}
-                            value={email}
-                            onChange={e => setEmail(e.target.value)}
-                            required
-                        />
-                        <input
-                            type='password'
-                            placeholder='Mật khẩu'
-                            className={cx('input')}
-                            value={password}
-                            onChange={e => setPassword(e.target.value)}
-                            required
-                        />
-
+                        {errors.common && (
+                            <div className={cx('error-msg', 'center')}>
+                                {errors.common}
+                            </div>
+                        )}
                         <button type='submit' className={cx('submit-btn')}>
                             {isLoginMode ? 'Đăng nhập' : 'Đăng ký'}
                         </button>
