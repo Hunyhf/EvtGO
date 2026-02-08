@@ -22,7 +22,7 @@ function AuthModal({ isOpen, onClose }) {
     useEffect(() => {
         setErrors({});
         setConfirmPassword('');
-        setShowPassword(false); // Reset trạng thái ẩn hiện khi đổi mode
+        setShowPassword(false);
     }, [isLoginMode]);
 
     useEffect(() => {
@@ -71,19 +71,35 @@ function AuthModal({ isOpen, onClose }) {
                     onClose();
                 }
             } else {
-                const res = await callRegister(email, password);
+                // TỰ TẠO NAME MẶC ĐỊNH TỪ EMAIL ĐỂ THỎA MÃN BACKEND
+                const defaultName = email.split('@')[0];
+
+                // GỬI KÈM NAME LÊN API
+                const res = await callRegister(email, password, defaultName);
+
                 if (res?.data?.id) {
                     alert('Đăng ký thành công! Vui lòng đăng nhập.');
                     setIsLoginMode(true);
                 }
             }
         } catch (error) {
-            if (error?.message?.includes('email')) {
-                setErrors({ ...errors, email: 'Email này đã được sử dụng' });
+            // LẤY MESSAGE CHI TIẾT TỪ SERVER (VÍ DỤ: "Email đã tồn tại")
+            const serverMessage =
+                error?.response?.data?.message || error?.message;
+
+            if (serverMessage?.toLowerCase().includes('email')) {
+                setErrors({
+                    ...errors,
+                    email: 'Email này đã được sử dụng hoặc không hợp lệ'
+                });
             } else {
                 setErrors({
                     ...errors,
-                    common: 'Tài khoản hoặc mật khẩu chưa chính xác, vui lòng thử lại'
+                    // HIỂN THỊ THÔNG BÁO PHÙ HỢP THEO CHẾ ĐỘ
+                    common: isLoginMode
+                        ? 'Tài khoản hoặc mật khẩu chưa chính xác, vui lòng thử lại'
+                        : serverMessage ||
+                          'Đăng ký không thành công, vui lòng thử lại sau'
                 });
             }
         }
@@ -122,7 +138,6 @@ function AuthModal({ isOpen, onClose }) {
                             )}
                         </div>
 
-                        {/* Ô Mật khẩu có icon ẩn/hiện */}
                         <div className={cx('input-group')}>
                             <div className={cx('password-wrapper')}>
                                 <input
@@ -154,7 +169,6 @@ function AuthModal({ isOpen, onClose }) {
                             )}
                         </div>
 
-                        {/* Ô Nhập lại mật khẩu (chỉ hiện khi Đăng ký) */}
                         {!isLoginMode && (
                             <div className={cx('input-group')}>
                                 <div className={cx('password-wrapper')}>
@@ -171,7 +185,7 @@ function AuthModal({ isOpen, onClose }) {
                                         onChange={e =>
                                             setConfirmPassword(e.target.value)
                                         }
-                                    />{' '}
+                                    />
                                     <span
                                         className={cx('toggle-icon')}
                                         onClick={() =>

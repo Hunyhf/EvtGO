@@ -5,9 +5,9 @@ export const callRegister = (email, password, name, age, gender, address) => {
         email,
         password,
         name,
-        age,
-        gender,
-        address
+        age: null,
+        gender: null,
+        address: null
     });
 };
 
