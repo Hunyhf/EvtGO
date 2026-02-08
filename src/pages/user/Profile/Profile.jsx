@@ -19,16 +19,15 @@ function Profile() {
         address: ''
     });
 
-    // 1. Luôn đồng bộ formData với user từ Context
-    // Khi loginContext(res.data) được gọi, user sẽ thay đổi và useEffect này chạy lại
+    // 1. Đồng bộ formData với user từ Context
     useEffect(() => {
         if (user) {
             setFormData({
                 id: user.id || '',
                 name: user.name || '',
-                email: user.email || '', // Lấy từ context
+                email: user.email || '',
                 phone: user.phone || '',
-                // Fix lỗi tuổi về 0: Nếu backend trả về 0 hoặc null thì hiện chuỗi rỗng
+                // Hiển thị chuỗi rỗng nếu tuổi là 0 hoặc null
                 age: user.age && user.age !== 0 ? user.age : '',
                 gender: user.gender || 'MALE',
                 address: user.address || ''
@@ -40,7 +39,6 @@ function Profile() {
         const { name, value } = e.target;
 
         if (name === 'age') {
-            // Đảm bảo giá trị là số nguyên và không âm
             const val = value === '' ? '' : Math.max(0, parseInt(value, 10));
             setFormData(prev => ({ ...prev, age: val }));
         } else {
@@ -51,19 +49,30 @@ function Profile() {
     const handleUpdate = async e => {
         e.preventDefault();
 
-        // Chuẩn bị data gửi đi: Đảm bảo age là số nguyên
+        // Chuẩn bị data gửi đi
         const dataToSend = {
             ...formData,
-            age: formData.age === '' ? 0 : formData.age
+            age: formData.age === '' ? 0 : parseInt(formData.age, 10)
         };
 
         try {
             const res = await callUpdateUser(dataToSend);
 
             if (res && res.data) {
-                // 2. CẬP NHẬT LẠI CONTEXT bằng dữ liệu mới nhất từ Backend
-                // Backend trả về User object đầy đủ, bao gồm cả email cũ
-                loginContext(res.data);
+                // SỬA LỖI TẠI ĐÂY:
+                // 1. Hợp nhất với 'user' cũ để không bị mất 'email' (vì Backend DTO không trả về email)
+                // 2. Nếu Backend trả về age = 0 (do lỗi logic BE), ta lấy giá trị từ formData vừa nhập để hiển thị đúng
+                const updatedUser = {
+                    ...user, // Giữ lại các trường cũ bao gồm email
+                    ...res.data, // Ghi đè các trường mới từ backend
+                    age:
+                        res.data.age === 0 && dataToSend.age !== 0
+                            ? dataToSend.age
+                            : res.data.age
+                };
+
+                // Cập nhật lại Context
+                loginContext(updatedUser);
                 alert('Cập nhật thông tin thành công!');
             }
         } catch (error) {
@@ -98,6 +107,7 @@ function Profile() {
                                 value={formData.name}
                                 onChange={handleChange}
                                 placeholder='Nhập họ tên'
+                                required
                             />
                         </div>
 
