@@ -1,4 +1,5 @@
 import { useState, useContext, useEffect } from 'react';
+import { toast } from 'react-toastify';
 import classNames from 'classnames/bind';
 import styles from './AuthModal.module.scss';
 import CloseBtnIcon from '@icons/svgs/closeBtnIcon.svg?react';
@@ -71,14 +72,13 @@ function AuthModal({ isOpen, onClose }) {
                     onClose();
                 }
             } else {
-                // TỰ TẠO NAME MẶC ĐỊNH TỪ EMAIL ĐỂ THỎA MÃN BACKEND
                 const defaultName = email.split('@')[0];
 
                 // GỬI KÈM NAME LÊN API
                 const res = await callRegister(email, password, defaultName);
 
                 if (res?.data?.id) {
-                    alert('Đăng ký thành công! Vui lòng đăng nhập.');
+                    toast.success('Đăng ký thành công! Vui lòng đăng nhập.');
                     setIsLoginMode(true);
                 }
             }
