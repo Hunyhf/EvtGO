@@ -7,28 +7,29 @@ import { callUpdateUser } from '@apis/userApi';
 const cx = classNames.bind(styles);
 
 function Profile() {
-    const { user } = useContext(AuthContext);
+    const { user, loginContext } = useContext(AuthContext);
 
     const [formData, setFormData] = useState({
         id: '',
         name: '',
         email: '',
-        phone: '', // Hiện tại chưa có trong Entity Backend nhưng cứ để ở FE
-        age: '', // Backend dùng trường này
-        gender: 'MALE', // Khớp với GenderEnum của Backend
+        phone: '',
+        age: '',
+        gender: 'MALE',
         address: ''
     });
 
-    const [birthDate, setBirthDate] = useState(''); // Dùng để quản lý input date ở FE
-
+    // 1. Luôn đồng bộ formData với user từ Context
+    // Khi loginContext(res.data) được gọi, user sẽ thay đổi và useEffect này chạy lại
     useEffect(() => {
         if (user) {
             setFormData({
                 id: user.id || '',
                 name: user.name || '',
-                email: user.email || '',
-                phone: '',
-                age: user.age || 0,
+                email: user.email || '', // Lấy từ context
+                phone: user.phone || '',
+                // Fix lỗi tuổi về 0: Nếu backend trả về 0 hoặc null thì hiện chuỗi rỗng
+                age: user.age && user.age !== 0 ? user.age : '',
                 gender: user.gender || 'MALE',
                 address: user.address || ''
             });
@@ -37,18 +38,33 @@ function Profile() {
 
     const handleChange = e => {
         const { name, value } = e.target;
-        setFormData(prev => ({ ...prev, [name]: value }));
+
+        if (name === 'age') {
+            // Đảm bảo giá trị là số nguyên và không âm
+            const val = value === '' ? '' : Math.max(0, parseInt(value, 10));
+            setFormData(prev => ({ ...prev, age: val }));
+        } else {
+            setFormData(prev => ({ ...prev, [name]: value }));
+        }
     };
 
     const handleUpdate = async e => {
         e.preventDefault();
 
-        // Tính toán age từ birthDate nếu cần, hoặc gửi trực tiếp nếu Backend đã đổi logic
-        // Ở đây tôi gửi theo cấu trúc Entity User của bạn
+        // Chuẩn bị data gửi đi: Đảm bảo age là số nguyên
+        const dataToSend = {
+            ...formData,
+            age: formData.age === '' ? 0 : formData.age
+        };
+
         try {
-            const res = await callUpdateUser(formData);
+            const res = await callUpdateUser(dataToSend);
+
             if (res && res.data) {
-                alert('Cập nhật thông tin tài khoản thành công!');
+                // 2. CẬP NHẬT LẠI CONTEXT bằng dữ liệu mới nhất từ Backend
+                // Backend trả về User object đầy đủ, bao gồm cả email cũ
+                loginContext(res.data);
+                alert('Cập nhật thông tin thành công!');
             }
         } catch (error) {
             console.error('Update error:', error);
@@ -65,7 +81,7 @@ function Profile() {
                     <div className={cx('avatar-section')}>
                         <img
                             className={cx('avatar-img')}
-                            src='https://static.ticketbox.vn/avatar.png' // Ảnh mặc định giống header
+                            src='https://static.ticketbox.vn/avatar.png'
                             alt='Avatar'
                         />
                     </div>
@@ -86,17 +102,18 @@ function Profile() {
                         </div>
 
                         <div className={cx('form-group')}>
-                            <label>Số điện thoại (Chưa có API)</label>
+                            <label>Số điện thoại</label>
                             <input
                                 type='text'
                                 name='phone'
                                 value={formData.phone}
                                 onChange={handleChange}
+                                placeholder='Nhập số điện thoại'
                             />
                         </div>
 
                         <div className={cx('form-group')}>
-                            <label>Email</label>
+                            <label>Email (Không đổi)</label>
                             <input
                                 type='email'
                                 value={formData.email}
@@ -106,19 +123,26 @@ function Profile() {
                         </div>
 
                         <div className={cx('form-group')}>
-                            <label>
-                                Ngày tháng năm sinh (Trường Age trong DB)
-                            </label>
+                            <label>Tuổi</label>
                             <input
-                                type='date'
-                                value={birthDate}
-                                onChange={e => setBirthDate(e.target.value)}
+                                type='number'
+                                name='age'
+                                value={formData.age}
+                                onChange={handleChange}
+                                placeholder='Nhập số tuổi'
+                                min='1'
                             />
-                            {!birthDate && (
-                                <span className={cx('status-text')}>
-                                    Chưa có
-                                </span>
-                            )}
+                        </div>
+
+                        <div className={cx('form-group')}>
+                            <label>Địa chỉ</label>
+                            <input
+                                type='text'
+                                name='address'
+                                value={formData.address}
+                                onChange={handleChange}
+                                placeholder='Nhập địa chỉ'
+                            />
                         </div>
 
                         <div className={cx('form-group')}>

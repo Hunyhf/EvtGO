@@ -3,9 +3,7 @@
 
 .container {
     width: 100%;
-    min-height: 100vh;
-    background-color: $secondary-color; // Sử dụng màu bạn yêu cầu
-    padding: 40px 20px;
+    background-color: $secondary-color;
     display: flex;
     justify-content: center;
 }
@@ -13,12 +11,11 @@
 .profile-wrapper {
     width: 100%;
     max-width: 600px;
-    background-color: #fff; // Khung trắng chứa form
     padding: 32px;
     border-radius: 12px;
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+    background-color: transparent;
 
-    // Giữ form nằm giữa wrapper
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -27,7 +24,7 @@
         font-size: 2.4rem;
         font-weight: 700;
         margin-bottom: 32px;
-        color: $text-color;
+        color: $white-color;
         text-align: center;
     }
 }
@@ -43,7 +40,7 @@
     width: 100%;
     display: flex;
     flex-direction: column;
-    align-items: center; // Căn các form-group ra giữa
+    align-items: center;
 }
 
 .form-group {
@@ -57,7 +54,7 @@
         font-size: 1.4rem;
         font-weight: 600;
         margin-bottom: 8px;
-        color: #4a4a4a;
+        color: $white-color;
     }
 
     input {
@@ -75,7 +72,7 @@
 
         &.input-disabled {
             background-color: #f5f7fa;
-            color: #909399;
+            color: $text-color;
             cursor: not-allowed;
         }
     }
@@ -86,12 +83,15 @@
     justify-content: center;
     gap: 32px;
     margin: 10px 0;
+    width: 100%;
+    max-width: 450px;
 
     label {
         display: flex;
         align-items: center;
         gap: 8px;
         font-size: 1.4rem;
+        color: $white-color;
         cursor: pointer;
     }
 }
@@ -101,7 +101,7 @@
     max-width: 450px;
     padding: 14px;
     background-color: $primary-color;
-    color: #fff;
+    color: $white-color;
     border: none;
     border-radius: 8px;
     font-size: 1.6rem;
@@ -109,6 +109,8 @@
     cursor: pointer;
     margin-top: 12px;
     transition: opacity 0.2s;
+    margin-left: auto;
+    margin-right: auto;
 
     &:hover {
         opacity: 0.9;
