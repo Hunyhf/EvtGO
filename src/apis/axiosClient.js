@@ -2,8 +2,20 @@ import axios from 'axios';
 
 const instance = axios.create({
     baseURL: 'http://localhost:8080',
-    withCredentials: true // Cho phép gửi cookie (refresh_token)
+    withCredentials: true
 });
+
+// Biến quản lý trạng thái refresh
+let isRefreshing = false;
+let failedQueue = [];
+
+const processQueue = (error, token = null) => {
+    failedQueue.forEach(prom => {
+        if (error) prom.reject(error);
+        else prom.resolve(token);
+    });
+    failedQueue = [];
+};
 
 instance.interceptors.request.use(
     config => {
@@ -20,24 +32,59 @@ instance.interceptors.response.use(
     response => response.data,
     async error => {
         const originalRequest = error.config;
-        // Nếu lỗi 401 (Unauthorized) và chưa retry lần nào
+
+        // Nếu lỗi 401 và không phải là yêu cầu Login/Refresh
         if (error.response?.status === 401 && !originalRequest._retry) {
+            // Nếu đang gọi refresh rồi, các request khác đứng đợi vào hàng chờ (Queue)
+            if (isRefreshing) {
+                return new Promise((resolve, reject) => {
+                    failedQueue.push({ resolve, reject });
+                })
+                    .then(token => {
+                        originalRequest.headers.Authorization = `Bearer ${token}`;
+                        return instance(originalRequest);
+                    })
+                    .catch(err => Promise.reject(err));
+            }
+
             originalRequest._retry = true;
+            isRefreshing = true;
+
             try {
-                // Gọi API refresh token
-                const res = await instance.get('/api/v1/auth/refresh');
-                if (res && res.data) {
-                    const newAccessToken = res.data.access_token;
+                const res = await axios.get(
+                    'http://localhost:8080/api/v1/auth/refresh',
+                    {
+                        withCredentials: true
+                    }
+                );
+
+                const newAccessToken = res.data?.data?.accessToken;
+
+                if (newAccessToken) {
                     localStorage.setItem('access_token', newAccessToken);
+                    instance.defaults.headers.common['Authorization'] =
+                        `Bearer ${newAccessToken}`;
+
+                    // Giải phóng hàng chờ
+                    processQueue(null, newAccessToken);
+
+                    // Gửi lại request ban đầu
                     originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
-                    return instance(originalRequest); // Gọi lại request cũ
+                    return instance(originalRequest);
                 }
             } catch (refreshError) {
-                // Nếu refresh cũng lỗi -> Hết phiên, logout
+                processQueue(refreshError, null);
                 localStorage.removeItem('access_token');
-                window.location.href = '/';
+
+                if (window.location.pathname !== '/') {
+                    window.location.href = '/';
+                }
+                return Promise.reject(refreshError);
+            } finally {
+                isRefreshing = false;
             }
         }
+
         return Promise.reject(error.response?.data || error);
     }
 );
