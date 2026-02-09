@@ -8,7 +8,7 @@ import TicketIcon from '@icons/svgs/ticketIcon.svg?react';
 import DropDownIcon from '@icons/svgs/dropdownIcon.svg?react';
 import UserIcon from '@icons/svgs/userIcon.svg?react';
 import LogOutIcon from '@icons/svgs/logOutIcon.svg?react';
-// 1. Import AuthContext và API logout
+
 import { AuthContext } from '@contexts/AuthContext';
 import { callLogout } from '@apis/authApi';
 
@@ -17,13 +17,11 @@ const cx = classNames.bind(styles);
 function Header() {
     const [showAuthModal, setShowAuthModal] = useState(false);
 
-    // 2. Lấy dữ liệu từ Context
     const { isAuthenticated, user, logoutContext } = useContext(AuthContext);
 
-    // 3. Xử lý đăng xuất
     const handleLogout = async () => {
         try {
-            await callLogout(); // Gọi API logout (tuỳ chọn, nếu server cần)
+            await callLogout(); // Gọi API logout
         } catch (error) {
             console.error('Logout error:', error);
         } finally {
@@ -75,12 +73,11 @@ function Header() {
                             </span>
                         </Link>
 
-                        {/* 4. Render có điều kiện dựa trên isAuthenticated */}
                         {isAuthenticated ? (
                             <div className={cx('header-user')}>
                                 <img
                                     className={cx('header-user__avatar')}
-                                    src='https://static.ticketbox.vn/avatar.png' // Có thể thay bằng user.avatar nếu có
+                                    src='https://static.ticketbox.vn/avatar.png'
                                     alt='avatar'
                                 />
 

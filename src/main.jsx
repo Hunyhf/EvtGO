@@ -9,6 +9,7 @@ createRoot(document.getElementById('root')).render(
     <StrictMode>
         <Router>
             <App />
+            {/*Vị trí toast sẽ xuất hiện nếu sử dụng */}
             <ToastContainer
                 position='top-right'
                 autoClose={3000}

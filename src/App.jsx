@@ -2,8 +2,8 @@ import { Fragment } from 'react';
 import { Routes, Route } from 'react-router-dom';
 import { publicRoutes, privateRoutes } from './routes';
 import UserLayout from '@components/layouts/UserLayout';
-import { AuthProvider } from '@contexts/AuthContext'; // Import AuthProvider
-import ProtectedRoute from '@components/ProtectedRoute'; // Import ProtectedRoute
+import { AuthProvider } from '@contexts/AuthContext';
+import ProtectedRoute from '@components/ProtectedRoute';
 
 function App() {
     return (
