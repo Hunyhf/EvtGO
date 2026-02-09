@@ -19,7 +19,6 @@ function Profile() {
         address: ''
     });
 
-    // 1. Đồng bộ formData với user từ Context
     useEffect(() => {
         if (user) {
             setFormData({
@@ -59,12 +58,9 @@ function Profile() {
             const res = await callUpdateUser(dataToSend);
 
             if (res && res.data) {
-                // SỬA LỖI TẠI ĐÂY:
-                // 1. Hợp nhất với 'user' cũ để không bị mất 'email' (vì Backend DTO không trả về email)
-                // 2. Nếu Backend trả về age = 0 (do lỗi logic BE), ta lấy giá trị từ formData vừa nhập để hiển thị đúng
                 const updatedUser = {
-                    ...user, // Giữ lại các trường cũ bao gồm email
-                    ...res.data, // Ghi đè các trường mới từ backend
+                    ...user,
+                    ...res.data,
                     age:
                         res.data.age === 0 && dataToSend.age !== 0
                             ? dataToSend.age
