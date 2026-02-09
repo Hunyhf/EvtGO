@@ -1,5 +1,6 @@
 import { createContext, useState, useEffect } from 'react';
 import { callFetchAccount } from '@apis/authApi.js';
+import Cookies from 'js-cookie';
 
 export const AuthContext = createContext({
     isAuthenticated: false,
@@ -19,29 +20,41 @@ export const AuthProvider = ({ children }) => {
     const [isAuthenticated, setIsAuthenticated] = useState(false);
     const [isLoading, setIsLoading] = useState(true);
 
-    const loginContext = userData => {
+    //  Nhận thêm accessToken để lưu vào Cookie ngay tại
+    const loginContext = (userData, accessToken) => {
         setIsAuthenticated(true);
         setUser(userData);
+        if (accessToken) {
+            // Lưu access_token vào cookie, hết hạn sau 1 ngày (86400s theo config backend)
+            Cookies.set('access_token', accessToken, { expires: 1, path: '/' });
+        }
     };
 
     const logoutContext = () => {
         setIsAuthenticated(false);
         setUser({ email: '', name: '' });
-        localStorage.removeItem('access_token');
+        // THAY ĐỔI: Xóa token trong Cookie thay vì localStorage
+        Cookies.remove('access_token', { path: '/' });
     };
 
     const fetchAccount = async () => {
-        if (!localStorage.getItem('access_token')) {
+        // THAY ĐỔI: Kiểm tra token từ Cookie
+        const token = Cookies.get('access_token');
+        if (!token) {
             setIsLoading(false);
             return;
         }
+
         try {
             const res = await callFetchAccount();
+            // Backend trả về data.user trong ResLoginDTO.UserGetAccount
             if (res && res.data) {
-                loginContext(res.data.user);
+                // Chỉ cập nhật user profile, không cần set lại token vì đã có sẵn
+                setIsAuthenticated(true);
+                setUser(res.data.user);
             }
         } catch (error) {
-            // Token không hợp lệ
+            // Token hết hạn hoặc không hợp lệ -> dọn dẹp cookie và state
             logoutContext();
         } finally {
             setIsLoading(false);
@@ -62,7 +75,6 @@ export const AuthProvider = ({ children }) => {
                 isLoading
             }}
         >
-            {/* Chờ check token xong mới render app để tránh flicker */}
             {!isLoading && children}
         </AuthContext.Provider>
     );

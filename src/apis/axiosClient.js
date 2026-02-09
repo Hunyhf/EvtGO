@@ -1,7 +1,9 @@
 import axios from 'axios';
+import Cookies from 'js-cookie';
 
 const instance = axios.create({
-    baseURL: 'http://localhost:8080',
+    // Sử dụng biến môi trường, fallback về localhost nếu không có
+    baseURL: import.meta.env.VITE_API_URL || 'http://localhost:8080',
     withCredentials: true
 });
 
@@ -17,9 +19,10 @@ const processQueue = (error, token = null) => {
     failedQueue = [];
 };
 
+//Request Interceptor: Đọc token từ Cookie
 instance.interceptors.request.use(
     config => {
-        const token = localStorage.getItem('access_token');
+        const token = Cookies.get('access_token');
         if (token) {
             config.headers.Authorization = `Bearer ${token}`;
         }
@@ -28,14 +31,13 @@ instance.interceptors.request.use(
     error => Promise.reject(error)
 );
 
+// 2. Response Interceptor: Xử lý Refresh Token
 instance.interceptors.response.use(
     response => response.data,
     async error => {
         const originalRequest = error.config;
 
-        // Nếu lỗi 401 và không phải là yêu cầu Login/Refresh
         if (error.response?.status === 401 && !originalRequest._retry) {
-            // Nếu đang gọi refresh rồi, các request khác đứng đợi vào hàng chờ (Queue)
             if (isRefreshing) {
                 return new Promise((resolve, reject) => {
                     failedQueue.push({ resolve, reject });
@@ -51,30 +53,25 @@ instance.interceptors.response.use(
             isRefreshing = true;
 
             try {
-                const res = await axios.get(
-                    'http://localhost:8080/api/v1/auth/refresh',
-                    {
-                        withCredentials: true
-                    }
-                );
+                // THAY ĐỔI: Gọi endpoint refresh bằng chính instance để dùng baseURL
+                const res = await instance.get('/api/v1/auth/refresh');
 
-                const newAccessToken = res.data?.data?.accessToken;
+                const newAccessToken = res.data?.accessToken;
 
                 if (newAccessToken) {
-                    localStorage.setItem('access_token', newAccessToken);
-                    instance.defaults.headers.common['Authorization'] =
-                        `Bearer ${newAccessToken}`;
+                    // THAY ĐỔI: Lưu token mới vào Cookie
+                    Cookies.set('access_token', newAccessToken, { expires: 1 });
 
-                    // Giải phóng hàng chờ
                     processQueue(null, newAccessToken);
 
-                    // Gửi lại request ban đầu
                     originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
                     return instance(originalRequest);
                 }
             } catch (refreshError) {
                 processQueue(refreshError, null);
-                localStorage.removeItem('access_token');
+
+                // THAY ĐỔI: Xóa token ở Cookie khi lỗi
+                Cookies.remove('access_token');
 
                 if (window.location.pathname !== '/') {
                     window.location.href = '/';
