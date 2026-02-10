@@ -1,6 +1,61 @@
-@import '@styles/variables';
-@import '@styles/mixins';
+@import '@styles/_variables';
+@import '@styles/_mixins';
+
 .home {
-    background-color: $secondary-color;
-    height: 100vh;
+    background-color: $secondary-color; // Màu nền tối từ hệ thống
+    min-height: 100vh;
+}
+
+.wrapper {
+    @include grid-wide(); // Giới hạn chiều rộng 1200px
+    padding: 2.4rem 0;
+}
+
+.banner-container {
+    width: 100%;
+    .swiper {
+        padding-bottom: 4rem;
+    }
+    // Tùy chỉnh màu sắc Swiper theo thương hiệu (Primary color)
+    :global(.swiper-button-next),
+    :global(.swiper-button-prev) {
+        color: $primary-color;
+        background: rgba($white-color, 0.1);
+        width: 4rem;
+        height: 4rem;
+        border-radius: 50%;
+
+        &::after {
+            font-size: 1.8rem;
+            font-weight: bold;
+        }
+
+        &:hover {
+            background: rgba($white-color, 0.2);
+        }
+    }
+
+    :global(.swiper-pagination-bullet-active) {
+        background: $primary-color; // Dấu chấm trang đang chọn
+    }
+}
+
+.banner-item {
+    width: 100%;
+    height: 34.5rem; // Chiều cao cố định theo yêu cầu của bạn
+    border-radius: 1.2rem;
+    overflow: hidden;
+    background-color: $third-color; // Placeholder màu nền
+
+    img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover; // Chống méo ảnh khi hiện 2 ảnh cùng lúc
+        transition: transform 0.4s ease;
+
+        &:hover {
+            transform: scale(1.05); // Hiệu ứng zoom nhẹ khi di chuột vào
+            cursor: pointer;
+        }
+    }
 }
