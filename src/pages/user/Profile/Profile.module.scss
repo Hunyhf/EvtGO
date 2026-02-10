@@ -1,91 +1,105 @@
 @import '@styles/variables';
 @import '@styles/mixins';
 
-.container {
+.profile {
     width: 100%;
     background-color: $secondary-color;
     display: flex;
     justify-content: center;
-}
 
-.profile-wrapper {
-    width: 100%;
-    max-width: 60rem;
-    padding: 3.2rem;
-    border-radius: 1.2rem;
-    background-color: transparent;
+    &__wrapper {
+        width: 100%;
+        max-width: 60rem;
+        padding: 3.2rem;
+        border-radius: 1.2rem;
+        background-color: transparent;
 
-    display: flex;
-    flex-direction: column;
-    align-items: center;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+    }
 
-    .profile-title {
+    &__title {
         font-size: 2.4rem;
         font-weight: 700;
         margin-bottom: 3.2rem;
         color: $white-color;
         text-align: center;
     }
-}
 
-.profile-content {
-    width: 100%;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-}
-
-.profile-form {
-    width: 100%;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-}
-
-.form-group {
-    width: 100%;
-    max-width: 45rem;
-    margin-bottom: 2rem;
-    display: flex;
-    flex-direction: column;
-
-    label {
-        font-size: 1.4rem;
-        font-weight: 600;
-        margin-bottom: 0.8rem;
-        color: $white-color;
-    }
-
-    input {
+    &__content {
         width: 100%;
-        padding: 1.2rem;
-        border: 0.01rem solid #dcdfe6;
-        border-radius: 0.8rem;
-        font-size: 1.4rem;
-        transition: border-color 0.2s;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+    }
 
-        &:focus {
-            border-color: $primary-color;
-            outline: none;
+    &__avatar-section {
+        margin-bottom: 2.4rem;
+        display: flex;
+        justify-content: center;
+    }
+
+    &__avatar-img {
+        width: 12rem;
+        height: 12rem;
+        border-radius: 50%;
+        object-fit: cover;
+        border: 0.2rem solid $white-color;
+    }
+
+    &__form {
+        width: 100%;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+    }
+
+    &__form-group {
+        width: 100%;
+        max-width: 45rem;
+        margin-bottom: 2rem;
+        display: flex;
+        flex-direction: column;
+
+        label {
+            font-size: 1.4rem;
+            font-weight: 600;
+            margin-bottom: 0.8rem;
+            color: $white-color;
         }
 
-        &.input-disabled {
-            background-color: #f5f7fa;
-            color: $text-color;
-            cursor: not-allowed;
+        input {
+            width: 100%;
+            padding: 1.2rem;
+            border: 0.01rem solid #dcdfe6;
+            border-radius: 0.8rem;
+            font-size: 1.4rem;
+            transition: border-color 0.2s;
+
+            &:focus {
+                border-color: $primary-color;
+                outline: none;
+            }
         }
     }
-}
 
-.radio-group {
-    display: flex;
-    justify-content: center;
-    gap: 3.2rem;
-    margin: 1rem 0;
-    width: 100%;
-    max-width: 45rem;
+    &__input--disabled {
+        background-color: #f5f7fa !important;
+        color: $text-color !important;
+        cursor: not-allowed !important;
+    }
 
-    label {
+    &__radio-group {
+        display: flex;
+        justify-content: center;
+        gap: 3.2rem;
+        margin: 1rem 0;
+        width: 100%;
+        max-width: 45rem;
+    }
+
+    &__radio-label {
         display: flex;
         align-items: center;
         gap: 0.8rem;
@@ -93,25 +107,25 @@
         color: $white-color;
         cursor: pointer;
     }
-}
 
-.update-btn {
-    width: 100%;
-    max-width: 45rem;
-    padding: 1.4rem;
-    background-color: $primary-color;
-    color: $white-color;
-    border: none;
-    border-radius: 8rem;
-    font-size: 1.6rem;
-    font-weight: 600;
-    cursor: pointer;
-    margin-top: 1.2rem;
-    transition: opacity 0.2s;
-    margin-left: auto;
-    margin-right: auto;
+    &__update-btn {
+        width: 100%;
+        max-width: 45rem;
+        padding: 1.4rem;
+        background-color: $primary-color;
+        color: $white-color;
+        border: none;
+        border-radius: 8rem;
+        font-size: 1.6rem;
+        font-weight: 600;
+        cursor: pointer;
+        margin-top: 1.2rem;
+        transition: opacity 0.2s;
+        margin-left: auto;
+        margin-right: auto;
 
-    &:hover {
-        opacity: 0.9;
+        &:hover {
+            opacity: 0.9;
+        }
     }
 }

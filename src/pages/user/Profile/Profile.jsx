@@ -1,4 +1,3 @@
-// src/pages/user/Profile/Profile.jsx
 import { useState, useContext, useEffect } from 'react';
 import classNames from 'classnames/bind';
 import styles from './Profile.module.scss';
@@ -29,7 +28,6 @@ function Profile() {
                 name: user.name || '',
                 email: user.email || '',
                 phone: user.phone || '',
-                // Hiển thị tuổi từ Context (Context đã lo việc lấy từ Cookie)
                 age: user.age || '',
                 gender: user.gender || 'MALE',
                 address: user.address || ''
@@ -71,33 +69,32 @@ function Profile() {
                     age: formData.age || res.data.age
                 };
 
-                await loginContext(updatedUser, null);
+                await loginContext(updatedUser, null, true);
                 toast.success('Cập nhật thông tin thành công!');
             }
         } catch (error) {
-            console.error('Update error:', error);
-            toast.error('Có lỗi xảy ra khi cập nhật');
+            console.error(error);
         }
     };
 
     return (
-        <div className={cx('container')}>
-            <div className={cx('profile-wrapper')}>
-                <h2 className={cx('profile-title')}>Thông tin tài khoản</h2>
-                <div className={cx('profile-content')}>
-                    <div className={cx('avatar-section')}>
+        <div className={cx('profile')}>
+            <div className={cx('profile__wrapper')}>
+                <h2 className={cx('profile__title')}>Thông tin tài khoản</h2>
+                <div className={cx('profile__content')}>
+                    <div className={cx('profile__avatar-section')}>
                         <img
-                            className={cx('avatar-img')}
+                            className={cx('profile__avatar-img')}
                             src='https://static.ticketbox.vn/avatar.png'
                             alt='Avatar'
                         />
                     </div>
 
                     <form
-                        className={cx('profile-form')}
+                        className={cx('profile__form')}
                         onSubmit={handleUpdate}
                     >
-                        <div className={cx('form-group')}>
+                        <div className={cx('profile__form-group')}>
                             <label>Họ và tên</label>
                             <input
                                 type='text'
@@ -108,7 +105,7 @@ function Profile() {
                             />
                         </div>
 
-                        <div className={cx('form-group')}>
+                        <div className={cx('profile__form-group')}>
                             <label>Số điện thoại</label>
                             <input
                                 type='text'
@@ -118,17 +115,17 @@ function Profile() {
                             />
                         </div>
 
-                        <div className={cx('form-group')}>
+                        <div className={cx('profile__form-group')}>
                             <label>Email </label>
                             <input
                                 type='email'
                                 value={formData.email}
                                 readOnly
-                                className={cx('input-disabled')}
+                                className={cx('profile__input--disabled')}
                             />
                         </div>
 
-                        <div className={cx('form-group')}>
+                        <div className={cx('profile__form-group')}>
                             <label>Tuổi</label>
                             <input
                                 type='number'
@@ -139,7 +136,7 @@ function Profile() {
                             />
                         </div>
 
-                        <div className={cx('form-group')}>
+                        <div className={cx('profile__form-group')}>
                             <label>Địa chỉ</label>
                             <input
                                 type='text'
@@ -149,10 +146,10 @@ function Profile() {
                             />
                         </div>
 
-                        <div className={cx('form-group')}>
+                        <div className={cx('profile__form-group')}>
                             <label>Giới tính</label>
-                            <div className={cx('radio-group')}>
-                                <label className={cx('radio-label')}>
+                            <div className={cx('profile__radio-group')}>
+                                <label className={cx('profile__radio-label')}>
                                     <input
                                         type='radio'
                                         name='gender'
@@ -162,7 +159,7 @@ function Profile() {
                                     />{' '}
                                     Nam
                                 </label>
-                                <label className={cx('radio-label')}>
+                                <label className={cx('profile__radio-label')}>
                                     <input
                                         type='radio'
                                         name='gender'
@@ -172,7 +169,7 @@ function Profile() {
                                     />{' '}
                                     Nữ
                                 </label>
-                                <label className={cx('radio-label')}>
+                                <label className={cx('profile__radio-label')}>
                                     <input
                                         type='radio'
                                         name='gender'
@@ -185,7 +182,10 @@ function Profile() {
                             </div>
                         </div>
 
-                        <button type='submit' className={cx('update-btn')}>
+                        <button
+                            type='submit'
+                            className={cx('profile__update-btn')}
+                        >
                             Lưu thay đổi
                         </button>
                     </form>
