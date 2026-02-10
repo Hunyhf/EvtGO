@@ -1,0 +1,49 @@
+@import '@styles/variables';
+@import '@styles/mixins';
+
+.wrapper {
+    width: 100%;
+    height: 50px;
+    background-color: #000;
+    border-bottom: 1px solid rgba($white-color, 0.1);
+    @include flex(center, center);
+
+    .nav-list {
+        height: 100%;
+        list-style: none;
+        @include flex(center, center, 30px);
+
+        @media (max-width: $tablet-width) {
+            justify-content: flex-start; // Bắt đầu từ lề trái
+            overflow-x: auto; // Cho phép kéo ngang
+            padding: 0 20px;
+            gap: 20px;
+            width: 100%;
+
+            &::-webkit-scrollbar {
+                display: none; // Ẩn thanh cuộn vật lý cho đẹp
+            }
+        }
+    }
+
+    .nav-item {
+        flex-shrink: 0; // FIX: Ngăn chữ bị bóp méo/mất chữ khi danh sách quá dài
+        height: 100%;
+    }
+
+    .nav-link {
+        color: rgba($white-color, 0.7);
+        font-size: 1.4rem;
+        text-decoration: none;
+        white-space: nowrap;
+        height: 100%;
+        @include flex(center, center);
+        transition: all 0.2s ease;
+        position: relative;
+
+        &:hover,
+        &.active {
+            color: $white-color;
+        }
+    }
+}

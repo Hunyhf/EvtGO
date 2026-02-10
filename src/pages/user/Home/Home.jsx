@@ -1,6 +1,6 @@
 import classNames from 'classnames/bind';
 import styles from './Home.module.scss';
-import Nav from '@components/Nav/index.jsx';
+import Nav from '@components/Nav/Nav.jsx';
 
 const cx = classNames.bind(styles);
 

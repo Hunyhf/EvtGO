@@ -2,73 +2,66 @@
 @import '@styles/mixins';
 
 .wrapper {
-    // Sử dụng mixin flex có sẵn để căn giữa nội dung
-    @include flex(center, center, 20px);
+    @include flex(center, center, 20rem);
     flex-direction: column;
-
-    // Trừ đi chiều cao header để nội dung cân đối
-    min-height: calc(100vh - #{$header-height});
-    padding: 20px;
-    background-color: $sub-color; // Màu nền tối đồng bộ project
+    height: 100vh;
+    padding: 2rem;
+    background-color: $sub-color;
     text-align: center;
 }
 
 .title {
     font-size: 12rem;
     font-weight: 800;
-    color: $primary-color; // Sử dụng màu xanh chủ đạo
+    color: $primary-color;
     margin: 0;
     line-height: 1;
     text-shadow: 4px 4px 0 rgba($secondary-color, 0.3);
 
-    // Thêm hiệu ứng bay bổng cho số 404
     animation: floating 3s ease-in-out infinite;
 }
 
 .desc {
     font-size: 1.8rem;
-    color: $text-color; // Sử dụng màu text xám nhạt
+    color: $text-color;
     max-width: 500px;
     margin-bottom: 30px;
 }
 
 .back-btn {
-    padding: 12px 32px;
+    padding: 1.2rem 3.2rem;
     font-size: 1.6rem;
     font-weight: 600;
     color: $white-color;
     background-color: $primary-color;
 
-    // Sử dụng mixin bo góc có sẵn
-    @include radius-common(30px);
+    @include radius-common(3rem);
     border: none;
     cursor: pointer;
     transition: all 0.3s ease;
-    box-shadow: 0 4px 15px rgba($primary-color, 0.3);
+    box-shadow: 0 0.4rem 1.5rem rgba($primary-color, 0.3);
 
     &:hover {
         transform: translateY(-3px);
         opacity: 0.9;
-        box-shadow: 0 8px 20px rgba($primary-color, 0.4);
+        box-shadow: 0 0.8rem 2rem rgba($primary-color, 0.4);
     }
 
     &:active {
-        transform: translateY(-1px);
+        transform: translateY(-0.1rem);
     }
 }
 
-// Định nghĩa hiệu ứng trôi nổi
 @keyframes floating {
     0%,
     100% {
         transform: translateY(0);
     }
     50% {
-        transform: translateY(-15px);
+        transform: translateY(-1.5rem);
     }
 }
 
-// Tối ưu hóa cho Mobile và Tablet bằng mixin của dự án
 @include mobile-tablet-width {
     .title {
         font-size: 8rem;
@@ -79,6 +72,6 @@
     }
 
     .wrapper {
-        padding: 0 15px;
+        padding: 0 1.5rem;
     }
 }
