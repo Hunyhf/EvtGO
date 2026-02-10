@@ -17,7 +17,7 @@ function Profile() {
         email: '',
         phone: '',
         age: '',
-        gender: 'MALE',
+        gender: 'OTHER',
         address: ''
     });
 
@@ -116,7 +116,7 @@ function Profile() {
 
                         {/* Email thường là duy nhất và dùng làm định danh, không nên cho sửa */}
                         <div className={cx('form-group')}>
-                            <label>Email (Không được thay đổi)</label>
+                            <label>Email </label>
                             <input
                                 type='email'
                                 value={formData.email}
@@ -170,6 +170,16 @@ function Profile() {
                                         onChange={handleChange}
                                     />
                                     <span>Nữ</span>
+                                </label>{' '}
+                                <label className={cx('radio-label')}>
+                                    <input
+                                        type='radio'
+                                        name='gender'
+                                        value='OTHER'
+                                        checked={formData.gender === 'OTHER'}
+                                        onChange={handleChange}
+                                    />
+                                    <span>Khác</span>
                                 </label>
                             </div>
                         </div>

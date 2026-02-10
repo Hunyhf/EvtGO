@@ -10,10 +10,10 @@
 
 .profile-wrapper {
     width: 100%;
-    max-width: 600px;
-    padding: 32px;
-    border-radius: 12px;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+    max-width: 60rem;
+    padding: 3.2rem;
+    border-radius: 1.2rem;
+    box-shadow: 0 0.4rem 2rem rgba(0, 0, 0, 0.05);
     background-color: transparent;
 
     display: flex;
@@ -23,7 +23,7 @@
     .profile-title {
         font-size: 2.4rem;
         font-weight: 700;
-        margin-bottom: 32px;
+        margin-bottom: 3.2rem;
         color: $white-color;
         text-align: center;
     }
@@ -45,23 +45,23 @@
 
 .form-group {
     width: 100%;
-    max-width: 450px;
-    margin-bottom: 20px;
+    max-width: 45rem;
+    margin-bottom: 2rem;
     display: flex;
     flex-direction: column;
 
     label {
         font-size: 1.4rem;
         font-weight: 600;
-        margin-bottom: 8px;
+        margin-bottom: 0.8rem;
         color: $white-color;
     }
 
     input {
         width: 100%;
-        padding: 12px;
-        border: 1px solid #dcdfe6;
-        border-radius: 8px;
+        padding: 1.2rem;
+        border: 0.01rem solid #dcdfe6;
+        border-radius: 0.8rem;
         font-size: 1.4rem;
         transition: border-color 0.2s;
 
@@ -81,15 +81,15 @@
 .radio-group {
     display: flex;
     justify-content: center;
-    gap: 32px;
-    margin: 10px 0;
+    gap: 3.2rem;
+    margin: 1rem 0;
     width: 100%;
-    max-width: 450px;
+    max-width: 45rem;
 
     label {
         display: flex;
         align-items: center;
-        gap: 8px;
+        gap: 0.8rem;
         font-size: 1.4rem;
         color: $white-color;
         cursor: pointer;
@@ -98,16 +98,16 @@
 
 .update-btn {
     width: 100%;
-    max-width: 450px;
-    padding: 14px;
+    max-width: 45rem;
+    padding: 1.4rem;
     background-color: $primary-color;
     color: $white-color;
     border: none;
-    border-radius: 8px;
+    border-radius: 8rem;
     font-size: 1.6rem;
     font-weight: 600;
     cursor: pointer;
-    margin-top: 12px;
+    margin-top: 1.2rem;
     transition: opacity 0.2s;
     margin-left: auto;
     margin-right: auto;
