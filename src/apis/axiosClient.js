@@ -93,8 +93,6 @@ instance.interceptors.response.use(
                     toast.error('Bạn không có quyền thực hiện hành động này!');
                     break;
                 case 404:
-                    // THAY ĐỔI: Chuyển hướng sang trang 404 thay vì chỉ hiện toast
-                    // Điều này giúp người dùng nhận diện lỗi trang rõ ràng hơn
                     window.location.href = '/404';
                     break;
                 case 500:

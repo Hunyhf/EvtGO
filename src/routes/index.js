@@ -7,7 +7,8 @@ import NotFound from '@pages/user/NotFound/NotFound';
 const publicRoutes = [
     { path: '/', component: Home },
     { path: '/category', component: Category },
-    { path: '*', component: NotFound }
+    { path: '/404', component: NotFound, layout: null },
+    { path: '*', component: NotFound, layout: null }
 ];
 
 // Route cần đăng nhập mới vào được
