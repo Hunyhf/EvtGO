@@ -3,10 +3,11 @@ import Staff from '@pages/staff/Staff.jsx';
 import Category from '@pages/user/Category.jsx';
 import Profile from '@pages/user/Profile/Profile.jsx';
 import Ticket from '@pages/user/Ticket/Ticket.jsx';
-
+import NotFound from '@pages/user/NotFound/NotFound';
 const publicRoutes = [
     { path: '/', component: Home },
-    { path: '/category', component: Category }
+    { path: '/category', component: Category },
+    { path: '*', component: NotFound }
 ];
 
 // Route cần đăng nhập mới vào được

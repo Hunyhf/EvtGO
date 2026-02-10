@@ -1,5 +1,6 @@
 import axios from 'axios';
 import Cookies from 'js-cookie';
+import { toast } from 'react-toastify';
 
 const instance = axios.create({
     // Sử dụng biến môi trường, fallback về localhost nếu không có
@@ -19,7 +20,7 @@ const processQueue = (error, token = null) => {
     failedQueue = [];
 };
 
-//Request Interceptor: Đọc token từ Cookie
+// 1. Request Interceptor: Đọc token từ Cookie
 instance.interceptors.request.use(
     config => {
         const token = Cookies.get('access_token');
@@ -31,13 +32,21 @@ instance.interceptors.request.use(
     error => Promise.reject(error)
 );
 
-// 2. Response Interceptor: Xử lý Refresh Token
+// 2. Response Interceptor: Xử lý dữ liệu và lỗi toàn cục
 instance.interceptors.response.use(
     response => response.data,
     async error => {
         const originalRequest = error.config;
+        const status = error.response?.status;
 
-        if (error.response?.status === 401 && !originalRequest._retry) {
+        // Lấy message lỗi từ cấu trúc RestResponse của Backend
+        const errorMessage =
+            error.response?.data?.message ||
+            error.message ||
+            'Đã có lỗi xảy ra';
+
+        // A. Xử lý lỗi 401 - Refresh Token
+        if (status === 401 && !originalRequest._retry) {
             if (isRefreshing) {
                 return new Promise((resolve, reject) => {
                     failedQueue.push({ resolve, reject });
@@ -53,26 +62,18 @@ instance.interceptors.response.use(
             isRefreshing = true;
 
             try {
-                // THAY ĐỔI: Gọi endpoint refresh bằng chính instance để dùng baseURL
                 const res = await instance.get('/api/v1/auth/refresh');
-
                 const newAccessToken = res.data?.accessToken;
 
                 if (newAccessToken) {
-                    // THAY ĐỔI: Lưu token mới vào Cookie
                     Cookies.set('access_token', newAccessToken, { expires: 1 });
-
                     processQueue(null, newAccessToken);
-
                     originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
                     return instance(originalRequest);
                 }
             } catch (refreshError) {
                 processQueue(refreshError, null);
-
-                // THAY ĐỔI: Xóa token ở Cookie khi lỗi
                 Cookies.remove('access_token');
-
                 if (window.location.pathname !== '/') {
                     window.location.href = '/';
                 }
@@ -80,6 +81,35 @@ instance.interceptors.response.use(
             } finally {
                 isRefreshing = false;
             }
+        }
+
+        // B. Global Error Handling - Hiển thị Toast hoặc Chuyển hướng
+        if (status) {
+            switch (status) {
+                case 400:
+                    toast.error(errorMessage);
+                    break;
+                case 403:
+                    toast.error('Bạn không có quyền thực hiện hành động này!');
+                    break;
+                case 404:
+                    // THAY ĐỔI: Chuyển hướng sang trang 404 thay vì chỉ hiện toast
+                    // Điều này giúp người dùng nhận diện lỗi trang rõ ràng hơn
+                    window.location.href = '/404';
+                    break;
+                case 500:
+                    toast.error(
+                        'Lỗi hệ thống từ phía Server, vui lòng thử lại sau!'
+                    );
+                    break;
+                default:
+                    toast.error(errorMessage);
+                    break;
+            }
+        } else {
+            toast.error(
+                'Không thể kết nối đến máy chủ. Vui lòng kiểm tra Internet!'
+            );
         }
 
         return Promise.reject(error.response?.data || error);

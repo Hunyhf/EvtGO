@@ -1,0 +1,84 @@
+@import '@styles/variables';
+@import '@styles/mixins';
+
+.wrapper {
+    // Sử dụng mixin flex có sẵn để căn giữa nội dung
+    @include flex(center, center, 20px);
+    flex-direction: column;
+
+    // Trừ đi chiều cao header để nội dung cân đối
+    min-height: calc(100vh - #{$header-height});
+    padding: 20px;
+    background-color: $sub-color; // Màu nền tối đồng bộ project
+    text-align: center;
+}
+
+.title {
+    font-size: 12rem;
+    font-weight: 800;
+    color: $primary-color; // Sử dụng màu xanh chủ đạo
+    margin: 0;
+    line-height: 1;
+    text-shadow: 4px 4px 0 rgba($secondary-color, 0.3);
+
+    // Thêm hiệu ứng bay bổng cho số 404
+    animation: floating 3s ease-in-out infinite;
+}
+
+.desc {
+    font-size: 1.8rem;
+    color: $text-color; // Sử dụng màu text xám nhạt
+    max-width: 500px;
+    margin-bottom: 30px;
+}
+
+.back-btn {
+    padding: 12px 32px;
+    font-size: 1.6rem;
+    font-weight: 600;
+    color: $white-color;
+    background-color: $primary-color;
+
+    // Sử dụng mixin bo góc có sẵn
+    @include radius-common(30px);
+    border: none;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 15px rgba($primary-color, 0.3);
+
+    &:hover {
+        transform: translateY(-3px);
+        opacity: 0.9;
+        box-shadow: 0 8px 20px rgba($primary-color, 0.4);
+    }
+
+    &:active {
+        transform: translateY(-1px);
+    }
+}
+
+// Định nghĩa hiệu ứng trôi nổi
+@keyframes floating {
+    0%,
+    100% {
+        transform: translateY(0);
+    }
+    50% {
+        transform: translateY(-15px);
+    }
+}
+
+// Tối ưu hóa cho Mobile và Tablet bằng mixin của dự án
+@include mobile-tablet-width {
+    .title {
+        font-size: 8rem;
+    }
+
+    .desc {
+        font-size: 1.6rem;
+    }
+
+    .wrapper {
+        padding: 0 15px;
+    }
+}
