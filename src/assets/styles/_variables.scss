@@ -1,14 +1,22 @@
-// Lưu tất cả những thứ về màu sắc, kích cỡ, độ dài dùng chung
+// Brand Colors
 $primary-color: #2dc275;
 $secondary-color: #27272a;
 $third-color: #393f4e;
+
+// Neutral Colors
 $white-color: #ffffff;
 $text-color: #9ca6b0;
 $sub-color: #2a2d34;
-$error-color: red;
-// Heights
-$header-height: 76px;
 
-// Breakpoints
+// Feedback Colors
+$error-color: #ff4d4f;
+
+// Layout & Spacing
+$header-height: 76px;
 $mobile-width: 739px;
 $tablet-width: 1023px;
+
+// Typography (Nên thêm)
+$font-family: 'Roboto', sans-serif;
+$font-weight-regular: 400;
+$font-weight-bold: 700;

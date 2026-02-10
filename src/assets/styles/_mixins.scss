@@ -10,7 +10,7 @@
     align-items: $y;
     gap: $gap;
 }
-// Mixin cho Mobile
+// Breakpoints
 @mixin mobile-width {
     @media (max-width: #{$mobile-width}) {
         @content;
@@ -18,7 +18,7 @@
 }
 
 @mixin tablet-width {
-    @media (min-width: 740px) and (max-width: #{$tablet-width}) {
+    @media (min-width: #{$mobile-width + 1px}) and (max-width: #{$tablet-width}) {
         @content;
     }
 }
