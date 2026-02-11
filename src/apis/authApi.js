@@ -5,7 +5,7 @@ export const callRegister = (email, password, name, role_id) => {
         email,
         password,
         name,
-        role_id,
+        role: { id: role_id },
         age: null,
         gender: null,
         address: null

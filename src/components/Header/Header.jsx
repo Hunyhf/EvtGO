@@ -21,11 +21,11 @@ function Header() {
 
     const handleLogout = async () => {
         try {
-            await callLogout(); // Gọi API logout
+            await callLogout();
         } catch (error) {
             console.error('Logout error:', error);
         } finally {
-            logoutContext(); // Xóa state trong Context và localStorage
+            logoutContext();
         }
     };
 

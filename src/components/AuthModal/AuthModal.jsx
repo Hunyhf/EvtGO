@@ -68,24 +68,17 @@ function AuthModal({ isOpen, onClose }) {
         try {
             if (isLoginMode) {
                 const res = await callLogin(email, password);
-
+                const data = res?.data || res;
                 // - Kiểm tra dữ liệu trả về từ server
-                if (res?.data?.access_token) {
-                    const { user, access_token } = res;
-                    // 1. Cập nhật thông tin vào Context & Cookies
+                if (data?.access_token) {
+                    const { user, access_token } = data;
                     await loginContext(user, access_token);
-
-                    // 2. Đóng Modal ngay lập tức
                     onClose();
-
                     const targetPath = ROLE_REDIRECT_MAP[user.role_id] || '/';
-
                     navigate(targetPath, { replace: true });
                 }
             } else {
                 const defaultName = email.split('@')[0];
-                console.log('Sending Role ID:', ROLE_ID.CUSTOMER);
-                // GỬI KÈM NAME LÊN API
                 const res = await callRegister(
                     email,
                     password,
@@ -93,12 +86,26 @@ function AuthModal({ isOpen, onClose }) {
                     ROLE_ID.CUSTOMER
                 );
 
-                if (res && res.id) {
-                    toast.success('Đăng ký thành công! Vui lòng đăng nhập.');
-                    setIsLoginMode(true);
-                    // Reset form sau khi đăng ký thành công để trải nghiệm tốt hơn
-                    setEmail(email); // Giữ email để user dễ đăng nhập
-                    setPassword('');
+                if (res) {
+                    toast.success(
+                        'Đăng ký thành công! Đang tự động đăng nhập...'
+                    );
+
+                    const loginRes = await callLogin(email, password);
+                    const loginData = loginRes?.data || loginRes;
+
+                    if (loginData?.access_token) {
+                        const { user, access_token } = loginData;
+
+                        await loginContext(user, access_token);
+                        onClose();
+
+                        // User vừa tạo là Customer (ID 2), chắc chắn về Home
+                        navigate('/', { replace: true });
+                    } else {
+                        // Fallback: Nếu auto-login lỗi thì chuyển về form login thủ công
+                        setIsLoginMode(true);
+                    }
                 }
             }
         } catch (error) {

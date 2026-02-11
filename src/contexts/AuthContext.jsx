@@ -15,12 +15,11 @@ export const AuthProvider = ({ children }) => {
         age: '',
         address: '',
         gender: '',
-        role_id: null // Thêm role_id vào state mặc định
+        role_id: null
     });
     const [isAuthenticated, setIsAuthenticated] = useState(false);
     const [isLoading, setIsLoading] = useState(true);
 
-    // KISS: Gom logic xử lý Age vào một chỗ
     const getStoredAge = (serverAge, userId) => {
         if (serverAge && serverAge !== 0) return serverAge;
         return Cookies.get(`user_age_${userId}`) || '';
