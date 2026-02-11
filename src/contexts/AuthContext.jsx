@@ -1,7 +1,6 @@
 import { createContext, useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { callFetchAccount } from '@apis/authApi.js';
-import { callGetUserById } from '@apis/userApi.js';
 import { ROLE_REDIRECT_MAP } from '@constants/roles.js';
 import Cookies from 'js-cookie';
 
@@ -10,20 +9,16 @@ export const AuthContext = createContext({});
 export const AuthProvider = ({ children }) => {
     const navigate = useNavigate();
     const [user, setUser] = useState({
+        id: '',
         email: '',
         name: '',
         age: '',
         address: '',
         gender: '',
-        role_id: null
+        role_id: null // Chúng ta sẽ map từ role.id của Backend vào đây
     });
     const [isAuthenticated, setIsAuthenticated] = useState(false);
     const [isLoading, setIsLoading] = useState(true);
-
-    const getStoredAge = (serverAge, userId) => {
-        if (serverAge && serverAge !== 0) return serverAge;
-        return Cookies.get(`user_age_${userId}`) || '';
-    };
 
     // Hàm điều hướng dựa trên Role ID
     const redirectByRole = useCallback(
@@ -34,36 +29,28 @@ export const AuthProvider = ({ children }) => {
         [navigate]
     );
 
+    // 1. LOGIN CONTEXT: Dùng dữ liệu từ API Login trả về, không gọi thêm API detail nữa
     const loginContext = async (userData, accessToken) => {
-        // 1. Lưu Token vào Cookie
+        // Lưu Token vào Cookie
         if (accessToken) {
             Cookies.set('access_token', accessToken, { expires: 1, path: '/' });
         }
 
-        let finalUser = { ...userData };
+        // TƯ DUY SENIOR: API Login của bạn (ResLoginDTO) đã trả về đầy đủ {user, access_token}.
+        // Trong đó user đã có sẵn role. Chúng ta chỉ cần map lại cho đúng state.
+        const mappedUser = {
+            ...userData,
+            role_id: userData.role?.id || userData.role_id // Lấy id từ object role
+        };
 
-        // 2. Lấy thêm thông tin chi tiết nếu cần
-        try {
-            const detailRes = await callGetUserById(userData.id);
-            if (detailRes?.data) {
-                finalUser = {
-                    ...userData,
-                    ...detailRes.data,
-                    age: getStoredAge(detailRes.data.age, userData.id)
-                };
-            }
-        } catch (error) {
-            console.error('Lỗi lấy chi tiết user:', error);
-        }
-
-        // 3. Cập nhật State và Điều hướng
-        setUser(finalUser);
+        setUser(mappedUser);
         setIsAuthenticated(true);
 
-        // Thực hiện vào trang theo Role ID (1->Admin, 2->Customer...)
-        redirectByRole(finalUser.role_id);
+        // Điều hướng ngay lập tức dựa trên role vừa đăng nhập
+        redirectByRole(mappedUser.role_id);
     };
 
+    // 2. FETCH ACCOUNT (CÁCH A): Lấy thông tin từ token khi F5 trang
     const fetchAccount = async () => {
         const token = Cookies.get('access_token');
         if (!token) {
@@ -72,22 +59,31 @@ export const AuthProvider = ({ children }) => {
         }
 
         try {
+            // TƯ DUY SENIOR: Gọi đúng endpoint /api/v1/auth/account
             const res = await callFetchAccount();
-            if (res?.data?.user) {
-                const basicUser = res.data.user;
-                const detailRes = await callGetUserById(basicUser.id);
-                const detailData = detailRes?.data || {};
 
+            // res lúc này chính là object userGetAccount (do interceptor bóc data.data)
+            if (res && res.user) {
+                const serverUser = res.user;
+
+                // Map dữ liệu từ Backend vào State của FE
                 setUser({
-                    ...basicUser,
-                    ...detailData,
-                    age: getStoredAge(detailData.age, basicUser.id)
+                    id: serverUser.id,
+                    email: serverUser.email,
+                    name: serverUser.name,
+                    role_id: serverUser.role?.id || null, // Backend cần trả về role ở đây
+                    // Các trường khác nếu backend chưa có thì để mặc định
+                    age: serverUser.age || '',
+                    address: serverUser.address || '',
+                    gender: serverUser.gender || ''
                 });
                 setIsAuthenticated(true);
             }
         } catch (error) {
+            console.error('Lỗi khi fetch account (Way A):', error);
             setIsAuthenticated(false);
-            Cookies.remove('access_token', { path: '/' }); // Token lỗi thì xóa luôn
+            setUser({ email: '', name: '', role_id: null });
+            Cookies.remove('access_token', { path: '/' });
         } finally {
             setIsLoading(false);
         }
@@ -95,9 +91,10 @@ export const AuthProvider = ({ children }) => {
 
     const logoutContext = () => {
         setIsAuthenticated(false);
-        setUser({ email: '', name: '', age: '', address: '', role_id: null });
+        setUser({ email: '', name: '', role_id: null });
         Cookies.remove('access_token', { path: '/' });
-        navigate('/login');
+        // Chuyển về trang chủ cho Guest thay vì bắt vào /login (tùy UX bạn muốn)
+        navigate('/');
     };
 
     useEffect(() => {
@@ -114,7 +111,14 @@ export const AuthProvider = ({ children }) => {
                 isLoading
             }}
         >
-            {!isLoading && children}
+            {/* TƯ DUY SENIOR: Không render app khi đang check token để tránh nháy trang */}
+            {!isLoading ? (
+                children
+            ) : (
+                <div className='loading-screen'>
+                    Đang kiểm tra quyền truy cập...
+                </div>
+            )}
         </AuthContext.Provider>
     );
 };
