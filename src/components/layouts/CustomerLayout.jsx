@@ -1,15 +1,17 @@
-// src/components/layouts/UserLayout.jsx
 import Header from '@components/Header/Header';
 import Footer from '@components/Footer/Footer';
 import Breadcrumb from '@components/Breadcrumb/Breadcrumb';
+import { Outlet } from 'react-router-dom';
 
-function UserLayout({ children }) {
+function CustomerLayout() {
     return (
-        <div className='user-layout'>
+        <div className='customer-layout'>
+            {' '}
             <Header />
             <main className='content'>
                 <div className='container'>
-                    <Breadcrumb /> {children}
+                    <Breadcrumb />
+                    <Outlet />
                 </div>
             </main>
             <Footer />
@@ -17,4 +19,4 @@ function UserLayout({ children }) {
     );
 }
 
-export default UserLayout;
+export default CustomerLayout;

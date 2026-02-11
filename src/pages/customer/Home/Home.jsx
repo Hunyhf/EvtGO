@@ -13,8 +13,20 @@ const cx = classNames.bind(styles);
 
 // --- Mock Data ---
 const BANNER_DATA = [
-    /* Giữ nguyên data của bạn */
+    {
+        id: 1,
+        url: 'https://images.tkbcdn.com/2/614/350/ts/ds/99/bf/cc/3e72843901a98a50e12e855d3334b6b6.png'
+    },
+    {
+        id: 2,
+        url: 'https://images.tkbcdn.com/2/614/350/ts/ds/99/bf/cc/3e72843901a98a50e12e855d3334b6b6.png'
+    },
+    {
+        id: 3,
+        url: 'https://images.tkbcdn.com/2/614/350/ts/ds/99/bf/cc/3e72843901a98a50e12e855d3334b6b6.png'
+    }
 ];
+
 const TRENDING_DATA = Array.from({ length: 10 }).map((_, index) => ({
     id: index + 1,
     url: 'https://images.tkbcdn.com/2/614/350/ts/ds/4c/33/45/0e36aee3253a98d8bbc82d8ad2462722.png',
@@ -22,7 +34,6 @@ const TRENDING_DATA = Array.from({ length: 10 }).map((_, index) => ({
     date: '10/02/2026'
 }));
 
-// Component con để code dễ đọc (Junior-friendly)
 const EventCard = ({ data }) => (
     <div className={cx('event-card')}>
         <div className={cx('event-image')}>
@@ -40,7 +51,6 @@ function Home() {
         <div className={cx('home')}>
             <Nav />
             <div className={cx('wrapper')}>
-                {/* Section Banner - Giữ lại Swiper vì Banner cần autoplay/loop phức tạp */}
                 <section className={cx('banner-container')}>
                     <Swiper
                         modules={[Navigation, Pagination, Autoplay]}
