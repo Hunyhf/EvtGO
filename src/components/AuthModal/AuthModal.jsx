@@ -16,7 +16,7 @@ function AuthModal({ isOpen, onClose }) {
     const { loginContext } = useContext(AuthContext);
     const navigate = useNavigate();
     const [isLoginMode, setIsLoginMode] = useState(true);
-    const [isOrganizerMode, setIsOrganizerMode] = useState(false); // Thêm state quản lý vai trò tổ chức
+    const [isOrganizerMode, setIsOrganizerMode] = useState(false);
     const [showPassword, setShowPassword] = useState(false);
 
     const [email, setEmail] = useState('');
@@ -28,7 +28,6 @@ function AuthModal({ isOpen, onClose }) {
         setErrors({});
         setConfirmPassword('');
         setShowPassword(false);
-        // Reset mode Organizer nếu quay lại màn hình đăng nhập
         if (isLoginMode) setIsOrganizerMode(false);
     }, [isLoginMode]);
 
@@ -97,7 +96,6 @@ function AuthModal({ isOpen, onClose }) {
                         'Đăng ký tài khoản thành công! Vui lòng đăng nhập để tiếp tục.'
                     );
 
-                    // CHỈNH SỬA: Không tự động đăng nhập, chuyển về chế độ Login
                     setIsLoginMode(true);
                     setIsOrganizerMode(false);
                     setPassword('');
@@ -246,7 +244,6 @@ function AuthModal({ isOpen, onClose }) {
                     </form>
 
                     <div className={cx('footer')}>
-                        {/* Mục Đăng ký dành cho Organizer */}
                         {isLoginMode && (
                             <div className={cx('footer__organizer')}>
                                 Bạn muốn tổ chức sự kiện?{' '}

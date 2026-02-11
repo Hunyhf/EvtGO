@@ -6,3 +6,6 @@ export const callUpdateUser = userData => {
 export const callGetUserById = id => {
     return axios.get(`/api/v1/users/${id}`);
 };
+export const callFetchAllUsers = query => {
+    return axios.get(`/api/v1/users?${query}`);
+};
