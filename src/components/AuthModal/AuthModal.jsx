@@ -7,11 +7,14 @@ import UnHidePassIcon from '@icons/svgs/unHidePassIcon.svg?react';
 import HidePassIcon from '@icons/svgs/hidePassIcon.svg?react';
 import { callLogin, callRegister } from '@apis/authApi';
 import { AuthContext } from '@contexts/AuthContext';
+import { useNavigate } from 'react-router-dom';
+import { ROLE_REDIRECT_MAP } from '@constants/roles.js';
 
 const cx = classNames.bind(styles);
 
 function AuthModal({ isOpen, onClose }) {
     const { loginContext } = useContext(AuthContext);
+    const navigate = useNavigate();
     const [isLoginMode, setIsLoginMode] = useState(true);
     const [showPassword, setShowPassword] = useState(false);
 
@@ -66,9 +69,20 @@ function AuthModal({ isOpen, onClose }) {
         try {
             if (isLoginMode) {
                 const res = await callLogin(email, password);
+
+                // - Kiểm tra dữ liệu trả về từ server
                 if (res?.data?.access_token) {
-                    loginContext(res.data.user, res.data.access_token);
+                    const { user, access_token } = res.data;
+
+                    // 1. Cập nhật thông tin vào Context & Cookies
+                    await loginContext(user, access_token);
+
+                    // 2. Đóng Modal ngay lập tức
                     onClose();
+
+                    const targetPath = ROLE_REDIRECT_MAP[user.role_id] || '/';
+
+                    navigate(targetPath, { replace: true });
                 }
             } else {
                 const defaultName = email.split('@')[0];

@@ -1,7 +1,7 @@
 import { Fragment } from 'react';
 import { Routes, Route } from 'react-router-dom';
 import { publicRoutes, privateRoutes } from './routes';
-import UserLayout from '@components/layouts/UserLayout';
+import UserLayout from '@components/layouts/CustomerLayout';
 import { AuthProvider } from '@contexts/AuthContext';
 import ProtectedRoute from '@components/ProtectedRoute';
 
