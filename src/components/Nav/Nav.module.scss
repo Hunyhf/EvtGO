@@ -14,20 +14,20 @@
         @include flex(center, center, 30px);
 
         @media (max-width: $tablet-width) {
-            justify-content: flex-start; // Bắt đầu từ lề trái
-            overflow-x: auto; // Cho phép kéo ngang
+            justify-content: flex-start;
+            overflow-x: auto;
             padding: 0 20px;
             gap: 20px;
             width: 100%;
 
             &::-webkit-scrollbar {
-                display: none; // Ẩn thanh cuộn vật lý cho đẹp
+                display: none;
             }
         }
     }
 
     .nav-item {
-        flex-shrink: 0; // FIX: Ngăn chữ bị bóp méo/mất chữ khi danh sách quá dài
+        flex-shrink: 0;
         height: 100%;
     }
 

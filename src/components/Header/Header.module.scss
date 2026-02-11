@@ -225,6 +225,10 @@
         width: 24px;
         height: 24px;
         border-radius: 50%;
+        @include mobile-tablet-width {
+            width: 40px;
+            height: 40px;
+        }
     }
 
     &__toggle {
