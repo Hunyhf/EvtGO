@@ -1,57 +1,76 @@
-import { createContext, useState, useEffect } from 'react';
+import { createContext, useState, useEffect, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { callFetchAccount } from '@apis/authApi.js';
 import { callGetUserById } from '@apis/userApi.js';
+import { ROLE_REDIRECT_MAP } from '@constants/roles.js';
 import Cookies from 'js-cookie';
 
 export const AuthContext = createContext({});
 
 export const AuthProvider = ({ children }) => {
+    const navigate = useNavigate();
     const [user, setUser] = useState({
         email: '',
         name: '',
         age: '',
         address: '',
-        gender: ''
+        gender: '',
+        role_id: null // Thêm role_id vào state mặc định
     });
     const [isAuthenticated, setIsAuthenticated] = useState(false);
     const [isLoading, setIsLoading] = useState(true);
 
+    // KISS: Gom logic xử lý Age vào một chỗ
     const getStoredAge = (serverAge, userId) => {
-        const cookieAge = Cookies.get(`user_age_${userId}`);
-        return serverAge && serverAge !== 0 ? serverAge : cookieAge || '';
+        if (serverAge && serverAge !== 0) return serverAge;
+        return Cookies.get(`user_age_${userId}`) || '';
     };
 
+    // Hàm điều hướng dựa trên Role ID
+    const redirectByRole = useCallback(
+        roleId => {
+            const path = ROLE_REDIRECT_MAP[roleId] || '/';
+            navigate(path, { replace: true });
+        },
+        [navigate]
+    );
+
     const loginContext = async (userData, accessToken) => {
+        // 1. Lưu Token vào Cookie
         if (accessToken) {
             Cookies.set('access_token', accessToken, { expires: 1, path: '/' });
         }
 
-        if (userData.age) {
-            Cookies.set(`user_age_${userData.id}`, userData.age, {
-                expires: 7
-            });
-        }
+        let finalUser = { ...userData };
 
+        // 2. Lấy thêm thông tin chi tiết nếu cần
         try {
             const detailRes = await callGetUserById(userData.id);
-            if (detailRes && detailRes.data) {
-                setUser({
+            if (detailRes?.data) {
+                finalUser = {
                     ...userData,
                     ...detailRes.data,
                     age: getStoredAge(detailRes.data.age, userData.id)
-                });
-            } else {
-                setUser(userData);
+                };
             }
         } catch (error) {
-            setUser(userData);
+            console.error('Lỗi lấy chi tiết user:', error);
         }
+
+        // 3. Cập nhật State và Điều hướng
+        setUser(finalUser);
         setIsAuthenticated(true);
+
+        // Thực hiện vào trang theo Role ID (1->Admin, 2->Customer...)
+        redirectByRole(finalUser.role_id);
     };
 
     const fetchAccount = async () => {
         const token = Cookies.get('access_token');
-        if (!token) return setIsLoading(false);
+        if (!token) {
+            setIsLoading(false);
+            return;
+        }
 
         try {
             const res = await callFetchAccount();
@@ -69,6 +88,7 @@ export const AuthProvider = ({ children }) => {
             }
         } catch (error) {
             setIsAuthenticated(false);
+            Cookies.remove('access_token', { path: '/' }); // Token lỗi thì xóa luôn
         } finally {
             setIsLoading(false);
         }
@@ -76,8 +96,9 @@ export const AuthProvider = ({ children }) => {
 
     const logoutContext = () => {
         setIsAuthenticated(false);
-        setUser({ email: '', name: '', age: '', address: '' });
+        setUser({ email: '', name: '', age: '', address: '', role_id: null });
         Cookies.remove('access_token', { path: '/' });
+        navigate('/login');
     };
 
     useEffect(() => {

@@ -15,7 +15,8 @@ export default defineConfig({
             '@icons': path.resolve(__dirname, 'src/assets/icons'),
             '@apis': path.resolve(__dirname, 'src/apis'),
             '@contexts': path.resolve(__dirname, 'src/contexts'),
-            '@hooks': path.resolve(__dirname, 'src/hooks')
+            '@hooks': path.resolve(__dirname, 'src/hooks'),
+            '@constants': path.resolve(__dirname, 'src/constants')
         }
     }
 });
