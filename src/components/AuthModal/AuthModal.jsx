@@ -52,8 +52,8 @@ function AuthModal({ isOpen, onClose }) {
 
         if (!password) {
             newErrors.password = 'Mật khẩu không được để trống';
-        } else if (password.length < 8) {
-            newErrors.password = 'Mật khẩu phải có ít nhất 8 ký tự';
+        } else if (password.length < 6) {
+            newErrors.password = 'Mật khẩu phải có ít nhất 6 ký tự';
         }
         if (!isLoginMode) {
             if (!confirmPassword) {
