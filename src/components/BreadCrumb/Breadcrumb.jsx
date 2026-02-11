@@ -1,6 +1,5 @@
-// src/components/Breadcrumb/Breadcrumb.jsx
 import { Link, useLocation } from 'react-router-dom';
-import { privateRoutes } from '@/routes';
+import { BREADCRUMB_LABELS } from '@/routes'; // Import cái map mới tạo
 import classNames from 'classnames/bind';
 import styles from './Breadcrumb.module.scss';
 
@@ -8,12 +7,13 @@ const cx = classNames.bind(styles);
 
 function Breadcrumb() {
     const location = useLocation();
+    const { pathname } = location;
 
-    const currentPrivateRoute = privateRoutes.find(
-        route => route.path === location.pathname
-    );
+    // Lấy nhãn dựa trên đường dẫn hiện tại
+    const currentLabel = BREADCRUMB_LABELS[pathname];
 
-    if (!currentPrivateRoute) {
+    // KISS: Nếu không có nhãn hoặc đang ở trang chủ thì không hiện Breadcrumb
+    if (!currentLabel || pathname === '/') {
         return null;
     }
 
@@ -27,9 +27,7 @@ function Breadcrumb() {
                     <span className={cx('separator')}> {'>'} </span>
                 </li>
                 <li className={cx('item')}>
-                    <span className={cx('current')}>
-                        {currentPrivateRoute.label}
-                    </span>
+                    <span className={cx('current')}>{currentLabel}</span>
                 </li>
             </ul>
         </nav>

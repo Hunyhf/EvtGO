@@ -1,59 +1,12 @@
-import { Fragment } from 'react';
-import { Routes, Route } from 'react-router-dom';
-import { publicRoutes, privateRoutes } from './routes';
-import UserLayout from '@components/layouts/CustomerLayout';
-import { AuthProvider } from '@contexts/AuthContext';
-import ProtectedRoute from '@components/ProtectedRoute';
+// src/App.jsx
+import { RouterProvider } from 'react-router-dom';
+import { routes } from './routes'; // Import duy nhất object routes
 
 function App() {
     return (
-        <AuthProvider>
-            <div className='App'>
-                <Routes>
-                    {/* Public Routes */}
-                    {publicRoutes.map((route, index) => {
-                        const Page = route.component;
-                        let Layout =
-                            route.layout === null
-                                ? Fragment
-                                : route.layout || UserLayout;
-                        return (
-                            <Route
-                                key={index}
-                                path={route.path}
-                                element={
-                                    <Layout>
-                                        <Page />
-                                    </Layout>
-                                }
-                            />
-                        );
-                    })}
-
-                    {/* Private Routes */}
-                    {privateRoutes.map((route, index) => {
-                        const Page = route.component;
-                        let Layout =
-                            route.layout === null
-                                ? Fragment
-                                : route.layout || UserLayout;
-                        return (
-                            <Route
-                                key={index + 'private'}
-                                path={route.path}
-                                element={
-                                    <ProtectedRoute>
-                                        <Layout>
-                                            <Page />
-                                        </Layout>
-                                    </ProtectedRoute>
-                                }
-                            />
-                        );
-                    })}
-                </Routes>
-            </div>
-        </AuthProvider>
+        <div className='App'>
+            <RouterProvider router={routes} />
+        </div>
     );
 }
 
