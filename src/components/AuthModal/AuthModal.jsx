@@ -100,7 +100,6 @@ function AuthModal({ isOpen, onClose }) {
                         await loginContext(user, access_token);
                         onClose();
 
-                        // User vừa tạo là Customer (ID 2), chắc chắn về Home
                         navigate('/', { replace: true });
                     } else {
                         // Fallback: Nếu auto-login lỗi thì chuyển về form login thủ công

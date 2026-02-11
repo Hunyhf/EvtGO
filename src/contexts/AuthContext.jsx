@@ -6,9 +6,12 @@ import Cookies from 'js-cookie';
 
 export const AuthContext = createContext({});
 
-// Helper để lấy role_id đồng nhất từ nhiều nguồn dữ liệu khác nhau
 const getRoleId = userData => {
-    return userData?.role?.id || userData?.role_id || userData?.roleId || null;
+    if (!userData) return null;
+    if (userData?.role?.id) return userData.role.id;
+    if (Array.isArray(userData?.roles) && userData.roles.length > 0)
+        return userData.roles[0].id;
+    return userData?.role_id || userData?.roleId || null;
 };
 
 export const AuthProvider = ({ children }) => {
@@ -33,39 +36,59 @@ export const AuthProvider = ({ children }) => {
         [navigate]
     );
 
-    // 1. LOGIN CONTEXT: Dùng khi đăng nhập mới, có kèm Redirect
+    // Hàm bổ trợ để lưu các trường thông tin phụ vào Cookie
+    const saveExtraInfoToCookies = userData => {
+        const expires = 1; // 1 ngày theo token
+        if (userData.age) Cookies.set('u_age', userData.age, { expires });
+        if (userData.address)
+            Cookies.set('u_address', userData.address, { expires });
+        if (userData.gender)
+            Cookies.set('u_gender', userData.gender, { expires });
+    };
+
+    // 1. LOGIN: Lưu token và thông tin phụ vào Cookie
     const loginContext = async (userData, accessToken) => {
         if (accessToken) {
             Cookies.set('access_token', accessToken, { expires: 1, path: '/' });
         }
 
         const roleId = getRoleId(userData);
-        const mappedUser = {
-            ...userData,
-            role_id: roleId
-        };
+        if (roleId) {
+            Cookies.set('backup_role_id', roleId, { expires: 1, path: '/' });
+        }
 
-        setUser(mappedUser);
+        // Lưu thông tin phụ
+        saveExtraInfoToCookies(userData);
+
+        setUser({ ...userData, role_id: roleId });
         setIsAuthenticated(true);
-
-        // Chỉ Redirect khi thực hiện Login
         redirectByRole(roleId);
     };
 
-    // 2. UPDATE USER CONTEXT: TƯ DUY SENIOR - Cập nhật thông tin User mà không Redirect
-    // Dùng cái này trong trang Profile sau khi call API update thành công
+    // 2. UPDATE USER: Cập nhật state và đồng bộ lại Cookie
     const updateUserContext = updatedData => {
         setUser(prev => {
             const newRoleId = getRoleId(updatedData) || prev.role_id;
-            return {
+            const newUser = {
                 ...prev,
                 ...updatedData,
-                role_id: newRoleId // Đảm bảo role_id không bị mất nếu API update không trả về role
+                role_id: newRoleId
             };
+
+            // Đồng bộ lại Cookie khi có thay đổi
+            saveExtraInfoToCookies(newUser);
+
+            if (getRoleId(updatedData)) {
+                Cookies.set('backup_role_id', newRoleId, {
+                    expires: 1,
+                    path: '/'
+                });
+            }
+            return newUser;
         });
     };
 
-    // 3. FETCH ACCOUNT: Lấy lại thông tin khi F5 trang
+    // 3. FETCH ACCOUNT: Lấy thông tin từ API và đắp dữ liệu từ Cookie
     const fetchAccount = async () => {
         const token = Cookies.get('access_token');
         if (!token) {
@@ -75,31 +98,50 @@ export const AuthProvider = ({ children }) => {
 
         try {
             const res = await callFetchAccount();
+
             if (res && res.user) {
                 const serverUser = res.user;
+
+                // Lấy thông tin "bù đắp" từ Cookie
+                const cookieAge = Cookies.get('u_age');
+                const cookieAddress = Cookies.get('u_address');
+                const cookieGender = Cookies.get('u_gender');
+
+                let roleId =
+                    getRoleId(serverUser) || Cookies.get('backup_role_id');
+
                 setUser({
                     ...serverUser,
-                    role_id: getRoleId(serverUser),
-                    age: serverUser.age || '',
-                    address: serverUser.address || '',
-                    gender: serverUser.gender || ''
+                    role_id: roleId,
+                    // Nếu API thiếu thì lấy từ Cookie, nếu cả 2 thiếu thì để mặc định
+                    age: serverUser.age || cookieAge || '',
+                    address: serverUser.address || cookieAddress || '',
+                    gender: serverUser.gender || cookieGender || 'MALE'
                 });
                 setIsAuthenticated(true);
             }
         } catch (error) {
-            console.error('Lỗi khi fetch account:', error);
-            setIsAuthenticated(false);
-            setUser({ email: '', name: '', role_id: null });
-            Cookies.remove('access_token', { path: '/' });
+            console.error('>>> [LỖI] fetchAccount:', error);
+            if (error.status === 401 || error.status === 403) {
+                logoutContext();
+            }
         } finally {
             setIsLoading(false);
         }
     };
 
+    // 4. LOGOUT: Dọn dẹp sạch sẽ Cookies
     const logoutContext = () => {
         setIsAuthenticated(false);
         setUser({ email: '', name: '', role_id: null });
+
+        // Xóa tất cả các keys liên quan
         Cookies.remove('access_token', { path: '/' });
+        Cookies.remove('backup_role_id', { path: '/' });
+        Cookies.remove('u_age');
+        Cookies.remove('u_address');
+        Cookies.remove('u_gender');
+
         navigate('/');
     };
 
@@ -114,16 +156,14 @@ export const AuthProvider = ({ children }) => {
                 user,
                 loginContext,
                 logoutContext,
-                updateUserContext, // Export hàm mới ra để Profile.jsx có thể dùng
+                updateUserContext,
                 isLoading
             }}
         >
             {!isLoading ? (
                 children
             ) : (
-                <div className='loading-screen'>
-                    Đang kiểm tra quyền truy cập...
-                </div>
+                <div className='loading-screen'>Đang tải thông tin...</div>
             )}
         </AuthContext.Provider>
     );

@@ -21,6 +21,9 @@ function Profile() {
         address: ''
     });
 
+    const [isUpdating, setIsUpdating] = useState(false);
+
+    // Sync dữ liệu từ Context vào Form khi load trang hoặc khi user thay đổi
     useEffect(() => {
         if (user) {
             setFormData({
@@ -38,6 +41,7 @@ function Profile() {
     const handleChange = e => {
         const { name, value } = e.target;
         if (name === 'age') {
+            // Chỉ cho nhập số dương
             const val = value === '' ? '' : Math.max(0, parseInt(value, 10));
             setFormData(prev => ({ ...prev, age: val }));
         } else {
@@ -47,33 +51,47 @@ function Profile() {
 
     const handleUpdate = async e => {
         e.preventDefault();
+        setIsUpdating(true);
 
         const dataToSend = {
             ...formData,
+            id: user.id, // Đảm bảo luôn gửi ID
             age: formData.age === '' ? 0 : Number(formData.age)
         };
 
         try {
             const res = await callUpdateUser(dataToSend);
 
-            if (res && res.data) {
-                if (formData.age) {
-                    Cookies.set(`user_age_${user.id}`, formData.age, {
+            // --- LOGIC FIX QUAN TRỌNG ---
+            // Kiểm tra cả 2 trường hợp:
+            // 1. res.data (nếu axios trả về full response)
+            // 2. res (nếu interceptor đã lọc data)
+            const updatedData = res?.data || res;
+
+            if (updatedData) {
+                // 1. Cập nhật vào Context (để UI tự động render lại nhờ useEffect)
+                updateUserContext(updatedData);
+
+                // 2. Lưu Cookie (Logic cũ của bạn)
+                if (dataToSend.age) {
+                    Cookies.set(`user_age_${user.id}`, dataToSend.age, {
                         expires: 7
                     });
                 }
 
-                const updatedUser = {
-                    ...user,
-                    ...res.data,
-                    age: formData.age || res.data.age
-                };
-
-                updateUserContext(res.data);
                 toast.success('Cập nhật thông tin thành công!');
+            } else {
+                toast.warning(
+                    'Cập nhật thành công nhưng không nhận được dữ liệu mới.'
+                );
+                // Fallback: Cập nhật thủ công bằng dữ liệu client nhập
+                updateUserContext(dataToSend);
             }
         } catch (error) {
-            console.error(error);
+            console.error('Lỗi update:', error);
+            toast.error('Có lỗi xảy ra, vui lòng thử lại sau!');
+        } finally {
+            setIsUpdating(false);
         }
     };
 
@@ -102,16 +120,6 @@ function Profile() {
                                 value={formData.name}
                                 onChange={handleChange}
                                 required
-                            />
-                        </div>
-
-                        <div className={cx('profile__form-group')}>
-                            <label>Số điện thoại</label>
-                            <input
-                                type='text'
-                                name='phone'
-                                value={formData.phone}
-                                onChange={handleChange}
                             />
                         </div>
 
@@ -185,8 +193,10 @@ function Profile() {
                         <button
                             type='submit'
                             className={cx('profile__update-btn')}
+                            disabled={isUpdating}
+                            style={{ opacity: isUpdating ? 0.7 : 1 }}
                         >
-                            Lưu thay đổi
+                            {isUpdating ? 'Đang lưu...' : 'Lưu thay đổi'}
                         </button>
                     </form>
                 </div>
