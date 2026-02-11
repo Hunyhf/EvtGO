@@ -8,8 +8,7 @@ import HidePassIcon from '@icons/svgs/hidePassIcon.svg?react';
 import { callLogin, callRegister } from '@apis/authApi';
 import { AuthContext } from '@contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
-import { ROLE_REDIRECT_MAP } from '@constants/roles.js';
-
+import { ROLE_REDIRECT_MAP, ROLE_ID } from '@constants/roles.js';
 const cx = classNames.bind(styles);
 
 function AuthModal({ isOpen, onClose }) {
@@ -72,8 +71,7 @@ function AuthModal({ isOpen, onClose }) {
 
                 // - Kiểm tra dữ liệu trả về từ server
                 if (res?.data?.access_token) {
-                    const { user, access_token } = res.data;
-
+                    const { user, access_token } = res;
                     // 1. Cập nhật thông tin vào Context & Cookies
                     await loginContext(user, access_token);
 
@@ -86,13 +84,21 @@ function AuthModal({ isOpen, onClose }) {
                 }
             } else {
                 const defaultName = email.split('@')[0];
-
+                console.log('Sending Role ID:', ROLE_ID.CUSTOMER);
                 // GỬI KÈM NAME LÊN API
-                const res = await callRegister(email, password, defaultName);
+                const res = await callRegister(
+                    email,
+                    password,
+                    defaultName,
+                    ROLE_ID.CUSTOMER
+                );
 
-                if (res?.data?.id) {
+                if (res && res.id) {
                     toast.success('Đăng ký thành công! Vui lòng đăng nhập.');
                     setIsLoginMode(true);
+                    // Reset form sau khi đăng ký thành công để trải nghiệm tốt hơn
+                    setEmail(email); // Giữ email để user dễ đăng nhập
+                    setPassword('');
                 }
             }
         } catch (error) {

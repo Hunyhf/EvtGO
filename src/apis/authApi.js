@@ -1,10 +1,11 @@
 import axios from './axiosClient';
 
-export const callRegister = (email, password, name, age, gender, address) => {
+export const callRegister = (email, password, name, role_id) => {
     return axios.post('/api/v1/auth/register', {
         email,
         password,
         name,
+        role_id,
         age: null,
         gender: null,
         address: null
