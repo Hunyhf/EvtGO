@@ -9,12 +9,14 @@ import { callLogin, callRegister } from '@apis/authApi';
 import { AuthContext } from '@contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { ROLE_REDIRECT_MAP, ROLE_ID } from '@constants/roles.js';
+
 const cx = classNames.bind(styles);
 
 function AuthModal({ isOpen, onClose }) {
     const { loginContext } = useContext(AuthContext);
     const navigate = useNavigate();
     const [isLoginMode, setIsLoginMode] = useState(true);
+    const [isOrganizerMode, setIsOrganizerMode] = useState(false); // Thêm state quản lý vai trò tổ chức
     const [showPassword, setShowPassword] = useState(false);
 
     const [email, setEmail] = useState('');
@@ -26,6 +28,8 @@ function AuthModal({ isOpen, onClose }) {
         setErrors({});
         setConfirmPassword('');
         setShowPassword(false);
+        // Reset mode Organizer nếu quay lại màn hình đăng nhập
+        if (isLoginMode) setIsOrganizerMode(false);
     }, [isLoginMode]);
 
     useEffect(() => {
@@ -69,46 +73,38 @@ function AuthModal({ isOpen, onClose }) {
             if (isLoginMode) {
                 const res = await callLogin(email, password);
                 const data = res?.data || res;
-                // - Kiểm tra dữ liệu trả về từ server
                 if (data?.access_token) {
                     const { user, access_token } = data;
                     await loginContext(user, access_token);
                     onClose();
-                    const targetPath = ROLE_REDIRECT_MAP[user.role_id] || '/';
-                    navigate(targetPath, { replace: true });
                 }
             } else {
                 const defaultName = email.split('@')[0];
+                // Gán role_id dựa trên chế độ đang chọn (Organizer hoặc Customer)
+                const roleToRegister = isOrganizerMode
+                    ? ROLE_ID.ORGANIZER
+                    : ROLE_ID.CUSTOMER;
+
                 const res = await callRegister(
                     email,
                     password,
                     defaultName,
-                    ROLE_ID.CUSTOMER
+                    roleToRegister
                 );
 
                 if (res) {
                     toast.success(
-                        'Đăng ký thành công! Đang tự động đăng nhập...'
+                        'Đăng ký tài khoản thành công! Vui lòng đăng nhập để tiếp tục.'
                     );
 
-                    const loginRes = await callLogin(email, password);
-                    const loginData = loginRes?.data || loginRes;
-
-                    if (loginData?.access_token) {
-                        const { user, access_token } = loginData;
-
-                        await loginContext(user, access_token);
-                        onClose();
-
-                        navigate('/', { replace: true });
-                    } else {
-                        // Fallback: Nếu auto-login lỗi thì chuyển về form login thủ công
-                        setIsLoginMode(true);
-                    }
+                    // CHỈNH SỬA: Không tự động đăng nhập, chuyển về chế độ Login
+                    setIsLoginMode(true);
+                    setIsOrganizerMode(false);
+                    setPassword('');
+                    setConfirmPassword('');
                 }
             }
         } catch (error) {
-            // LẤY MESSAGE CHI TIẾT TỪ SERVER (VÍ DỤ: "Email đã tồn tại")
             const serverMessage =
                 error?.response?.data?.message || error?.message;
 
@@ -120,7 +116,6 @@ function AuthModal({ isOpen, onClose }) {
             } else {
                 setErrors({
                     ...errors,
-                    // HIỂN THỊ THÔNG BÁO PHÙ HỢP THEO CHẾ ĐỘ
                     common: isLoginMode
                         ? 'Tài khoản hoặc mật khẩu chưa chính xác, vui lòng thử lại'
                         : serverMessage ||
@@ -140,7 +135,14 @@ function AuthModal({ isOpen, onClose }) {
                 </button>
 
                 <div className={cx('content')}>
-                    <h2>{isLoginMode ? 'Đăng nhập' : 'Đăng ký'}</h2>
+                    <h2>
+                        {isLoginMode
+                            ? 'Đăng nhập'
+                            : isOrganizerMode
+                              ? 'Đăng ký Organizer'
+                              : 'Đăng ký'}
+                    </h2>
+
                     <form
                         className={cx('form')}
                         onSubmit={handleSubmit}
@@ -237,18 +239,37 @@ function AuthModal({ isOpen, onClose }) {
                                 {errors.common}
                             </div>
                         )}
+
                         <button type='submit' className={cx('submit-btn')}>
                             {isLoginMode ? 'Đăng nhập' : 'Đăng ký'}
                         </button>
                     </form>
 
                     <div className={cx('footer')}>
+                        {/* Mục Đăng ký dành cho Organizer */}
+                        {isLoginMode && (
+                            <div className={cx('footer__organizer')}>
+                                Bạn muốn tổ chức sự kiện?{' '}
+                                <strong
+                                    onClick={() => {
+                                        setIsLoginMode(false);
+                                        setIsOrganizerMode(true);
+                                    }}
+                                >
+                                    Đăng ký ngay
+                                </strong>
+                            </div>
+                        )}
+
                         <span>
                             {isLoginMode
                                 ? 'Chưa có tài khoản? '
                                 : 'Đã có tài khoản? '}
                             <strong
-                                onClick={() => setIsLoginMode(!isLoginMode)}
+                                onClick={() => {
+                                    setIsLoginMode(!isLoginMode);
+                                    setIsOrganizerMode(false);
+                                }}
                             >
                                 {isLoginMode
                                     ? 'Đăng ký ngay'

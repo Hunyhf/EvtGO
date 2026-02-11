@@ -9,15 +9,11 @@ function OrganizerLayout() {
             <Header />
             <main className='organizer-content'>
                 <div className='container'>
-                    <Breadcrumb />
-                    {/* - Outlet sẽ render các component con từ routes/index.jsx */}
                     <Outlet />
                 </div>
             </main>
-            <Footer />
         </div>
     );
 }
 
-// LỖI CỦA BẠN LÀ THIẾU DÒNG NÀY
 export default OrganizerLayout;
