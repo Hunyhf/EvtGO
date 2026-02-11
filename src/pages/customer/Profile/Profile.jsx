@@ -9,7 +9,7 @@ import Cookies from 'js-cookie';
 const cx = classNames.bind(styles);
 
 function Profile() {
-    const { user, loginContext } = useContext(AuthContext);
+    const { user, updateUserContext } = useContext(AuthContext);
 
     const [formData, setFormData] = useState({
         id: '',
@@ -69,7 +69,7 @@ function Profile() {
                     age: formData.age || res.data.age
                 };
 
-                await loginContext(updatedUser, null, true);
+                updateUserContext(res.data);
                 toast.success('Cập nhật thông tin thành công!');
             }
         } catch (error) {
