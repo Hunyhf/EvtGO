@@ -1,9 +1,9 @@
-import Home from '@pages/user/Home/Home.jsx';
+import Home from '@pages/customer/Home/Home.jsx';
 import Staff from '@pages/staff/Staff.jsx';
-import Category from '@pages/user/Category.jsx';
-import Profile from '@pages/user/Profile/Profile.jsx';
-import Ticket from '@pages/user/Ticket/Ticket.jsx';
-import NotFound from '@pages/user/NotFound/NotFound';
+import Category from '@pages/customer/Category.jsx';
+import Profile from '@pages/customer/Profile/Profile.jsx';
+import Ticket from '@pages/customer/Ticket/Ticket.jsx';
+import NotFound from '@pages/customer/NotFound/NotFound';
 const publicRoutes = [
     { path: '/', component: Home },
     { path: '/category', component: Category },

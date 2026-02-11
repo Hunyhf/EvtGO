@@ -34,7 +34,12 @@ instance.interceptors.request.use(
 
 // 2. Response Interceptor: Xử lý dữ liệu và lỗi toàn cục
 instance.interceptors.response.use(
-    response => response.data,
+    response => {
+        return response.data?.data !== undefined
+            ? response.data.data
+            : response.data;
+    },
+
     async error => {
         const originalRequest = error.config;
         const status = error.response?.status;
