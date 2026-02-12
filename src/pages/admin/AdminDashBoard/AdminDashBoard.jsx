@@ -70,9 +70,6 @@ function AdminDashBoard() {
                 <Title level={2} className={cx('dashboard__title')}>
                     Bảng điều khiển quản trị
                 </Title>
-                <Text className={cx('dashboard__subtitle')}>
-                    Chào mừng trở lại! Đây là tổng quan hệ thống EvtGO của bạn.
-                </Text>
             </div>
 
             <Row gutter={[24, 24]}>
@@ -122,7 +119,7 @@ function AdminDashBoard() {
                 </div>
                 <Table
                     columns={columns}
-                    dataSource={[]} // Kết nối với API Sự kiện của bạn sau này
+                    dataSource={[]}
                     pagination={false}
                     className={cx('custom-table')}
                 />
