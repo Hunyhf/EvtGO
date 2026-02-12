@@ -1,19 +1,16 @@
 import { createContext, useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { callFetchAccount } from '@apis/authApi.js';
-import { ROLE_REDIRECT_MAP } from '@constants/roles.js';
+import { ROLE_REDIRECT_MAP, ROLE_ID } from '@constants/roles.js';
 import Cookies from 'js-cookie';
 
 export const AuthContext = createContext({});
 
 const getRoleId = userData => {
     if (!userData) return null;
-    // 1. Kiểm tra object role lồng nhau: { role: { id: 3 } }
     if (userData?.role?.id) return userData.role.id;
-    // 2. Kiểm tra mảng roles: { roles: [{ id: 3 }] }
     if (Array.isArray(userData?.roles) && userData.roles.length > 0)
         return userData.roles[0].id;
-    // 3. Kiểm tra các biến phẳng
     return userData?.role_id || userData?.roleId || null;
 };
 
@@ -32,12 +29,9 @@ export const AuthProvider = ({ children }) => {
     const [isLoading, setIsLoading] = useState(true);
 
     const redirectByRole = useCallback(
-        roleId => {
+        (roleId, isReplace = true) => {
             const path = ROLE_REDIRECT_MAP[roleId] || '/';
-            // Dùng setTimeout 0ms để đảm bảo State đã được cập nhật trước khi chuyển hướng
-            setTimeout(() => {
-                navigate(path, { replace: true });
-            }, 0);
+            navigate(path, { replace: isReplace });
         },
         [navigate]
     );
@@ -51,28 +45,20 @@ export const AuthProvider = ({ children }) => {
             Cookies.set('u_gender', userData.gender, { expires });
     };
 
-    // 1. LOGIN: Xử lý đăng nhập và chuyển hướng tự động
     const loginContext = async (userData, accessToken) => {
         if (accessToken) {
             Cookies.set('access_token', accessToken, { expires: 1, path: '/' });
         }
-
         const roleId = getRoleId(userData);
-
-        // Lưu backup để khi F5 không bị mất quyền
         if (roleId) {
             Cookies.set('backup_role_id', roleId, { expires: 1, path: '/' });
         }
         saveExtraInfoToCookies(userData);
-
         setUser({ ...userData, role_id: roleId });
         setIsAuthenticated(true);
-
-        // ĐIỀU HƯỚNG TỚI DASHBOARD (Organizer sẽ về /organizer)
         redirectByRole(roleId);
     };
 
-    // 2. UPDATE: Đồng bộ State và Cookie mà không chuyển hướng
     const updateUserContext = updatedData => {
         setUser(prev => {
             const newRoleId = getRoleId(updatedData) || prev.role_id;
@@ -82,7 +68,6 @@ export const AuthProvider = ({ children }) => {
         });
     };
 
-    // 3. FETCH ACCOUNT: Khôi phục phiên làm việc khi F5
     const fetchAccount = async () => {
         const token = Cookies.get('access_token');
         if (!token) {
@@ -94,22 +79,30 @@ export const AuthProvider = ({ children }) => {
             const res = await callFetchAccount();
             if (res && res.user) {
                 const serverUser = res.user;
-                const cookieAge = Cookies.get('u_age');
-                const cookieAddress = Cookies.get('u_address');
-                const cookieGender = Cookies.get('u_gender');
-
-                // Lấy role từ API, nếu thiếu thì lấy từ Cookie backup
-                let roleId =
+                const roleId =
                     getRoleId(serverUser) || Cookies.get('backup_role_id');
 
                 setUser({
                     ...serverUser,
                     role_id: roleId,
-                    age: serverUser.age || cookieAge || '',
-                    address: serverUser.address || cookieAddress || '',
-                    gender: serverUser.gender || cookieGender || 'MALE'
+                    age: serverUser.age || Cookies.get('u_age') || '',
+                    address:
+                        serverUser.address || Cookies.get('u_address') || '',
+                    gender:
+                        serverUser.gender || Cookies.get('u_gender') || 'MALE'
                 });
                 setIsAuthenticated(true);
+                if (
+                    window.location.pathname === '/' &&
+                    roleId !== ROLE_ID.CUSTOMER
+                ) {
+                    const targetPath = ROLE_REDIRECT_MAP[roleId];
+                    if (targetPath && targetPath !== '/') {
+                        navigate(targetPath, { replace: true });
+
+                        return;
+                    }
+                }
             }
         } catch (error) {
             console.error('>>> [LỖI] fetchAccount:', error);
@@ -150,7 +143,17 @@ export const AuthProvider = ({ children }) => {
             {!isLoading ? (
                 children
             ) : (
-                <div className='loading-screen'>Đang tải thông tin...</div>
+                <div
+                    className='loading-screen'
+                    style={{
+                        display: 'flex',
+                        justifyContent: 'center',
+                        alignItems: 'center',
+                        height: '100vh'
+                    }}
+                >
+                    Đang tải thông tin hệ thống...
+                </div>
             )}
         </AuthContext.Provider>
     );

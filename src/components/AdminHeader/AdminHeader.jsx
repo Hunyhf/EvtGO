@@ -1,15 +1,14 @@
 import React, { useContext } from 'react';
+import LogOutIcon from '@icons/svgs/logOutIcon.svg?react';
+import UserIcon from '@icons/svgs/userIcon.svg?react';
+
 import { Avatar, Dropdown, message } from 'antd';
-import {
-    UserOutlined,
-    LogoutOutlined,
-    ProfileOutlined
-} from '@ant-design/icons';
+
 import { useNavigate, Link } from 'react-router-dom';
 import classNames from 'classnames/bind';
 
 import styles from './AdminHeader.module.scss';
-import { AuthContext } from '@contexts/AuthContext'; //
+import { AuthContext } from '@contexts/AuthContext';
 
 const cx = classNames.bind(styles);
 
@@ -30,7 +29,7 @@ function AdminHeader() {
         {
             key: 'profile',
             label: <Link to='/admin/profile'>Thông tin cá nhân</Link>,
-            icon: <ProfileOutlined />
+            icon: <UserIcon />
         },
         {
             type: 'divider'
@@ -38,7 +37,7 @@ function AdminHeader() {
         {
             key: 'logout',
             label: 'Đăng xuất',
-            icon: <LogoutOutlined />,
+            icon: <LogOutIcon />,
             danger: true,
             onClick: handleLogout
         }
