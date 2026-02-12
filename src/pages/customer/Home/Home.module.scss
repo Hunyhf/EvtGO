@@ -7,36 +7,37 @@
 }
 
 .wrapper {
-    @include grid-wide();
+    @include grid-wide(); // Tận dụng mixin sẵn có của dự án
     padding: 2.4rem 0;
 }
 
-// Banner Styles
+// Banner Section
 .banner-container {
     width: 100%;
     margin-bottom: 4rem;
 
     .banner-swiper {
         padding-bottom: 4rem;
+
         :global(.swiper-pagination) {
             bottom: 0 !important;
         }
     }
 
     .banner-item {
-        width: 100%;
         border-radius: 1.2rem;
         overflow: hidden;
+        @include flex(center, center); // Nếu có mixin flex center
+
         img {
             width: 100%;
             height: auto;
-            display: block;
-            object-fit: contain;
+            object-fit: cover; // Cover thường đẹp hơn contain cho banner full-width
         }
     }
 }
 
-// Trending Styles
+// Trending Section
 .trending-section {
     width: 100%;
 
@@ -45,20 +46,27 @@
         font-size: 2.2rem;
         font-weight: 700;
         margin-bottom: 2rem;
+
+        @include mobile-width {
+            font-size: 1.8rem;
+        }
     }
 
     .event-grid {
         display: grid;
-        // Tự động chia 4 cột đều nhau, khoảng cách 1.5rem
-        grid-template-columns: repeat(4, 1fr);
+        // Tự động chia cột thông minh: tối thiểu 250px, tối đa chiếm hết 1fr
+        grid-template-columns: repeat(auto-fill, minmax(25rem, 1fr));
         gap: 1.5rem;
-
-        @media (max-width: 1024px) {
+        overflow-x: auto;
+        // Xử lý Mobile/Tablet theo dạng Scroll ngang (UX mượt hơn trên cảm ứng)
+        @include tablet-width {
             display: flex;
             overflow-x: auto;
             padding-bottom: 1.5rem;
-            scroll-snap-type: x mandatory; // Giúp vuốt từng cái khựng lại đúng vị trí
+            scroll-snap-type: x mandatory;
+            gap: 1.2rem;
 
+            // Ẩn thanh scrollbar nhưng vẫn scroll được (tùy thiết kế)
             &::-webkit-scrollbar {
                 height: 4px;
             }
@@ -66,53 +74,6 @@
                 background: rgba($white-color, 0.2);
                 border-radius: 10px;
             }
-        }
-    }
-}
-
-.event-card {
-    background: rgba($white-color, 0.05);
-    border-radius: 1rem;
-    overflow: hidden;
-    transition: all 0.3s ease;
-    cursor: pointer;
-
-    @media (max-width: 1024px) {
-        min-width: 240px;
-        scroll-snap-align: start;
-    }
-
-    &:hover {
-        transform: translateY(-5px);
-        background: rgba($white-color, 0.1);
-        box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
-    }
-
-    .event-image {
-        aspect-ratio: 16 / 9;
-        width: 100%;
-        img {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-        }
-    }
-
-    .event-info {
-        padding: 1.2rem;
-        .event-title {
-            color: $white-color;
-            font-size: 1.5rem;
-            font-weight: 600;
-            margin-bottom: 0.5rem;
-            display: -webkit-box;
-            -webkit-line-clamp: 1;
-            -webkit-box-orient: vertical;
-            overflow: hidden;
-        }
-        .event-date {
-            color: #ccc;
-            font-size: 1.3rem;
         }
     }
 }
