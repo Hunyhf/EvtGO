@@ -2,6 +2,8 @@ import React from 'react';
 import { Layout, Menu } from 'antd';
 import { Link, useLocation } from 'react-router-dom';
 import { DashboardOutlined, UserOutlined } from '@ant-design/icons';
+import styles from './Sidebar.module.scss';
+import UserIcon from '@icons/svgs/userIcon.svg?react';
 
 const { Sider } = Layout;
 
@@ -16,7 +18,7 @@ const AdminSidebar = ({ collapsed }) => {
         },
         {
             key: '/admin/users',
-            icon: <UserOutlined />,
+            icon: <UserIcon style={{ width: '16px', height: '16px' }} />,
             label: <Link to='/admin/users'>Quản lý người dùng</Link>
         }
     ];
@@ -26,25 +28,15 @@ const AdminSidebar = ({ collapsed }) => {
             trigger={null}
             collapsible
             collapsed={collapsed}
-            theme='light'
             width={260}
+            className={styles.sidebar}
             style={{
                 boxShadow: '2px 0 8px 0 rgba(29,35,41,.05)',
                 zIndex: 10
             }}
         >
-            <div
-                style={{
-                    height: 64,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    padding: collapsed ? '0' : '0 16px',
-                    transition: 'all 0.2s',
-                    overflow: 'hidden'
-                }}
-            >
-                <Link to='/'>
+            <div className={styles.sidebar__logo}>
+                <Link to='/admin'>
                     <img
                         src='https://ticketbox.vn/_next/static/images/logo-for-tet.png'
                         alt='logo'
@@ -57,12 +49,15 @@ const AdminSidebar = ({ collapsed }) => {
                     />
                 </Link>
             </div>
-            <Menu
-                mode='inline'
-                selectedKeys={[location.pathname]}
-                items={menuItems}
-                style={{ borderRight: 0 }}
-            />
+
+            <div className={styles.sidebar__menu}>
+                <Menu
+                    mode='inline'
+                    selectedKeys={[location.pathname]}
+                    items={menuItems}
+                    style={{ borderRight: 0 }}
+                />
+            </div>
         </Sider>
     );
 };

@@ -1,60 +1,63 @@
-/* src/components/AdminSidebar/Sidebar.module.scss */
 @import '@styles/variables';
 @import '@styles/mixins';
 
 .sidebar {
     width: 260px;
-    height: 100vh;
-    background-color: $primary-color; // Màu thương hiệu chính
-    border-right: 1px solid $border-color; // Dùng biến border đã thống nhất
-    position: fixed;
-    left: 0;
-    top: 0;
+    min-height: 100vh;
+    background-color: $secondary-color !important;
     display: flex;
     flex-direction: column;
-    z-index: 100;
+    position: relative;
 
     &__logo {
         height: 64px;
         display: flex;
         align-items: center;
         justify-content: center;
-        background-color: $white-color; // Nền trắng giúp logo nổi bật
-        border-bottom: 1px solid $border-color;
+        background-color: $secondary-color;
 
         h2 {
             margin: 0;
-            color: $primary-color; // Đồng bộ màu chữ logo với brand
-            font-size: 20px;
+            color: $white-color;
+            font-size: 20rem;
             font-weight: $font-weight-bold;
         }
     }
 
     &__menu {
         flex: 1;
-        overflow-y: auto; // Tối ưu performance: chỉ scroll phần menu khi quá dài
+        overflow-y: auto;
         border-right: none !important;
-
-        // Tinh chỉnh Ant Design Menu để khớp với giao diện xanh
+        svg {
+            fill: $white-color;
+        }
         :global {
             .ant-menu {
-                background: transparent;
-                color: rgba(
-                    $white-color,
-                    0.85
-                ); // Trắng nhẹ cho text không chính
+                background: transparent !important;
                 border-inline-end: none !important;
 
                 .ant-menu-item {
+                    color: rgba($white-color, 0.85) !important;
+
+                    a {
+                        color: rgba($white-color, 0.85) !important;
+                        &:hover {
+                            color: $white-color !important;
+                        }
+                    }
+
                     &:hover {
-                        color: $white-color !important; // Trắng rõ khi hover
+                        color: $white-color !important;
                         background-color: rgba($white-color, 0.1) !important;
                     }
                 }
 
                 .ant-menu-item-selected {
-                    background-color: $white-color !important; // Item đang chọn nổi bật hẳn
-                    color: $primary-color !important; // Chữ chuyển về xanh brand để dễ đọc
+                    background-color: $secondary-color !important;
+
+                    .ant-menu-title-content a {
+                        color: $primary-color !important;
+                    }
                 }
             }
         }

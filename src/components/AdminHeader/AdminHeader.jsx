@@ -24,14 +24,10 @@ function AdminHeader({ collapsed, onToggle }) {
     const menuItems = [
         {
             key: 'profile',
-            label: <Link to='/admin/profile'>Thông tin cá nhân</Link>,
+            label: <Link to='/admin/profile'>Thông tin tài khoản</Link>,
             icon: <UserIcon style={{ width: '16px', height: '16px' }} />
         },
-        {
-            key: 'account',
-            label: <Link to='/admin/account'>Thông tin tài khoản</Link>,
-            icon: <UserIcon style={{ width: '16px', height: '16px' }} />
-        },
+
         { type: 'divider' },
         {
             key: 'logout',
