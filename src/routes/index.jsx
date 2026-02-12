@@ -24,12 +24,7 @@ import { ROLE_ID } from '@constants/roles.js';
 export const BREADCRUMB_LABELS = {
     '/': 'Trang chủ',
     '/my-tickets': 'Vé của tôi',
-    '/profile': 'Hồ sơ cá nhân',
-    '/category': 'Danh mục',
-    '/staff': 'Quản lý vận hành',
-    '/admin': 'Quản trị hệ thống',
-    '/admin/users': 'Quản lý người dùng',
-    '/organizer': 'Nhà tổ chức'
+    '/profile': 'Hồ sơ cá nhân'
 };
 
 export const routes = createBrowserRouter([
