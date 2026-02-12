@@ -1,16 +1,17 @@
-import axios from './axiosClient';
+import axiosClient from './axiosClient';
 
-/**
- * Lấy danh sách tất cả danh mục
- */
-export const callFetchCategories = () => {
-    return axios.get('/api/v1/categories');
+const categoryApi = {
+    // Lấy tất cả danh mục (genres)
+    getAll: params => {
+        const url = '/genres';
+        return axiosClient.get(url, { params });
+    },
+
+    // Lấy chi tiết một danh mục (nếu cần)
+    getById: id => {
+        const url = `/genres/${id}`;
+        return axiosClient.get(url);
+    }
 };
 
-/**
- * Lấy sự kiện theo danh mục
- * @param {number} categoryId
- */
-export const callFetchEventsByCategory = categoryId => {
-    return axios.get(`/api/v1/events?filter=category.id:${categoryId}`);
-};
+export default categoryApi;
