@@ -1,17 +1,11 @@
 import React from 'react';
-import { Menu } from 'antd';
+import { Layout, Menu } from 'antd';
 import { Link, useLocation } from 'react-router-dom';
-import {
-    DashboardOutlined,
-    UserOutlined,
-    CalendarOutlined
-} from '@ant-design/icons';
-import classNames from 'classnames/bind';
-import styles from './Sidebar.module.scss';
+import { DashboardOutlined, UserOutlined } from '@ant-design/icons';
 
-const cx = classNames.bind(styles);
+const { Sider } = Layout;
 
-const Sidebar = () => {
+const AdminSidebar = ({ collapsed }) => {
     const location = useLocation();
 
     const menuItems = [
@@ -25,24 +19,52 @@ const Sidebar = () => {
             icon: <UserOutlined />,
             label: <Link to='/admin/users'>Quản lý người dùng</Link>
         }
-        // Thêm các mục khác tại đây
     ];
 
     return (
-        <aside className={cx('sidebar')}>
-            <div className={cx('sidebar__logo')}>
-                <Link to='/admin'>
-                    <h2>EvtGO Admin</h2>
+        <Sider
+            trigger={null}
+            collapsible
+            collapsed={collapsed}
+            theme='light'
+            width={260}
+            style={{
+                boxShadow: '2px 0 8px 0 rgba(29,35,41,.05)',
+                zIndex: 10
+            }}
+        >
+            <div
+                style={{
+                    height: 64,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    padding: collapsed ? '0' : '0 16px',
+                    transition: 'all 0.2s',
+                    overflow: 'hidden'
+                }}
+            >
+                <Link to='/'>
+                    <img
+                        src='https://ticketbox.vn/_next/static/images/logo-for-tet.png'
+                        alt='logo'
+                        style={{
+                            height: collapsed ? '30px' : '45px',
+                            maxWidth: '100%',
+                            objectFit: 'contain',
+                            transition: 'height 0.2s'
+                        }}
+                    />
                 </Link>
             </div>
             <Menu
                 mode='inline'
                 selectedKeys={[location.pathname]}
                 items={menuItems}
-                className={cx('sidebar__menu')}
+                style={{ borderRight: 0 }}
             />
-        </aside>
+        </Sider>
     );
 };
 
-export default Sidebar;
+export default AdminSidebar;

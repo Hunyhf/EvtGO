@@ -1,19 +1,15 @@
+// src/components/AdminHeader/AdminHeader.jsx
 import React, { useContext } from 'react';
-import { Avatar, Dropdown, message } from 'antd';
-// Bạn có thể bỏ import UserOutlined nếu không dùng nữa
+import { Layout, Button, Avatar, Dropdown, message } from 'antd';
+import { MenuFoldOutlined, MenuUnfoldOutlined } from '@ant-design/icons';
 import { useNavigate, Link } from 'react-router-dom';
-import classNames from 'classnames/bind';
-
-// Import các icon SVG của bạn
+import { AuthContext } from '@contexts/AuthContext';
 import LogOutIcon from '@icons/svgs/logOutIcon.svg?react';
 import UserIcon from '@icons/svgs/userIcon.svg?react';
 
-import styles from './AdminHeader.module.scss';
-import { AuthContext } from '@contexts/AuthContext';
+const { Header } = Layout;
 
-const cx = classNames.bind(styles);
-
-function AdminHeader() {
+function AdminHeader({ collapsed, onToggle }) {
     const { user, logoutContext } = useContext(AuthContext);
     const navigate = useNavigate();
 
@@ -25,22 +21,21 @@ function AdminHeader() {
         }
     };
 
-    // Định nghĩa menu cho Dropdown
     const menuItems = [
         {
             key: 'profile',
             label: <Link to='/admin/profile'>Thông tin cá nhân</Link>,
-            // Đã đổi thành UserIcon của bạn
             icon: <UserIcon style={{ width: '16px', height: '16px' }} />
         },
-
         {
-            type: 'divider'
+            key: 'account',
+            label: <Link to='/admin/account'>Thông tin tài khoản</Link>,
+            icon: <UserIcon style={{ width: '16px', height: '16px' }} />
         },
+        { type: 'divider' },
         {
             key: 'logout',
             label: 'Đăng xuất',
-            // Đã đổi thành LogOutIcon của bạn
             icon: <LogOutIcon style={{ width: '16px', height: '16px' }} />,
             danger: true,
             onClick: handleLogout
@@ -48,18 +43,64 @@ function AdminHeader() {
     ];
 
     return (
-        <header className={cx('header')}>
+        <Header
+            style={{
+                padding: 0,
+                background: '#fff',
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                paddingRight: '24px',
+                boxShadow: '0 1px 4px rgba(0,21,41,.08)'
+            }}
+        >
+            {/* Nút Toggle Sidebar */}
+            <Button
+                type='text'
+                icon={collapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}
+                onClick={onToggle}
+                style={{ fontSize: '18px', width: 64, height: 64 }}
+            />
+
             <Dropdown
                 menu={{ items: menuItems }}
                 placement='bottomRight'
                 trigger={['click']}
             >
-                <div className={cx('header__user-section')}>
-                    <div className={cx('header__info')}>
-                        <span className={cx('name')}>
+                <div
+                    style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '12px',
+                        cursor: 'pointer'
+                    }}
+                >
+                    <div
+                        style={{
+                            textAlign: 'right',
+                            display: 'flex',
+                            flexDirection: 'column'
+                        }}
+                    >
+                        <span
+                            style={{
+                                fontWeight: 600,
+                                fontSize: '14px',
+                                color: '#262626',
+                                lineHeight: '1.4'
+                            }}
+                        >
                             {user?.name || 'Quản trị viên'}
                         </span>
-                        <span className={cx('role')}>Admin</span>
+                        <span
+                            style={{
+                                fontSize: '12px',
+                                color: '#8c8c8c',
+                                lineHeight: '1'
+                            }}
+                        >
+                            Admin
+                        </span>
                     </div>
                     <Avatar
                         size='large'
@@ -74,7 +115,6 @@ function AdminHeader() {
                         }
                         style={{
                             backgroundColor: '#2dc275',
-                            cursor: 'pointer',
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center'
@@ -82,7 +122,7 @@ function AdminHeader() {
                     />
                 </div>
             </Dropdown>
-        </header>
+        </Header>
     );
 }
 

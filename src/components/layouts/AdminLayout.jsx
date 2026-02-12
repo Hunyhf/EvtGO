@@ -1,25 +1,38 @@
-import React from 'react';
+// src/components/layouts/AdminLayout.jsx
+import React, { useState } from 'react';
+import { Layout } from 'antd';
 import { Outlet } from 'react-router-dom';
-import classNames from 'classnames/bind';
-import Sidebar from '@components/AdminSidebar/index'; // Component vừa tạo
-import AdminHeader from '@components/AdminHeader/AdminHeader'; // Component bạn đã có
-import styles from './AdminLayout.module.scss';
+import Sidebar from '@components/AdminSidebar/index';
+import AdminHeader from '@components/AdminHeader/AdminHeader';
 
-const cx = classNames.bind(styles);
+const { Content } = Layout;
 
 const AdminLayout = () => {
+    const [collapsed, setCollapsed] = useState(false);
+
     return (
-        <div className={cx('admin-layout')}>
-            <Sidebar />
+        <Layout style={{ minHeight: '100vh' }}>
+            <Sidebar collapsed={collapsed} />
 
-            <div className={cx('admin-main')}>
-                <AdminHeader />
+            <Layout>
+                <AdminHeader
+                    collapsed={collapsed}
+                    onToggle={() => setCollapsed(!collapsed)}
+                />
 
-                <main className={cx('admin-content')}>
+                <Content
+                    style={{
+                        margin: '24px 16px',
+                        padding: 24,
+                        background: '#fff',
+                        borderRadius: '8px',
+                        minHeight: 280
+                    }}
+                >
                     <Outlet />
-                </main>
-            </div>
-        </div>
+                </Content>
+            </Layout>
+        </Layout>
     );
 };
 
