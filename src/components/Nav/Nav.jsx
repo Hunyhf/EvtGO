@@ -6,8 +6,8 @@ import categoryApi from '@apis/categoryApi';
 
 const cx = classNames.bind(styles);
 
-// Dữ liệu dự phòng khi API bị lỗi 403 hoặc không có dữ liệu
-const FALLBACK_CATEGORIES = [
+// Dữ liệu dự phòng khớp với cấu trúc trong Database
+const DEFAULT_GENRES = [
     { id: 1, name: 'Nhạc sống' },
     { id: 2, name: 'Sân khấu và Nghệ thuật' },
     { id: 3, name: 'Thể thao' },
@@ -15,27 +15,39 @@ const FALLBACK_CATEGORIES = [
     { id: 5, name: 'Tham quan và Trải nghiệm' }
 ];
 
+/**
+ * Hàm chuyển đổi Tiếng Việt có dấu thành không dấu, thay khoảng trắng bằng gạch nối
+ */
+const slugify = str => {
+    if (!str) return '';
+    return str
+        .normalize('NFD') // Chuyển về dạng tổ hợp
+        .replace(/[\u0300-\u036f]/g, '') // Xóa các dấu phụ
+        .replace(/đ/g, 'd')
+        .replace(/Đ/g, 'D')
+        .toLowerCase()
+        .trim()
+        .replace(/\s+/g, '-') // Thay khoảng trắng bằng dấu gạch nối
+        .replace(/[^\w-]+/g, ''); // Xóa ký tự đặc biệt khác
+};
+
 function Nav() {
-    // Khởi tạo state với danh sách dự phòng để Nav luôn có dữ liệu hiển thị
-    const [genres, setGenres] = useState(FALLBACK_CATEGORIES);
+    const [genres, setGenres] = useState(DEFAULT_GENRES);
 
     useEffect(() => {
         const fetchGenres = async () => {
             try {
                 const res = await categoryApi.getAll();
-                // Nếu gọi API thành công, cập nhật lại dữ liệu thật từ DB
+                // Dữ liệu nằm trong res.data.result theo định dạng của Backend
                 if (res?.data?.result) {
                     setGenres(res.data.result);
                 }
             } catch (error) {
-                // Khi lỗi 403 xảy ra, code sẽ rơi vào đây
-                // Chúng ta giữ nguyên dữ liệu FALLBACK_CATEGORIES đã set ở useState
                 console.warn(
-                    'Backend đang chặn API (403). FE đang hiển thị dữ liệu dự phòng.'
+                    'API bị chặn (403). Đang hiển thị danh mục mặc định.'
                 );
             }
         };
-
         fetchGenres();
     }, []);
 
@@ -45,7 +57,7 @@ function Nav() {
                 {genres.map(item => (
                     <li key={item.id} className={cx('nav-item')}>
                         <NavLink
-                            to={`/category/${item.id}`}
+                            to={`/category?name=${slugify(item.name)}`}
                             className={({ isActive }) =>
                                 cx('nav-link', { active: isActive })
                             }

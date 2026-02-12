@@ -3,13 +3,14 @@ import axiosClient from './axiosClient';
 const categoryApi = {
     // Lấy tất cả danh mục (genres)
     getAll: params => {
-        const url = '/genres';
+        // SỬA TẠI ĐÂY: Thêm /api/v1 vào trước /genres
+        const url = '/api/v1/genres';
         return axiosClient.get(url, { params });
     },
 
-    // Lấy chi tiết một danh mục (nếu cần)
+    // Lấy chi tiết một danh mục
     getById: id => {
-        const url = `/genres/${id}`;
+        const url = `/api/v1/genres/${id}`;
         return axiosClient.get(url);
     }
 };
