@@ -13,7 +13,7 @@ import Category from '@pages/customer/Category.jsx';
 import Profile from '@pages/customer/Profile/Profile.jsx';
 import Ticket from '@pages/customer/Ticket/Ticket.jsx';
 import NotFound from '@pages/customer/NotFound/NotFound.jsx';
-import AdminDashBoard from '@pages/admin/AdminDashBoard.jsx';
+import AdminDashBoard from '@pages/admin/AdminDashBoard/AdminDashBoard.jsx';
 import OrganizerDashBoard from '@pages/organizer/OrganizerDashBoard.jsx';
 // Import Protection, Context & Constants
 import ProtectedRoute from '@components/ProtectedRoute';
