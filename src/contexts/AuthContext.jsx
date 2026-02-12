@@ -6,7 +6,6 @@ import Cookies from 'js-cookie';
 
 export const AuthContext = createContext({});
 
-// TƯ DUY SENIOR: Hàm lấy role_id cực kỳ chắc chắn từ mọi cấu trúc API trả về
 const getRoleId = userData => {
     if (!userData) return null;
     // 1. Kiểm tra object role lồng nhau: { role: { id: 3 } }

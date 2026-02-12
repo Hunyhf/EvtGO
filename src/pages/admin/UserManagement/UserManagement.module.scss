@@ -1,0 +1,50 @@
+@import '@styles/variables.scss';
+
+.user-management {
+    padding: 24px;
+    background-color: #f8fafc;
+    min-height: 100vh;
+
+    &__header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 24px;
+    }
+
+    &__title {
+        margin: 0 !important;
+        color: $secondary-color !important;
+    }
+
+    &__container {
+        background: $white-color;
+        padding: 24px;
+        border-radius: 12px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.02);
+    }
+
+    &__table {
+        :global {
+            .ant-table-thead > tr > th {
+                background-color: #fafafa;
+                color: $text-color;
+                font-weight: 600;
+            }
+        }
+    }
+}
+
+.action-btns {
+    display: flex;
+    gap: 8px;
+}
+
+.btn-primary {
+    background-color: $primary-color !important;
+    border-color: $primary-color !important;
+
+    &:hover {
+        opacity: 0.8;
+    }
+}

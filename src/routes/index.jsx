@@ -14,6 +14,7 @@ import Profile from '@pages/customer/Profile/Profile.jsx';
 import Ticket from '@pages/customer/Ticket/Ticket.jsx';
 import NotFound from '@pages/customer/NotFound/NotFound.jsx';
 import AdminDashBoard from '@pages/admin/AdminDashBoard/AdminDashBoard.jsx';
+import UserManagement from '@pages/admin/UserManagement/UserManagement.jsx';
 import OrganizerDashBoard from '@pages/organizer/OrganizerDashBoard.jsx';
 // Import Protection, Context & Constants
 import ProtectedRoute from '@components/ProtectedRoute';
@@ -27,13 +28,12 @@ export const BREADCRUMB_LABELS = {
     '/category': 'Danh mục',
     '/staff': 'Quản lý vận hành',
     '/admin': 'Quản trị hệ thống',
+    '/admin/users': 'Quản lý người dùng',
     '/organizer': 'Nhà tổ chức'
 };
 
 export const routes = createBrowserRouter([
     {
-        // - TƯ DUY SENIOR: Dùng một route không có path để bọc AuthProvider.
-        // Điều này đảm bảo AuthContext có thể sử dụng hook useNavigate() mà không bị lỗi.
         element: (
             <AuthProvider>
                 <Outlet />
@@ -91,7 +91,13 @@ export const routes = createBrowserRouter([
                         <AdminLayout />
                     </ProtectedRoute>
                 ),
-                children: [{ index: true, element: <AdminDashBoard /> }] //
+                children: [
+                    { index: true, element: <AdminDashBoard /> },
+                    {
+                        path: 'users',
+                        element: <UserManagement />
+                    }
+                ]
             },
 
             // --- NHÓM ORGANIZER ---

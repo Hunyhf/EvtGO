@@ -62,10 +62,6 @@ function Profile() {
         try {
             const res = await callUpdateUser(dataToSend);
 
-            // --- LOGIC FIX QUAN TRỌNG ---
-            // Kiểm tra cả 2 trường hợp:
-            // 1. res.data (nếu axios trả về full response)
-            // 2. res (nếu interceptor đã lọc data)
             const updatedData = res?.data || res;
 
             if (updatedData) {

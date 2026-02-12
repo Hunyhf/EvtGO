@@ -81,7 +81,7 @@ function AdminDashBoard() {
                         title='Tổng người dùng'
                         value={stats.totalUsers}
                         icon={<UserOutlined />}
-                        color='#2dc275' // Primary Color
+                        color='#2dc275'
                         loading={loading}
                     />
                 </Col>

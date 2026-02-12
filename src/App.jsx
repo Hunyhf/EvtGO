@@ -1,6 +1,6 @@
 // src/App.jsx
 import { RouterProvider } from 'react-router-dom';
-import { routes } from './routes'; // Import duy nhất object routes
+import { routes } from './routes';
 
 function App() {
     return (
