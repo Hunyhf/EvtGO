@@ -7,10 +7,13 @@ $third-color: #393f4e;
 $white-color: #ffffff;
 $text-color: #9ca6b0;
 $sub-color: #2a2d34;
-
+$border-color: #f0f0f0; // Màu border chung
+$bg-admin: #f8fafc; // Màu nền xám nhạt cho Dashboard
+$hover-color: #f5f5f5;
 // Feedback Colors
 $error-color: #ff4d4f;
-
+// Typography
+$font-weight-semi-bold: 600; // Thêm mức weight này vì admin dùng nhiều
 // Layout & Spacing
 $header-height: 76px;
 $mobile-width: 739px;

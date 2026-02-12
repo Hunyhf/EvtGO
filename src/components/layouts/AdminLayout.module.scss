@@ -1,0 +1,18 @@
+.admin-layout {
+    display: flex;
+    min-height: 100vh;
+    background-color: #f5f5f5;
+}
+
+.admin-main {
+    flex: 1;
+    margin-left: 260px; // Phải bằng đúng width của Sidebar
+    display: flex;
+    flex-direction: column;
+    min-width: 0; // Tránh lỗi layout khi nội dung quá rộng
+}
+
+.admin-content {
+    padding: 24px;
+    flex: 1;
+}
