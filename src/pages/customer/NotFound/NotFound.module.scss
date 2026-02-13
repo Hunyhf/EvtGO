@@ -22,7 +22,7 @@
 }
 
 .desc {
-    font-size: 1.8rem;
+    font-size: $font-size-lg;
     color: $text-color;
     max-width: 500px;
     margin-bottom: 30px;
@@ -30,8 +30,8 @@
 
 .back-btn {
     padding: 1.2rem 3.2rem;
-    font-size: 1.6rem;
-    font-weight: 600;
+    font-size: $font-size-md;
+    font-weight: $font-weight-semi-bold;
     color: $white-color;
     background-color: $primary-color;
 
@@ -68,10 +68,11 @@
     }
 
     .desc {
-        font-size: 1.6rem;
+        font-size: $font-size-md;
     }
 
     .wrapper {
         padding: 0 1.5rem;
+        gap: 10rem;
     }
 }

@@ -1,5 +1,6 @@
 @import '@styles/variables';
 @import '@styles/mixins';
+
 .header {
     width: 100%;
     height: $header-height;
@@ -10,9 +11,11 @@
         @include grid-wide();
         position: relative;
         @include flex(center, center);
+
         @include tablet-width {
             padding: 0 24px;
         }
+
         @include mobile-width {
             padding: 0 16px;
         }
@@ -56,8 +59,8 @@
     }
 
     &__tickets {
-        font-size: 1.6rem;
-        font-weight: bold;
+        font-size: $font-size-md; // 1.6rem
+        font-weight: $font-weight-bold;
         color: $white-color;
         padding: 0 8px;
         @include flex(center, center, 6px);
@@ -69,8 +72,8 @@
         }
 
         svg {
-            width: 24px;
-            height: 24px;
+            width: $icon-size-lg; // 24px ~ 2.4rem
+            height: $icon-size-lg;
         }
 
         @include mobile-tablet-width {
@@ -80,8 +83,8 @@
 
     &__guest {
         height: 100%;
-        font-size: 1.6rem;
-        font-weight: bold;
+        font-size: $font-size-md; // 1.6rem
+        font-weight: $font-weight-bold;
         color: $white-color;
         padding: 0 8px;
         cursor: pointer;
@@ -119,7 +122,7 @@
     width: 359px;
     height: 43px;
     background-color: $white-color;
-    padding: 0 12px;
+    padding: 0 20px;
     @include flex(flex-start, center);
     @include radius-common(6px);
     transition: all 0.3s ease;
@@ -144,14 +147,14 @@
         flex-shrink: 0;
 
         svg {
-            width: 16px;
-            height: 16px;
+            width: $icon-size-sm; // 16px ~ 1.6rem
+            height: $icon-size-sm;
             filter: $sub-color;
         }
 
         @include mobile-width {
             svg {
-                width: 40px;
+                width: 40px; // Giữ nguyên theo thiết kế riêng biệt cho mobile
                 height: 40px;
                 filter: brightness(0) invert(1);
             }
@@ -163,7 +166,7 @@
         height: 18px;
         border: none;
         outline: none;
-        font-size: 1.6rem;
+        font-size: $font-size-md; // 1.6rem
         margin-left: 8px;
         color: $sub-color;
 
@@ -183,8 +186,8 @@
         border: none;
         background-color: $white-color;
         color: $sub-color;
-        font-size: 1.6rem;
-        font-weight: 500;
+        font-size: $font-size-md; // 1.6rem
+        font-weight: $font-weight-semi-bold; // 500 gần với 600
         cursor: pointer;
         @include radius-common(4px);
         transition: opacity 0.3s ease;
@@ -201,9 +204,10 @@
         }
     }
 }
+
 .search-history {
     position: absolute;
-    top: calc(100% + 8px); // Cách ô input một khoảng nhỏ
+    top: calc(100% + 8px);
     left: 0;
     width: 100%;
     background-color: $white-color;
@@ -215,11 +219,11 @@
 
     &__title {
         padding: 8px 16px;
-        font-size: 1.2rem;
+        font-size: $font-size-xs; // 1.2rem
         color: #888;
-        font-weight: 600;
+        font-weight: $font-weight-semi-bold;
         text-transform: uppercase;
-        border-bottom: 1px solid #f0f0f0;
+        border-bottom: 1px solid $border-color;
         margin-bottom: 4px;
     }
 
@@ -236,11 +240,11 @@
         transition: background 0.2s ease;
 
         &:hover {
-            background-color: #f8f9fa;
+            background-color: $hover-color;
         }
 
         span {
-            font-size: 1.4rem;
+            font-size: $font-size-sm; // 1.4rem
             color: $sub-color;
             flex: 1;
             white-space: nowrap;
@@ -253,7 +257,7 @@
         background: none;
         border: none;
         color: #ccc;
-        font-size: 1.6rem;
+        font-size: $font-size-md; // 1.6rem
         cursor: pointer;
         padding: 4px;
         margin-left: 8px;
@@ -270,27 +274,27 @@
 }
 
 .mobile-search-overlay {
-    display: none; // Mặc định ẩn
+    display: none;
 
     @include mobile-width {
         @include flex(flex-start, stretch);
         flex-direction: column;
         display: flex;
         position: fixed;
-        inset: 0; // Phủ kín màn hình
+        inset: 0;
         background-color: $white-color;
-        z-index: 2000; // Nằm trên cả header và bottom-nav
+        z-index: 2000;
 
         .mobile-search-header {
             padding: 12px 16px;
             @include flex(center, center, 12px);
-            border-bottom: 1px solid #eee;
+            border-bottom: 1px solid $border-color;
             background-color: $white-color;
 
             .mobile-search-back {
                 background: none;
                 border: none;
-                font-size: 2.4rem;
+                font-size: $font-size-h3; // 2.4rem
                 color: $sub-color;
                 cursor: pointer;
                 padding: 4px;
@@ -301,8 +305,8 @@
                 height: 44px;
                 border: none;
                 outline: none;
-                font-size: 1.6rem;
-                background-color: #f5f5f5;
+                font-size: $font-size-md; // 1.6rem
+                background-color: $hover-color;
                 @include radius-common(22px);
                 padding: 0 16px;
                 color: $sub-color;
@@ -324,15 +328,15 @@
             }
 
             .search-history__item {
-                padding: 16px 0; // Tăng diện tích chạm (tap target) cho mobile
-                border-bottom: 1px solid #f0f0f0;
+                padding: 16px 0;
+                border-bottom: 1px solid $border-color;
 
                 span {
-                    font-size: 1.6rem;
+                    font-size: $font-size-md; // Tăng size cho mobile (1.6rem)
                 }
 
                 .search-history__remove {
-                    font-size: 2rem;
+                    font-size: $icon-size-md; // 2rem
                     padding: 8px;
                 }
             }
@@ -340,17 +344,18 @@
             .empty-text {
                 text-align: center;
                 color: #999;
-                font-size: 1.4rem;
+                font-size: $font-size-sm; // 1.4rem
                 margin-top: 60px;
             }
         }
     }
 }
+
 .header-user {
     @include flex(center, center, 8px);
     color: $white-color;
-    font-size: 1.6rem;
-    font-weight: bold;
+    font-size: $font-size-md; // 1.6rem
+    font-weight: $font-weight-bold;
     padding: 5px;
     position: relative;
     cursor: pointer;
@@ -367,8 +372,8 @@
     }
 
     &__avatar {
-        width: 24px;
-        height: 24px;
+        width: $icon-size-lg; // 24px
+        height: $icon-size-lg;
         border-radius: 50%;
         @include mobile-tablet-width {
             width: 40px;
@@ -378,7 +383,7 @@
 
     &__toggle {
         svg {
-            width: 12px;
+            width: 12px; // Kích thước quá nhỏ, không có biến tương ứng trong file
             height: 12px;
             fill: $white-color;
         }
@@ -405,8 +410,8 @@
         @include flex(flex-start, center, 12px);
         padding: 12px 16px;
         color: $sub-color;
-        font-weight: 400;
-        font-size: 1.6rem;
+        font-weight: $font-weight-regular;
+        font-size: $font-size-md; // 1.6rem
         cursor: pointer;
         transition: background-color 0.2s ease;
         display: flex;
@@ -417,8 +422,8 @@
     }
 
     &__dropdown-icon {
-        width: 20px;
-        height: 20px;
+        width: $icon-size-md; // 20px
+        height: $icon-size-md;
         stroke: $primary-color;
         flex-shrink: 0;
 
@@ -428,6 +433,7 @@
         }
     }
 }
+
 // Bottom Navigation Mobile
 .bottom-nav {
     display: none;
@@ -438,7 +444,7 @@
         bottom: 0;
         left: 0;
         right: 0;
-        height: $header-height; // Cao bằng header theo yêu cầu của bạn
+        height: $header-height;
         background-color: $secondary-color;
         border-top: 1px solid rgba(0, 0, 0, 0.08);
         @include flex(space-around, center);
@@ -451,12 +457,12 @@
         flex-direction: column;
         text-decoration: none;
         color: $white-color;
-        font-size: 1.1rem;
+        font-size: 1.1rem; // Giữ nguyên vì không có biến nhỏ hơn 1.2rem
         gap: 4px;
         flex: 1;
 
         svg {
-            width: 22px;
+            width: 22px; // Kích thước đặc thù
             height: 22px;
             fill: $white-color;
         }
@@ -473,20 +479,19 @@
 .logo-img {
     @include mobile-width {
         &.hide-mobile {
-            display: none; // Ẩn logo ảnh khi không ở trang chủ trên mobile
+            display: none;
         }
     }
 }
 
 .back-home-text {
-    display: none; // Mặc định ẩn trên Desktop
+    display: none;
 
     @include mobile-width {
         display: block;
         color: $white-color;
-        font-size: 1.6rem;
-        font-weight: 600;
-        white-space: nowrap;
+        font-size: $font-size-md; // 1.6rem
+        font-weight: $font-weight-semi-bold;
     }
 }
 
