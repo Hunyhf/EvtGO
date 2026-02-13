@@ -2,7 +2,6 @@
 @import '@styles/mixins';
 
 .profile {
-    width: 100%;
     min-height: 100vh;
     background-color: $secondary-color;
     display: flex;
@@ -13,7 +12,7 @@
         width: 100%;
         max-width: 60rem;
         padding: 3.2rem;
-        background-color: rgba($white-color, 0.02); // Nền nhẹ tạo chiều sâu
+        background-color: rgba($white-color, 0.02);
         border-radius: 1.6rem;
         border: 1px solid rgba($white-color, 0.05);
         display: flex;
@@ -53,9 +52,61 @@
         max-width: 45rem;
         display: flex;
         flex-direction: column;
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            margin-bottom: 2.2rem;
+
+            label {
+                font-size: 1.4rem;
+                font-weight: 600;
+                color: $white-color;
+            }
+
+            input {
+                width: 100%;
+                padding: 1.4rem 1.6rem;
+                background-color: rgba($white-color, 0.05);
+                border: 1px solid rgba($white-color, 0.1);
+                border-radius: 0.8rem;
+                color: $white-color;
+                font-size: 1.5rem;
+                transition: all 0.2s ease;
+
+                &::placeholder {
+                    color: rgba($white-color, 0.3);
+                }
+
+                &:focus {
+                    outline: none;
+                    border-color: $primary-color;
+                    background-color: rgba($white-color, 0.08);
+                    box-shadow: 0 0 0 2px rgba($primary-color, 0.1);
+                }
+
+                // Style cho trạng thái readOnly (Email)
+                &:read-only {
+                    background-color: rgba($white-color, 0.02);
+                    border-color: transparent;
+                    color: rgba($white-color, 0.5);
+                    cursor: not-allowed;
+                }
+                &::-webkit-outer-spin-button,
+                &::-webkit-inner-spin-button {
+                    -webkit-appearance: none;
+                    margin: 0;
+                }
+
+                // Tắt nút mũi tên cho Firefox
+                &[type='number'] {
+                    -moz-appearance: textfield;
+                }
+            }
+        }
     }
 
-    // Các class đặc thù không nằm trong FormGroup
     .radio-container {
         margin-bottom: 2.5rem;
 
@@ -83,7 +134,7 @@
             transition: color 0.2s;
 
             input {
-                accent-color: $primary-color; // Màu radio đồng bộ theme
+                accent-color: $primary-color;
                 width: 1.8rem;
                 height: 1.8rem;
             }

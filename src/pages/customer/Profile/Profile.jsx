@@ -29,13 +29,15 @@ function Profile() {
                         value={formData.name}
                         onChange={handleChange}
                         placeholder='Nhập họ và tên'
+                        className={cx('form-group')}
                     />
 
                     <FormGroup
                         label='Email'
                         name='email'
                         value={formData.email}
-                        readOnly // Đã có style readOnly trong FormGroup.module.scss
+                        readOnly
+                        className={cx('form-group')}
                     />
 
                     <FormGroup
@@ -45,6 +47,7 @@ function Profile() {
                         value={formData.age}
                         onChange={handleChange}
                         placeholder='Nhập tuổi'
+                        className={cx('form-group')}
                     />
 
                     <FormGroup
@@ -53,6 +56,7 @@ function Profile() {
                         value={formData.address}
                         onChange={handleChange}
                         placeholder='Nhập địa chỉ cư trú'
+                        className={cx('form-group')}
                     />
 
                     <div className={cx('radio-container')}>
