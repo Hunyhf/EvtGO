@@ -6,7 +6,6 @@ import categoryApi from '@apis/categoryApi';
 
 const cx = classNames.bind(styles);
 
-// Dữ liệu dự phòng khớp với cấu trúc trong Database
 const DEFAULT_GENRES = [
     { id: 1, name: 'Nhạc sống' },
     { id: 2, name: 'Sân khấu và Nghệ thuật' },
@@ -15,9 +14,6 @@ const DEFAULT_GENRES = [
     { id: 5, name: 'Tham quan và Trải nghiệm' }
 ];
 
-/**
- * Hàm chuyển đổi Tiếng Việt có dấu thành không dấu, thay khoảng trắng bằng gạch nối
- */
 const slugify = str => {
     if (!str) return '';
     return str

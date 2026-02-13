@@ -12,23 +12,20 @@ import EventCard from '@components/EventCard/EventCard.jsx';
 import { BANNER_DATA, TRENDING_DATA } from './constants';
 
 const cx = classNames.bind(styles);
-
+const swiperConfig = {
+    modules: [Navigation, Pagination, Autoplay],
+    spaceBetween: 20,
+    slidesPerView: 1,
+    loop: true,
+    autoplay: { delay: 3500, disableOnInteraction: false },
+    navigation: true,
+    pagination: { clickable: true },
+    breakpoints: {
+        768: { slidesPerView: 2 },
+        1024: { slidesPerView: 2, spaceBetween: 30 }
+    }
+};
 function Home() {
-    // Cấu hình Swiper tách biệt để dễ bảo trì
-    const swiperConfig = {
-        modules: [Navigation, Pagination, Autoplay],
-        spaceBetween: 20,
-        slidesPerView: 1,
-        loop: true,
-        autoplay: { delay: 3500, disableOnInteraction: false },
-        navigation: true,
-        pagination: { clickable: true },
-        breakpoints: {
-            768: { slidesPerView: 2 },
-            1024: { slidesPerView: 2, spaceBetween: 30 }
-        }
-    };
-
     return (
         <main className={cx('home')}>
             <Nav />
