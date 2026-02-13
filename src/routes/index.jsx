@@ -1,4 +1,4 @@
-import { createBrowserRouter, Outlet } from 'react-router-dom'; // - Import Outlet
+import { createBrowserRouter, Outlet } from 'react-router-dom';
 
 // Import các Layout
 import AdminLayout from '@components/layouts/AdminLayout.jsx';
@@ -9,7 +9,7 @@ import StaffLayout from '@components/layouts/StaffLayout.jsx';
 // Import Pages
 import Home from '@pages/customer/Home/Home.jsx';
 import Staff from '@pages/staff/Staff.jsx';
-import Category from '@pages/customer/Category.jsx';
+import Category from '@pages/customer/Category/Category';
 import Profile from '@pages/customer/Profile/Profile.jsx';
 import Ticket from '@pages/customer/Ticket/Ticket.jsx';
 import NotFound from '@pages/customer/NotFound/NotFound.jsx';

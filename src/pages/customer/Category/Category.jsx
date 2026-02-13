@@ -1,5 +1,5 @@
 function Category() {
-    return <h1>CategoryCategory</h1>;
+    return <h1>The loai ne</h1>;
 }
 
 export default Category;

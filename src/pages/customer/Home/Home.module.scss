@@ -15,7 +15,7 @@
     }
 }
 
-// Banner Section (Giữ nguyên cấu trúc của bạn)
+// Banner Section
 .banner-container {
     width: 100%;
     margin-bottom: 4rem;
@@ -33,146 +33,7 @@
     }
 }
 
-// Trending Section - Phần cập nhật mới
-.trending-section {
-    width: 100%;
-
-    .section-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: 2rem;
-
-        .section-title {
-            color: $white-color;
-            font-size: 2.2rem;
-            font-weight: 700;
-            margin-bottom: 0; // Reset margin để căn giữa với nút
-
-            @include mobile-width {
-                font-size: 1.8rem;
-            }
-        }
-
-        // Cấu trúc cho nút điều hướng qua lại
-        .nav-controls {
-            display: flex;
-            gap: 1rem;
-
-            .control-btn {
-                background: rgba($white-color, 0.1);
-                color: $white-color;
-                border: 1px solid rgba($white-color, 0.2);
-                width: 4rem;
-                height: 4rem;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                border-radius: 50%; // Làm nút tròn
-                cursor: pointer;
-                font-size: 1.6rem;
-                transition: all 0.2s ease;
-                outline: none;
-
-                &:hover {
-                    background: $white-color;
-                    color: $secondary-color;
-                    transform: scale(1.1);
-                }
-
-                &:active {
-                    transform: scale(0.95);
-                }
-            }
-        }
-    }
-
-    // Vùng chứa danh sách ảnh cuộn ngang
-    .event-grid-manual {
-        display: flex;
-        gap: 1.5rem;
-        overflow-x: auto;
-        scroll-behavior: smooth; // Quan trọng: Giúp trượt mượt khi bấm nút
-        padding-bottom: 1.5rem;
-
-        // Cố định chiều ngang để item không bị co lại
-        scroll-snap-type: x mandatory;
-
-        // Ẩn thanh cuộn mặc định để giao diện sạch sẽ
-        &::-webkit-scrollbar {
-            display: none;
-        }
-        -ms-overflow-style: none;
-        scrollbar-width: none;
-
-        .trending-img-wrapper {
-            // Desktop: Hiển thị 4 ảnh (chia 4 trừ đi khoảng cách gap)
-            flex: 0 0 calc(25% - 1.2rem);
-            scroll-snap-align: start;
-            border-radius: 1.2rem;
-            overflow: hidden;
-            aspect-ratio: 16 / 9; // Giữ tỉ lệ ảnh 16:9 chuyên nghiệp
-            cursor: pointer;
-
-            @include tablet-width {
-                flex: 0 0 24rem;
-            }
-
-            @include mobile-width {
-                flex: 0 0 20rem;
-            }
-
-            img {
-                width: 100%;
-                height: 100%;
-                object-fit: cover;
-                transition: transform 0.4s ease;
-
-                &:hover {
-                    transform: scale(
-                        1.08
-                    ); // Hiệu ứng phóng to nhẹ khi di chuột
-                }
-            }
-        }
-    }
-}
-@import '@styles/_variables';
-@import '@styles/_mixins';
-
-.home {
-    background-color: $secondary-color;
-    min-height: 100vh;
-}
-
-.wrapper {
-    @include grid-wide();
-    padding: 2.4rem 1.6rem;
-
-    @include tablet-width {
-        padding: 2rem 1.2rem;
-    }
-}
-
-// Banner Section (Giữ nguyên cấu trúc của bạn)
-.banner-container {
-    width: 100%;
-    margin-bottom: 4rem;
-
-    .banner-item {
-        border-radius: 1.2rem;
-        overflow: hidden;
-        @include flex(center, center);
-
-        img {
-            width: 100%;
-            height: auto;
-            object-fit: cover;
-        }
-    }
-}
-
-// Trending Section - Phần cập nhật mới
+// Trending Section
 .trending-section {
     width: 100%;
 
@@ -184,7 +45,7 @@
     }
 
     .trending-content {
-        position: relative; // Cần thiết để nút bấm căn theo khung này
+        position: relative;
         display: flex;
         align-items: center;
 
@@ -193,7 +54,7 @@
             z-index: 10;
             top: 50%;
             transform: translateY(-50%);
-            background: rgba(0, 0, 0, 0.5); // Nền tối mờ để nổi bật trên ảnh
+            background: rgba(0, 0, 0, 0.5);
             color: $white-color;
             border: none;
             width: 4.5rem;
@@ -212,11 +73,11 @@
             }
 
             &.prev {
-                left: -1rem; // Đẩy ra mép trái
+                left: 0; // Đẩy ra mép trái
             }
 
             &.next {
-                right: -1rem; // Đẩy ra mép phải
+                right: 0.3rem; // Đẩy ra mép phải
             }
 
             @include mobile-width {
