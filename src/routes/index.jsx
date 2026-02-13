@@ -1,10 +1,10 @@
 import { createBrowserRouter, Outlet } from 'react-router-dom';
 
 // Import các Layout
-import AdminLayout from '@components/layouts/AdminLayout.jsx';
-import CustomerLayout from '@components/layouts/CustomerLayout.jsx';
-import OrganizerLayout from '@components/layouts/OrganizerLayout.jsx';
-import StaffLayout from '@components/layouts/StaffLayout.jsx';
+import AdminLayout from '@components/Layouts/AdminLayout.jsx';
+import CustomerLayout from '@components/Layouts/CustomerLayout.jsx';
+import OrganizerLayout from '@components/Layouts/OrganizerLayout.jsx';
+import StaffLayout from '@components/Layouts/StaffLayout.jsx';
 
 // Import Pages
 import Staff from '@pages/staff/Staff.jsx';

@@ -1,10 +1,14 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 
 export const useSearch = () => {
     const [searchTerm, setSearchTerm] = useState('');
     const [searchHistory, setSearchHistory] = useState([]);
     const [showHistory, setShowHistory] = useState(false);
     const [isMobileSearchOpen, setIsMobileSearchOpen] = useState(false);
+
+    // Khởi tạo hàm chuyển hướng
+    const navigate = useNavigate();
 
     // Load lịch sử từ localStorage khi mount
     useEffect(() => {
@@ -14,21 +18,27 @@ export const useSearch = () => {
 
     // Hàm xử lý khi người dùng nhấn tìm kiếm
     const handleSearch = keyword => {
+        // Kiểm tra xem tham số truyền vào có phải là chuỗi không (tránh trường hợp nhận event click/keydown)
         const term = typeof keyword === 'string' ? keyword : searchTerm;
-        if (!term.trim()) return;
+        const trimmedTerm = term.trim();
 
-        const newHistory = [
-            term,
-            ...searchHistory.filter(item => item !== term)
-        ].slice(0, 5);
+        // Chỉ lưu vào lịch sử nếu người dùng CÓ nhập nội dung
+        if (trimmedTerm) {
+            const newHistory = [
+                trimmedTerm,
+                ...searchHistory.filter(item => item !== trimmedTerm)
+            ].slice(0, 5);
 
-        setSearchHistory(newHistory);
-        localStorage.setItem('searchHistory', JSON.stringify(newHistory));
+            setSearchHistory(newHistory);
+            localStorage.setItem('searchHistory', JSON.stringify(newHistory));
+        }
 
-        // Thực hiện logic điều hướng hoặc gọi API tìm kiếm ở đây
-        console.log('Đang tìm kiếm:', term);
+        // Thực hiện điều hướng sang trang Category
+        // Dù trimmedTerm có rỗng ('') thì nó vẫn sẽ chuyển hướng sang /category?q=
+        navigate(`/category?q=${encodeURIComponent(trimmedTerm)}`);
 
-        setSearchTerm(term);
+        // Cập nhật lại các state giao diện
+        setSearchTerm(term); // Vẫn giữ lại những gì đang hiển thị trên thanh input
         setShowHistory(false);
         setIsMobileSearchOpen(false);
     };
