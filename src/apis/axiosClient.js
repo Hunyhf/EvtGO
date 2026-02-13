@@ -1,14 +1,13 @@
+// src/apis/axiosClient.js
 import axios from 'axios';
 import Cookies from 'js-cookie';
 import { toast } from 'react-toastify';
 
 const instance = axios.create({
-    // Sử dụng biến môi trường, fallback về localhost nếu không có
     baseURL: import.meta.env.VITE_API_URL || 'http://localhost:8080',
     withCredentials: true
 });
 
-// Biến quản lý trạng thái refresh
 let isRefreshing = false;
 let failedQueue = [];
 
@@ -20,7 +19,6 @@ const processQueue = (error, token = null) => {
     failedQueue = [];
 };
 
-// 1. Request Interceptor: Đọc token từ Cookie
 instance.interceptors.request.use(
     config => {
         const token = Cookies.get('access_token');
@@ -32,7 +30,6 @@ instance.interceptors.request.use(
     error => Promise.reject(error)
 );
 
-// 2. Response Interceptor: Xử lý dữ liệu và lỗi toàn cục
 instance.interceptors.response.use(
     response => {
         return response.data?.data !== undefined
@@ -43,12 +40,21 @@ instance.interceptors.response.use(
     async error => {
         const originalRequest = error.config;
         const status = error.response?.status;
+        const url = originalRequest.url; // Lấy URL để kiểm tra điều kiện
 
-        // Lấy message lỗi từ cấu trúc RestResponse của Backend
         const errorMessage =
             error.response?.data?.message ||
             error.message ||
             'Đã có lỗi xảy ra';
+
+        // Danh sách các API không cần hiện thông báo lỗi (Silent APIs)
+        // Guest truy cập các API này thường xuyên gặp 401/403/400
+        const silentPaths = [
+            '/api/v1/auth/account',
+            '/api/v1/auth/refresh',
+            '/api/v1/genres'
+        ];
+        const isSilent = silentPaths.some(path => url.includes(path));
 
         // A. Xử lý lỗi 401 - Refresh Token
         if (status === 401 && !originalRequest._retry) {
@@ -79,7 +85,9 @@ instance.interceptors.response.use(
             } catch (refreshError) {
                 processQueue(refreshError, null);
                 Cookies.remove('access_token');
-                if (window.location.pathname !== '/') {
+
+                // Chỉ chuyển hướng nếu không phải là guest đang ở trang chủ
+                if (window.location.pathname !== '/' && !isSilent) {
                     window.location.href = '/';
                 }
                 return Promise.reject(refreshError);
@@ -88,17 +96,27 @@ instance.interceptors.response.use(
             }
         }
 
-        // B. Global Error Handling - Hiển thị Toast hoặc Chuyển hướng
+        // B. Global Error Handling
         if (status) {
             switch (status) {
                 case 400:
-                    toast.error(errorMessage);
+                    // Không hiện toast 400 cho API refresh (Guest thường bị lỗi này)
+                    if (!url.includes('/api/v1/auth/refresh')) {
+                        toast.error(errorMessage);
+                    }
                     break;
                 case 403:
-                    toast.error('Bạn không có quyền thực hiện hành động này!');
+                    // Không hiện toast 403 cho các API trong danh sách silent
+                    if (!isSilent) {
+                        toast.error(
+                            'Bạn không có quyền thực hiện hành động này!'
+                        );
+                    }
                     break;
                 case 404:
-                    window.location.href = '/404';
+                    if (window.location.pathname !== '/404') {
+                        window.location.href = '/404';
+                    }
                     break;
                 case 500:
                     toast.error(
@@ -106,7 +124,9 @@ instance.interceptors.response.use(
                     );
                     break;
                 default:
-                    toast.error(errorMessage);
+                    if (!isSilent) {
+                        toast.error(errorMessage);
+                    }
                     break;
             }
         } else {

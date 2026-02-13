@@ -1,8 +1,10 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useContext } from 'react';
 import { NavLink } from 'react-router-dom';
 import classNames from 'classnames/bind';
 import styles from './Nav.module.scss';
 import categoryApi from '@apis/categoryApi';
+import { AuthContext } from '@contexts/AuthContext';
+import Cookies from 'js-cookie';
 
 const cx = classNames.bind(styles);
 
@@ -17,35 +19,47 @@ const DEFAULT_GENRES = [
 const slugify = str => {
     if (!str) return '';
     return str
-        .normalize('NFD') // Chuyển về dạng tổ hợp
-        .replace(/[\u0300-\u036f]/g, '') // Xóa các dấu phụ
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
         .replace(/đ/g, 'd')
         .replace(/Đ/g, 'D')
         .toLowerCase()
         .trim()
-        .replace(/\s+/g, '-') // Thay khoảng trắng bằng dấu gạch nối
-        .replace(/[^\w-]+/g, ''); // Xóa ký tự đặc biệt khác
+        .replace(/\s+/g, '-')
+        .replace(/[^\w-]+/g, '');
 };
 
 function Nav() {
     const [genres, setGenres] = useState(DEFAULT_GENRES);
+    const { isAuthenticated, isLoading } = useContext(AuthContext); // Lấy trạng thái từ Context
 
     useEffect(() => {
         const fetchGenres = async () => {
+            // Kiểm tra nếu hệ thống đang load Auth thì đợi
+            if (isLoading) return;
+
+            const token = Cookies.get('access_token');
+            if (!token) {
+                setGenres(DEFAULT_GENRES);
+                return;
+            }
+
             try {
                 const res = await categoryApi.getAll();
-                // Dữ liệu nằm trong res.data.result theo định dạng của Backend
-                if (res?.data?.result) {
-                    setGenres(res.data.result);
+
+                if (res && (res.result || Array.isArray(res))) {
+                    setGenres(res.result || res);
                 }
             } catch (error) {
                 console.warn(
-                    'API bị chặn (403). Đang hiển thị danh mục mặc định.'
+                    '>>> [Nav] Không thể lấy danh mục từ API, sử dụng fallback.'
                 );
+                setGenres(DEFAULT_GENRES);
             }
         };
+
         fetchGenres();
-    }, []);
+    }, [isAuthenticated, isLoading]); // Chạy lại khi trạng thái đăng nhập thay đổi
 
     return (
         <nav className={cx('wrapper')}>
