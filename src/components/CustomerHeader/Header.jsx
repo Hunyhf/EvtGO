@@ -1,4 +1,4 @@
-import { useState, useContext } from 'react';
+import { useState, useContext, useEffect, useRef } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import classNames from 'classnames/bind';
 import styles from './Header.module.scss';
@@ -9,6 +9,8 @@ import DropDownIcon from '@icons/svgs/dropdownIcon.svg?react';
 import UserIcon from '@icons/svgs/userIcon.svg?react';
 import LogOutIcon from '@icons/svgs/logOutIcon.svg?react';
 import HomeIcon from '@icons/svgs/homeIcon.svg?react';
+// Import thêm icon đóng nếu bạn có, hoặc dùng text "✕"
+import CloseIcon from '@icons/svgs/closeBtnIcon.svg?react';
 
 import { AuthContext } from '@contexts/AuthContext';
 import { callLogout } from '@apis/authApi';
@@ -20,8 +22,62 @@ function Header() {
     const { pathname } = useLocation();
     const { isAuthenticated, logoutContext } = useContext(AuthContext);
 
+    // --- State cho tính năng tìm kiếm ---
+    const [searchTerm, setSearchTerm] = useState('');
+    const [searchHistory, setSearchHistory] = useState([]);
+    const [showHistory, setShowHistory] = useState(false);
+    const [isMobileSearchOpen, setIsMobileSearchOpen] = useState(false);
+    const searchRef = useRef(null);
+
     // Kiểm tra xem có đang ở trang chủ không
     const isHomePage = pathname === '/';
+
+    useEffect(() => {
+        const history = JSON.parse(localStorage.getItem('searchHistory')) || [];
+        setSearchHistory(history);
+
+        // Click ra ngoài để đóng dropdown history (Desktop)
+        const handleClickOutside = event => {
+            if (
+                searchRef.current &&
+                !searchRef.current.contains(event.target)
+            ) {
+                setShowHistory(false);
+            }
+        };
+        document.addEventListener('mousedown', handleClickOutside);
+        return () =>
+            document.removeEventListener('mousedown', handleClickOutside);
+    }, []);
+
+    // Hàm xử lý khi người dùng nhấn tìm kiếm
+    const handleSearch = keyword => {
+        const term = typeof keyword === 'string' ? keyword : searchTerm;
+        if (!term.trim()) return;
+
+        // Cập nhật lịch sử: Đẩy lên đầu, lọc trùng, giữ tối đa 5 mục
+        const newHistory = [
+            term,
+            ...searchHistory.filter(item => item !== term)
+        ].slice(0, 5);
+        setSearchHistory(newHistory);
+        localStorage.setItem('searchHistory', JSON.stringify(newHistory));
+
+        console.log('Đang tìm kiếm:', term);
+
+        // Reset trạng thái sau khi tìm
+        setSearchTerm(term);
+        setShowHistory(false);
+        setIsMobileSearchOpen(false);
+    };
+
+    //  Hàm xóa một mục trong lịch sử
+    const removeHistoryItem = (e, itemToRemove) => {
+        e.stopPropagation(); // Ngăn sự kiện click vào item để tìm kiếm
+        const newHistory = searchHistory.filter(item => item !== itemToRemove);
+        setSearchHistory(newHistory);
+        localStorage.setItem('searchHistory', JSON.stringify(newHistory));
+    };
 
     const handleLogout = async () => {
         try {
@@ -39,7 +95,6 @@ function Header() {
                 <div className={cx('header__inner')}>
                     <div className={cx('header__logo')}>
                         <Link to='/'>
-                            {/* Desktop luôn hiện logo. Mobile hiện "Về trang chủ" nếu không phải trang chủ */}
                             <img
                                 className={cx('logo-img', {
                                     'hide-mobile': !isHomePage
@@ -56,18 +111,73 @@ function Header() {
                     </div>
 
                     <div className={cx('header__right')}>
-                        <div className={cx('header-search')}>
-                            <div className={cx('header-search__icon')}>
+                        {/* Khu vực Search gắn Ref để xử lý click outside */}
+                        <div className={cx('header-search')} ref={searchRef}>
+                            <div
+                                className={cx('header-search__icon')}
+                                onClick={() =>
+                                    isMobileSearchOpen
+                                        ? handleSearch()
+                                        : setIsMobileSearchOpen(true)
+                                }
+                            >
                                 <SearchIcon />
                             </div>
                             <input
                                 className={cx('header-search__input')}
                                 placeholder='Search...'
+                                value={searchTerm}
+                                onChange={e => setSearchTerm(e.target.value)}
+                                onFocus={() => setShowHistory(true)}
+                                onKeyDown={e =>
+                                    e.key === 'Enter' && handleSearch()
+                                }
                             />
+
+                            {/* Dropdown Lịch sử tìm kiếm (Desktop) */}
+                            {showHistory && searchHistory.length > 0 && (
+                                <div className={cx('search-history')}>
+                                    <div
+                                        className={cx('search-history__title')}
+                                    >
+                                        Tìm kiếm gần đây
+                                    </div>
+                                    <ul className={cx('search-history__list')}>
+                                        {searchHistory.map((item, index) => (
+                                            <li
+                                                key={index}
+                                                className={cx(
+                                                    'search-history__item'
+                                                )}
+                                                onClick={() =>
+                                                    handleSearch(item)
+                                                }
+                                            >
+                                                <span>{item}</span>
+                                                <button
+                                                    className={cx(
+                                                        'search-history__remove'
+                                                    )}
+                                                    onClick={e =>
+                                                        removeHistoryItem(
+                                                            e,
+                                                            item
+                                                        )
+                                                    }
+                                                >
+                                                    ✕
+                                                </button>
+                                            </li>
+                                        ))}
+                                    </ul>
+                                </div>
+                            )}
+
                             <span className={cx('header__divider')}>|</span>
                             <button
                                 type='button'
                                 className={cx('header-search__btn')}
+                                onClick={handleSearch}
                             >
                                 Tìm kiếm
                             </button>
@@ -162,7 +272,60 @@ function Header() {
                 </div>
             </header>
 
-            {/* Bottom Navigation cho Mobile */}
+            {/* Search Overlay cho Mobile (Mở khi bấm vào icon search tròn) */}
+            {isMobileSearchOpen && (
+                <div className={cx('mobile-search-overlay')}>
+                    <div className={cx('mobile-search-header')}>
+                        <button
+                            className={cx('mobile-search-back')}
+                            onClick={() => setIsMobileSearchOpen(false)}
+                        >
+                            ←
+                        </button>
+                        <input
+                            autoFocus
+                            className={cx('mobile-search-input')}
+                            placeholder='Tìm sự kiện, nghệ sĩ...'
+                            value={searchTerm}
+                            onChange={e => setSearchTerm(e.target.value)}
+                            onKeyDown={e => e.key === 'Enter' && handleSearch()}
+                        />
+                    </div>
+                    <div className={cx('mobile-search-body')}>
+                        <div className={cx('search-history__title')}>
+                            Tìm kiếm gần đây
+                        </div>
+                        {searchHistory.length > 0 ? (
+                            <ul className={cx('search-history__list')}>
+                                {searchHistory.map((item, index) => (
+                                    <li
+                                        key={index}
+                                        className={cx('search-history__item')}
+                                        onClick={() => handleSearch(item)}
+                                    >
+                                        <span>{item}</span>
+                                        <button
+                                            className={cx(
+                                                'search-history__remove'
+                                            )}
+                                            onClick={e =>
+                                                removeHistoryItem(e, item)
+                                            }
+                                        >
+                                            ✕
+                                        </button>
+                                    </li>
+                                ))}
+                            </ul>
+                        ) : (
+                            <p className={cx('empty-text')}>
+                                Bạn chưa tìm kiếm gì gần đây
+                            </p>
+                        )}
+                    </div>
+                </div>
+            )}
+
             <nav className={cx('bottom-nav')}>
                 <Link
                     to='/'
