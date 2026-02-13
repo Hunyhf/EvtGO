@@ -2,4 +2,7 @@
 @import '@styles/variables';
 .Footer {
     background-color: $third-color;
+    @include mobile-width {
+        display: none;
+    }
 }
