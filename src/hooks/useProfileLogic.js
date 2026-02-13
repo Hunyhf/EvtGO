@@ -1,14 +1,11 @@
 import { useState, useContext, useEffect } from 'react';
 import { AuthContext } from '@contexts/AuthContext';
-import { callUpdateUser } from '@apis/userApi';
-import { toast } from 'react-toastify';
-import Cookies from 'js-cookie';
+import { userService } from '@services/userService';
 
 export const useProfileLogic = () => {
     const { user, updateUserContext } = useContext(AuthContext);
     const [isUpdating, setIsUpdating] = useState(false);
 
-    // Khởi tạo state an toàn
     const [formData, setFormData] = useState({
         id: '',
         name: '',
@@ -24,7 +21,6 @@ export const useProfileLogic = () => {
             setFormData({
                 ...user,
                 gender: user.gender || 'OTHER',
-                // Fallback giá trị mặc định để tránh lỗi Uncontrolled input
                 age: user.age ?? ''
             });
         }
@@ -32,7 +28,6 @@ export const useProfileLogic = () => {
 
     const handleChange = e => {
         const { name, value } = e.target;
-        // Logic validate age
         if (name === 'age') {
             const val = value === '' ? '' : Math.max(0, parseInt(value, 10));
             setFormData(prev => ({ ...prev, age: val }));
@@ -45,25 +40,21 @@ export const useProfileLogic = () => {
         e.preventDefault();
         setIsUpdating(true);
 
-        // Data cleaning trước khi gửi
+        // Data cleaning tối thiểu trước khi gửi qua service
         const payload = { ...formData, age: Number(formData.age) || 0 };
 
         try {
-            const res = await callUpdateUser(payload);
-            const updatedData = res?.data || res; // Adapt response
+            // Gọi service thay vì gọi API trực tiếp
+            const updatedData = await userService.updateProfile(
+                payload,
+                user.id
+            );
 
             if (updatedData) {
                 updateUserContext(updatedData);
-                // Logic Cookie
-                if (payload.age)
-                    Cookies.set(`user_age_${user.id}`, payload.age, {
-                        expires: 7
-                    });
-                toast.success('Cập nhật thành công!');
             }
         } catch (error) {
-            console.error(error);
-            toast.error('Lỗi cập nhật!');
+            // Lỗi đã được service toast, ở đây chỉ cần quản lý flow (nếu cần)
         } finally {
             setIsUpdating(false);
         }
