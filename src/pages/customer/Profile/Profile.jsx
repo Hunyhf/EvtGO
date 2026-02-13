@@ -1,6 +1,7 @@
 import classNames from 'classnames/bind';
 import styles from './Profile.module.scss';
 import { useProfileLogic } from '@hooks/useProfileLogic';
+import FormGroup from '@components/Common/FormGroup';
 
 const cx = classNames.bind(styles);
 
@@ -10,33 +11,32 @@ function Profile() {
 
     return (
         <div className={cx('profile')}>
-            <div className={cx('profile__wrapper')}>
-                <h2 className={cx('profile__title')}>Thông tin tài khoản</h2>
+            <div className={cx('wrapper')}>
+                <h2 className={cx('title')}>Thông tin tài khoản</h2>
 
-                <div className={cx('profile__avatar-section')}>
+                <div className={cx('avatar-section')}>
                     <img
-                        className={cx('profile__avatar-img')}
+                        className={cx('avatar-img')}
                         src='https://static.ticketbox.vn/avatar.png'
                         alt='Avatar'
                     />
                 </div>
 
-                <form className={cx('profile__form')} onSubmit={submitUpdate}>
+                <form className={cx('form')} onSubmit={submitUpdate}>
                     <FormGroup
                         label='Họ tên'
                         name='name'
                         value={formData.name}
                         onChange={handleChange}
+                        placeholder='Nhập họ và tên'
                     />
 
-                    <div className={cx('profile__form-group')}>
-                        <label>Email</label>
-                        <input
-                            value={formData.email}
-                            readOnly
-                            className={cx('profile__input--disabled')}
-                        />
-                    </div>
+                    <FormGroup
+                        label='Email'
+                        name='email'
+                        value={formData.email}
+                        readOnly // Đã có style readOnly trong FormGroup.module.scss
+                    />
 
                     <FormGroup
                         label='Tuổi'
@@ -44,34 +44,37 @@ function Profile() {
                         type='number'
                         value={formData.age}
                         onChange={handleChange}
+                        placeholder='Nhập tuổi'
                     />
+
                     <FormGroup
                         label='Địa chỉ'
                         name='address'
                         value={formData.address}
                         onChange={handleChange}
+                        placeholder='Nhập địa chỉ cư trú'
                     />
 
-                    <div className={cx('profile__form-group')}>
-                        <label>Giới tính</label>
-                        <div className={cx('profile__radio-group')}>
-                            {['MALE', 'FEMALE', 'OTHER'].map(gender => (
+                    <div className={cx('radio-container')}>
+                        <span className={cx('label')}>Giới tính</span>
+                        <div className={cx('radio-group')}>
+                            {[
+                                { val: 'MALE', lab: 'Nam' },
+                                { val: 'FEMALE', lab: 'Nữ' },
+                                { val: 'OTHER', lab: 'Khác' }
+                            ].map(item => (
                                 <label
-                                    key={gender}
-                                    className={cx('profile__radio-label')}
+                                    key={item.val}
+                                    className={cx('radio-item')}
                                 >
                                     <input
                                         type='radio'
                                         name='gender'
-                                        value={gender}
-                                        checked={formData.gender === gender}
+                                        value={item.val}
+                                        checked={formData.gender === item.val}
                                         onChange={handleChange}
                                     />
-                                    {gender === 'MALE'
-                                        ? 'Nam'
-                                        : gender === 'FEMALE'
-                                          ? 'Nữ'
-                                          : 'Khác'}
+                                    {item.lab}
                                 </label>
                             ))}
                         </div>
@@ -79,24 +82,15 @@ function Profile() {
 
                     <button
                         type='submit'
-                        className={cx('profile__update-btn', {
-                            loading: isUpdating
-                        })}
+                        className={cx('update-btn', { loading: isUpdating })}
                         disabled={isUpdating}
                     >
-                        {isUpdating ? 'Đang lưu...' : 'Lưu thay đổi'}
+                        {isUpdating ? 'Đang cập nhật...' : 'Lưu thay đổi'}
                     </button>
                 </form>
             </div>
         </div>
     );
 }
-
-const FormGroup = ({ label, type = 'text', ...props }) => (
-    <div className={cx('profile__form-group')}>
-        <label>{label}</label>
-        <input type={type} {...props} required={type !== 'number'} />
-    </div>
-);
 
 export default Profile;

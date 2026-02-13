@@ -71,7 +71,6 @@
             scroll-snap-align: start;
 
             @include tablet-width {
-                // Tablet/Mobile: Kích thước cố định để kích hoạt scroll ngang
                 flex: 0 0 24rem;
             }
 
