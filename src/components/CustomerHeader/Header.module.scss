@@ -283,3 +283,70 @@
         }
     }
 }
+// Bottom Navigation Mobile
+.bottom-nav {
+    display: none;
+
+    @include mobile-width {
+        display: flex;
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        height: $header-height; // Cao bằng header theo yêu cầu của bạn
+        background-color: $secondary-color;
+        border-top: 1px solid rgba(0, 0, 0, 0.08);
+        @include flex(space-around, center);
+        z-index: 1000;
+        box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.05);
+    }
+
+    &__item {
+        @include flex(center, center);
+        flex-direction: column;
+        text-decoration: none;
+        color: $white-color;
+        font-size: 1.1rem;
+        gap: 4px;
+        flex: 1;
+
+        svg {
+            width: 22px;
+            height: 22px;
+            fill: $white-color;
+        }
+
+        &.active {
+            color: $primary-color;
+            svg {
+                fill: $primary-color;
+            }
+        }
+    }
+}
+
+.logo-img {
+    @include mobile-width {
+        &.hide-mobile {
+            display: none; // Ẩn logo ảnh khi không ở trang chủ trên mobile
+        }
+    }
+}
+
+.back-home-text {
+    display: none; // Mặc định ẩn trên Desktop
+
+    @include mobile-width {
+        display: block;
+        color: $white-color;
+        font-size: 1.6rem;
+        font-weight: 600;
+        white-space: nowrap;
+    }
+}
+
+@include mobile-width {
+    :global(main) {
+        padding-bottom: $header-height !important;
+    }
+}

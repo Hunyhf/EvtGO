@@ -16,12 +16,6 @@
         scroll-snap-align: start;
     }
 
-    &:hover {
-        transform: translateY(-5px);
-        background: rgba($white-color, 0.1);
-        box-shadow: 0 1rem 2rem rgba(0, 0, 0, 0.2);
-    }
-
     .event-image {
         aspect-ratio: 16 / 9;
         overflow: hidden;
@@ -32,10 +26,6 @@
             object-fit: cover;
             transition: transform 0.5s ease;
         }
-    }
-
-    &:hover .event-image img {
-        transform: scale(1.05);
     }
 
     .event-info {

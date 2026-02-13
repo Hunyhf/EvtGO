@@ -86,7 +86,6 @@
                     box-shadow: 0 0 0 2px rgba($primary-color, 0.1);
                 }
 
-                // Style cho trạng thái readOnly (Email)
                 &:read-only {
                     background-color: rgba($white-color, 0.02);
                     border-color: transparent;
