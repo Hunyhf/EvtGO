@@ -7,15 +7,22 @@ import OrganizerLayout from '@components/layouts/OrganizerLayout.jsx';
 import StaffLayout from '@components/layouts/StaffLayout.jsx';
 
 // Import Pages
-import Home from '@pages/customer/Home/Home.jsx';
 import Staff from '@pages/staff/Staff.jsx';
+// CUSTOMER
+import Home from '@pages/customer/Home/Home.jsx';
 import Category from '@pages/customer/Category/Category';
 import Profile from '@pages/customer/Profile/Profile.jsx';
 import Ticket from '@pages/customer/Ticket/Ticket.jsx';
 import NotFound from '@pages/customer/NotFound/NotFound.jsx';
+
+// ADMIN
 import AdminDashBoard from '@pages/admin/AdminDashBoard/AdminDashBoard.jsx';
 import UserManagement from '@pages/admin/UserManagement/UserManagement.jsx';
-import OrganizerDashBoard from '@pages/organizer/OrganizerDashBoard.jsx';
+
+// Organizer
+import EventManagement from '@pages/organizer/EventManagement/EventManagement';
+import CreateEvent from '@pages/organizer/EventManagement/CreateEvent';
+
 // Import Protection, Context & Constants
 import ProtectedRoute from '@components/ProtectedRoute';
 import { AuthProvider } from '@contexts/AuthContext';
@@ -104,7 +111,14 @@ export const routes = createBrowserRouter([
                     </ProtectedRoute>
                 ),
                 children: [
-                    { index: true, element: <OrganizerDashBoard /> } //
+                    {
+                        path: '/organizer',
+                        element: <EventManagement />
+                    },
+                    {
+                        path: '/organizer/events/create',
+                        element: <CreateEvent />
+                    }
                 ]
             },
 

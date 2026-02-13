@@ -21,3 +21,30 @@ export const callFetchDiscountEvents = (size = 8) => {
         }
     });
 };
+
+// CÁC API DÀNH CHO ORGANIZER (QUẢN LÝ SỰ KIỆN)
+
+// Lấy danh sách sự kiện (có hỗ trợ truyền params để phân trang/lọc)
+export const callFetchAllEvents = params => {
+    return axios.get('/api/v1/events', { params });
+};
+
+// Xóa sự kiện theo ID
+export const callDeleteEvent = id => {
+    return axios.delete(`/api/v1/events/${id}`);
+};
+
+// Lấy chi tiết một sự kiện theo ID (Dùng khi vào trang Sửa)
+export const callGetEventById = id => {
+    return axios.get(`/api/v1/events/${id}`);
+};
+
+// Tạo sự kiện mới
+export const callCreateEvent = eventData => {
+    return axios.post('/api/v1/events', eventData);
+};
+
+// Cập nhật sự kiện hiện tại
+export const callUpdateEvent = (id, eventData) => {
+    return axios.put(`/api/v1/events/${id}`, eventData);
+};
