@@ -9,11 +9,10 @@ import DropDownIcon from '@icons/svgs/dropdownIcon.svg?react';
 import UserIcon from '@icons/svgs/userIcon.svg?react';
 import LogOutIcon from '@icons/svgs/logOutIcon.svg?react';
 import HomeIcon from '@icons/svgs/homeIcon.svg?react';
-// Import thêm icon đóng nếu bạn có, hoặc dùng text "✕"
-import CloseIcon from '@icons/svgs/closeBtnIcon.svg?react';
 
 import { AuthContext } from '@contexts/AuthContext';
 import { callLogout } from '@apis/authApi';
+import { useSearch } from '@hooks/useSearch';
 
 const cx = classNames.bind(styles);
 
@@ -21,22 +20,25 @@ function Header() {
     const [showAuthModal, setShowAuthModal] = useState(false);
     const { pathname } = useLocation();
     const { isAuthenticated, logoutContext } = useContext(AuthContext);
-
-    // --- State cho tính năng tìm kiếm ---
-    const [searchTerm, setSearchTerm] = useState('');
-    const [searchHistory, setSearchHistory] = useState([]);
-    const [showHistory, setShowHistory] = useState(false);
-    const [isMobileSearchOpen, setIsMobileSearchOpen] = useState(false);
     const searchRef = useRef(null);
 
-    // Kiểm tra xem có đang ở trang chủ không
+    // Sử dụng logic từ Custom Hook
+    const {
+        searchTerm,
+        setSearchTerm,
+        searchHistory,
+        showHistory,
+        setShowHistory,
+        isMobileSearchOpen,
+        setIsMobileSearchOpen,
+        handleSearch,
+        removeHistoryItem
+    } = useSearch();
+
     const isHomePage = pathname === '/';
 
+    // Click ra ngoài để đóng history (Vẫn giữ Ref ở UI để quản lý DOM)
     useEffect(() => {
-        const history = JSON.parse(localStorage.getItem('searchHistory')) || [];
-        setSearchHistory(history);
-
-        // Click ra ngoài để đóng dropdown history (Desktop)
         const handleClickOutside = event => {
             if (
                 searchRef.current &&
@@ -48,36 +50,7 @@ function Header() {
         document.addEventListener('mousedown', handleClickOutside);
         return () =>
             document.removeEventListener('mousedown', handleClickOutside);
-    }, []);
-
-    // Hàm xử lý khi người dùng nhấn tìm kiếm
-    const handleSearch = keyword => {
-        const term = typeof keyword === 'string' ? keyword : searchTerm;
-        if (!term.trim()) return;
-
-        // Cập nhật lịch sử: Đẩy lên đầu, lọc trùng, giữ tối đa 5 mục
-        const newHistory = [
-            term,
-            ...searchHistory.filter(item => item !== term)
-        ].slice(0, 5);
-        setSearchHistory(newHistory);
-        localStorage.setItem('searchHistory', JSON.stringify(newHistory));
-
-        console.log('Đang tìm kiếm:', term);
-
-        // Reset trạng thái sau khi tìm
-        setSearchTerm(term);
-        setShowHistory(false);
-        setIsMobileSearchOpen(false);
-    };
-
-    //  Hàm xóa một mục trong lịch sử
-    const removeHistoryItem = (e, itemToRemove) => {
-        e.stopPropagation(); // Ngăn sự kiện click vào item để tìm kiếm
-        const newHistory = searchHistory.filter(item => item !== itemToRemove);
-        setSearchHistory(newHistory);
-        localStorage.setItem('searchHistory', JSON.stringify(newHistory));
-    };
+    }, [setShowHistory]);
 
     const handleLogout = async () => {
         try {
@@ -111,7 +84,7 @@ function Header() {
                     </div>
 
                     <div className={cx('header__right')}>
-                        {/* Khu vực Search gắn Ref để xử lý click outside */}
+                        {/* Search Bar */}
                         <div className={cx('header-search')} ref={searchRef}>
                             <div
                                 className={cx('header-search__icon')}
@@ -134,7 +107,7 @@ function Header() {
                                 }
                             />
 
-                            {/* Dropdown Lịch sử tìm kiếm (Desktop) */}
+                            {/* Dropdown History (Desktop) */}
                             {showHistory && searchHistory.length > 0 && (
                                 <div className={cx('search-history')}>
                                     <div
@@ -272,7 +245,7 @@ function Header() {
                 </div>
             </header>
 
-            {/* Search Overlay cho Mobile (Mở khi bấm vào icon search tròn) */}
+            {/* Mobile Search Overlay */}
             {isMobileSearchOpen && (
                 <div className={cx('mobile-search-overlay')}>
                     <div className={cx('mobile-search-header')}>
@@ -326,6 +299,7 @@ function Header() {
                 </div>
             )}
 
+            {/* Bottom Nav Mobile */}
             <nav className={cx('bottom-nav')}>
                 <Link
                     to='/'
