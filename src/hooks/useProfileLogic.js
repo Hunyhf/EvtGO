@@ -41,6 +41,7 @@ export const useProfileLogic = () => {
         setIsUpdating(true);
 
         // Data cleaning tối thiểu trước khi gửi qua service
+        const { email, ...updateData } = formData;
         const payload = { ...formData, age: Number(formData.age) || 0 };
 
         try {
