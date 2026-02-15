@@ -22,9 +22,15 @@ const processQueue = (error, token = null) => {
 instance.interceptors.request.use(
     config => {
         const token = Cookies.get('access_token');
-        if (token) {
+
+        // CHỈ thêm Authorization header NẾU THỰC SỰ CÓ TOKEN hợp lệ
+        if (token && token !== 'undefined' && token !== 'null') {
             config.headers.Authorization = `Bearer ${token}`;
+        } else {
+            // Đảm bảo không gửi chuỗi "Bearer undefined" hay "Bearer null" làm Backend nhầm lẫn
+            delete config.headers.Authorization;
         }
+
         return config;
     },
     error => Promise.reject(error)

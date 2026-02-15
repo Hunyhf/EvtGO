@@ -1,0 +1,192 @@
+@import '../../assets/styles/variables';
+
+.container {
+    display: flex;
+    min-height: 100vh;
+    background-color: $bg-admin; // #f8fafc
+}
+
+// Sidebar (Sử dụng màu secondary của bạn)
+.sidebar {
+    width: 260px;
+    background-color: $secondary-color; // #27272a
+    color: $white-color; // #ffffff
+    transition: all 0.3s ease;
+    display: flex;
+    flex-direction: column;
+
+    &.collapsed {
+        width: 80px;
+    }
+}
+
+.logoArea {
+    height: $header-height; // 76px
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    font-weight: $font-weight-bold; // 700
+    font-size: $font-size-lg; // 1.8rem
+}
+
+.navMenu {
+    flex: 1;
+    padding: 20px 0;
+    list-style: none;
+
+    li {
+        padding: 12px 24px;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        cursor: pointer;
+        transition: background 0.3s;
+        color: $text-color; // #9ca6b0
+
+        &:hover,
+        &.active {
+            background-color: $third-color; // #393f4e
+            color: $white-color;
+        }
+
+        span {
+            font-size: $font-size-md; // 1.6rem
+        }
+    }
+}
+
+// Main Content Area
+.mainLayout {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+}
+
+.header {
+    height: $header-height; // 76px
+    background-color: $white-color;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0 24px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.toggleBtn {
+    background: none;
+    border: none;
+    font-size: 20px;
+    cursor: pointer;
+    color: $secondary-color;
+}
+
+// User Profile Section in Header
+.userActions {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    position: relative;
+    cursor: pointer;
+    padding: 8px 0;
+
+    // Hiển thị dropdown khi hover vào vùng userActions
+    &:hover {
+        .dropdownMenu {
+            display: block;
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    .userInfo {
+        text-align: right;
+        .name {
+            display: block;
+            font-weight: $font-weight-semi-bold; // 600
+            color: $secondary-color; // #27272a
+            font-size: $font-size-sm; // 1.4rem
+        }
+        .role {
+            font-size: $font-size-xs; // 1.2rem
+            color: $text-color;
+        }
+    }
+
+    .avatar {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        background-color: $primary-color; // #2dc275
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        overflow: hidden;
+
+        img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+    }
+}
+
+// --- Phần Dropdown Menu bổ sung ---
+.dropdownMenu {
+    display: none;
+    position: absolute;
+    top: calc(100% + 5px);
+    right: 0;
+    width: 200px;
+    background-color: $white-color;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    border-radius: 8px;
+    padding: 8px 0;
+    z-index: 1000;
+    opacity: 0;
+    transform: translateY(-10px);
+    transition: all 0.3s ease;
+
+    // Mũi tên nhọn phía trên
+    &::before {
+        content: '';
+        position: absolute;
+        top: -10px;
+        right: 15px;
+        border-width: 5px;
+        border-style: solid;
+        border-color: transparent transparent $white-color transparent;
+    }
+}
+
+.menuItem {
+    padding: 10px 16px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    color: $secondary-color;
+    text-decoration: none;
+    font-size: $font-size-sm;
+    transition: background 0.2s;
+
+    &:hover {
+        background-color: $bg-admin;
+        color: $primary-color;
+    }
+
+    &.logout {
+        border-top: 1px solid $border-color; // #f0f0f0
+        color: $error-color; // #ff4d4f
+
+        &:hover {
+            background-color: #fff1f0;
+        }
+    }
+}
+
+.contentBody {
+    padding: 24px;
+    flex: 1;
+    overflow-y: auto;
+}

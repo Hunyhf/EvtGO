@@ -1,94 +1,129 @@
-import React, { useState } from 'react';
+import React, { useState, useContext } from 'react';
+import { Outlet, useNavigate, useLocation, Link } from 'react-router-dom';
+import { AuthContext } from '@contexts/AuthContext';
+import styles from './OrganizerLayout.module.scss';
 import {
     MenuFoldOutlined,
     MenuUnfoldOutlined,
     CalendarOutlined,
     TeamOutlined,
-    FileTextOutlined
+    FileTextOutlined,
+    LogoutOutlined,
+    UserOutlined,
+    SettingOutlined
 } from '@ant-design/icons';
-import { Button, Layout, Menu, theme } from 'antd';
-import { Outlet, useNavigate } from 'react-router-dom';
-
-const { Header, Sider, Content } = Layout;
 
 function OrganizerLayout() {
     const [collapsed, setCollapsed] = useState(false);
+    const { user, logoutContext } = useContext(AuthContext);
     const navigate = useNavigate();
+    const location = useLocation();
 
-    const {
-        token: { colorBgContainer, borderRadiusLG }
-    } = theme.useToken();
-
-    // Menu dành riêng cho Nhà tổ chức
     const menuItems = [
         {
-            key: '/organizer',
-            icon: <CalendarOutlined />,
-            label: 'Sự kiện của tôi'
+            path: '/organizer',
+            label: 'Sự kiện của tôi',
+            icon: <CalendarOutlined />
         },
         {
-            key: '/organizer/tickets',
-            icon: <FileTextOutlined />,
-            label: 'Quản lý vé'
+            path: '/organizer/tickets',
+            label: 'Quản lý vé',
+            icon: <FileTextOutlined />
         },
         {
-            key: '/organizer/staff',
-            icon: <TeamOutlined />,
-            label: 'Quản lý nhân viên'
+            path: '/organizer/staff',
+            label: 'Quản lý nhân viên',
+            icon: <TeamOutlined />
         }
     ];
 
     return (
-        <Layout style={{ minHeight: '100vh' }}>
-            <Sider trigger={null} collapsible collapsed={collapsed}>
-                <div
-                    className='demo-logo-vertical'
-                    style={{
-                        height: '32px',
-                        margin: '16px',
-                        background: 'rgba(255, 255, 255, .2)'
-                    }}
-                />
-                <Menu
-                    theme='dark'
-                    mode='inline'
-                    defaultSelectedKeys={['/organizer']}
-                    items={menuItems}
-                    onClick={({ key }) => navigate(key)}
-                />
-            </Sider>
-            <Layout>
-                <Header style={{ padding: 0, background: colorBgContainer }}>
-                    <Button
-                        type='text'
-                        icon={
-                            collapsed ? (
-                                <MenuUnfoldOutlined />
-                            ) : (
-                                <MenuFoldOutlined />
-                            )
-                        }
+        <div className={styles.container}>
+            {/* Sidebar tự dựng */}
+            <aside
+                className={`${styles.sidebar} ${collapsed ? styles.collapsed : ''}`}
+            >
+                <div className={styles.logoArea}>
+                    {collapsed ? 'EG' : 'EvtGO'}
+                </div>
+                <ul className={styles.navMenu}>
+                    {menuItems.map(item => (
+                        <li
+                            key={item.path}
+                            className={
+                                location.pathname === item.path
+                                    ? styles.active
+                                    : ''
+                            }
+                            onClick={() => navigate(item.path)}
+                        >
+                            {item.icon}
+                            {!collapsed && <span>{item.label}</span>}
+                        </li>
+                    ))}
+                </ul>
+            </aside>
+
+            {/* Vùng nội dung chính */}
+            <div className={styles.mainLayout}>
+                <header className={styles.header}>
+                    <button
+                        className={styles.toggleBtn}
                         onClick={() => setCollapsed(!collapsed)}
-                        style={{
-                            fontSize: '16px',
-                            width: 64,
-                            height: 64
-                        }}
-                    />
-                </Header>
-                <Content
-                    style={{
-                        margin: '24px 16px',
-                        padding: 24,
-                        minHeight: 280,
-                        background: colorBgContainer,
-                        borderRadius: borderRadiusLG
-                    }}
-                >
+                    >
+                        {collapsed ? (
+                            <MenuUnfoldOutlined />
+                        ) : (
+                            <MenuFoldOutlined />
+                        )}
+                    </button>
+
+                    {/* Khối User Actions với Dropdown tương tự Customer Header */}
+                    <div className={styles.userActions}>
+                        <div className={styles.userInfo}>
+                            <span className={styles.name}>
+                                {user?.name || 'Organizer'}
+                            </span>
+                            <span className={styles.role}>Nhà tổ chức</span>
+                        </div>
+
+                        <div className={styles.avatar}>
+                            {user?.avatar ? (
+                                <img src={user.avatar} alt='avatar' />
+                            ) : (
+                                <UserOutlined style={{ fontSize: '18px' }} />
+                            )}
+                        </div>
+
+                        {/* Dropdown Menu hiện khi hover vào userActions */}
+                        <div className={styles.dropdownMenu}>
+                            <Link
+                                to='/organizer/profile'
+                                className={styles.menuItem}
+                            >
+                                <UserOutlined /> Hồ sơ cá nhân
+                            </Link>
+                            <Link
+                                to='/organizer/settings'
+                                className={styles.menuItem}
+                            >
+                                <SettingOutlined /> Cài đặt hệ thống
+                            </Link>
+                            <div
+                                className={`${styles.menuItem} ${styles.logout}`}
+                                onClick={() => logoutContext()}
+                            >
+                                <LogoutOutlined /> Đăng xuất
+                            </div>
+                        </div>
+                    </div>
+                </header>
+
+                <main className={styles.contentBody}>
                     <Outlet />
-                </Content>
-            </Layout>
-        </Layout>
+                </main>
+            </div>
+        </div>
     );
 }
 
