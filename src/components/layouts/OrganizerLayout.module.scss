@@ -1,4 +1,5 @@
-@import '@styles/variables';
+@import '../../assets/styles/variables';
+@import '../../assets/styles/mixins';
 
 .container {
     display: flex;
@@ -6,7 +7,7 @@
     background-color: $bg-admin;
 }
 
-// Sidebar
+// Sidebar Section
 .sidebar {
     width: 260px;
     background-color: $secondary-color;
@@ -17,41 +18,41 @@
 
     &.collapsed {
         width: 80px;
-    }
-}
 
-.logoArea {
-    height: $header-height;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-    font-weight: $font-weight-bold;
-    font-size: $font-size-lg;
-}
-
-.navMenu {
-    flex: 1;
-    padding: 20px 0;
-    list-style: none;
-
-    li {
-        padding: 12px 24px;
-        display: flex;
-        align-items: center;
-        gap: 12px;
-        cursor: pointer;
-        transition: background 0.3s;
-        color: $text-color;
-
-        &:hover,
-        &.active {
-            background-color: $third-color;
-            color: $white-color;
+        .logoArea {
+            // Có thể thêm logic ẩn text logo khi collapse tại đây
         }
+    }
 
-        span {
-            font-size: $font-size-md;
+    .logoArea {
+        height: $header-height;
+        @include flex(center, center);
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        font-weight: $font-weight-bold;
+        font-size: $font-size-lg;
+    }
+
+    .navMenu {
+        flex: 1;
+        padding: 20px 0;
+        list-style: none;
+
+        li {
+            padding: 12px 24px;
+            @include flex(flex-start, center, 12px);
+            cursor: pointer;
+            transition: background 0.3s;
+            color: $text-color;
+
+            &:hover,
+            &.active {
+                background-color: $third-color;
+                color: $white-color;
+            }
+
+            span {
+                font-size: $font-size-md;
+            }
         }
     }
 }
@@ -61,16 +62,15 @@
     flex: 1;
     display: flex;
     flex-direction: column;
-}
+    overflow: hidden;
 
-.header {
-    height: $header-height;
-    background-color: $white-color;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 0 24px;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+    .header {
+        height: $header-height;
+        background-color: $white-color;
+        @include flex(space-between, center);
+        padding: 0 24px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+    }
 }
 
 .toggleBtn {
@@ -79,9 +79,10 @@
     font-size: 20px;
     cursor: pointer;
     color: $secondary-color;
+    @include flex(center, center);
 }
 
-// User Profile Section (Đồng bộ với Customer Header)
+// User Profile Section (Đồng bộ với Layout chính)
 .userActions {
     display: flex;
     align-items: center;
@@ -100,12 +101,14 @@
 
     .userInfo {
         text-align: right;
+
         .name {
             display: block;
             font-weight: $font-weight-semi-bold;
             color: $secondary-color;
             font-size: $font-size-sm;
         }
+
         .role {
             font-size: $font-size-xs;
             color: $text-color;
@@ -118,9 +121,7 @@
         border-radius: 50%;
         overflow: hidden;
         border: 1px solid $border-color;
-        display: flex;
-        align-items: center;
-        justify-content: center;
+        @include flex(center, center);
 
         img {
             width: 100%;
@@ -158,13 +159,12 @@
 
 .menuItem {
     padding: 10px 16px;
-    display: flex;
-    align-items: center;
-    gap: 10px;
+    @include flex(flex-start, center, 10px);
     color: $secondary-color;
     text-decoration: none;
     font-size: $font-size-sm;
     transition: background 0.2s;
+    cursor: pointer;
 
     &:hover {
         background-color: $bg-admin;
@@ -185,4 +185,5 @@
     padding: 24px;
     flex: 1;
     overflow-y: auto;
+    background-color: $bg-admin;
 }

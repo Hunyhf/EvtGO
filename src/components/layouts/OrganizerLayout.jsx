@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
+import classNames from 'classnames/bind';
 import {
     CalendarOutlined,
     FileProtectOutlined,
@@ -8,6 +9,8 @@ import {
 import Sidebar from '@components/DashboardLayout/Sidebar';
 import Header from '@components/DashboardLayout/Header';
 import styles from '@components/DashboardLayout/DashboardLayout.module.scss';
+
+const cx = classNames.bind(styles);
 
 function OrganizerLayout() {
     const [collapsed, setCollapsed] = useState(false);
@@ -32,40 +35,32 @@ function OrganizerLayout() {
     const getTitle = () => {
         if (pathname === '/organizer') return 'Quản lý sự kiện';
         if (pathname === '/organizer/terms') return 'Điều khoản ban tổ chức';
+        if (pathname === '/organizer/events/create') return 'Tạo sự kiện mới';
         return 'Nhà tổ chức';
     };
 
     return (
-        <div className={styles.layoutContainer}>
+        <div className={cx('layoutContainer')}>
+            {' '}
+            {/* Đổi styles.layoutContainer -> cx('layoutContainer') */}
             <Sidebar items={organizerMenu} collapsed={collapsed} />
-
-            <div className={styles.mainContent}>
+            <div className={cx('mainContent')}>
                 <Header
                     title={getTitle()}
                     collapsed={collapsed}
                     onToggle={() => setCollapsed(!collapsed)}
                     extraActions={
                         <button
-                            className='btn-create'
-                            style={{
-                                backgroundColor: '#2dc275',
-                                color: '#fff',
-                                border: 'none',
-                                padding: '8px 16px',
-                                borderRadius: '4px',
-                                cursor: 'pointer',
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: '8px'
-                            }}
-                            onClick={() => navigate('/organizer/create')}
+                            className={cx('btnCreate')} // Chuyển inline style vào class btnCreate
+                            onClick={() => navigate('/organizer/events/create')}
                         >
-                            <PlusCircleOutlined /> Tạo sự kiện
+                            <PlusCircleOutlined />
+                            <span>Tạo sự kiện</span>
                         </button>
                     }
                 />
 
-                <main className={styles.scrollArea}>
+                <main className={cx('scrollArea')}>
                     <Outlet />
                 </main>
             </div>
