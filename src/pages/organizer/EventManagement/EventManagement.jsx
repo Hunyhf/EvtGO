@@ -1,14 +1,20 @@
-import React, { useState, useEffect, useMemo } from 'react';
-import { callFetchAllEvents, callDeleteEvent } from '@apis/eventApi';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
+import classNames from 'classnames/bind';
+import { toast } from 'react-toastify';
+import dayjs from 'dayjs';
 import {
     SearchOutlined,
     CalendarOutlined,
-    CheckCircleOutlined,
-    ClockCircleOutlined
+    EditOutlined,
+    DeleteOutlined,
+    InboxOutlined
 } from '@ant-design/icons';
-import { useNavigate } from 'react-router-dom';
+
+import { callFetchAllEvents, callDeleteEvent } from '@apis/eventApi';
 import styles from './EventManagement.module.scss';
-import dayjs from 'dayjs';
+
+const cx = classNames.bind(styles);
 
 const EventManagement = () => {
     const [events, setEvents] = useState([]);
@@ -17,42 +23,47 @@ const EventManagement = () => {
     const [activeTab, setActiveTab] = useState('upcoming'); // upcoming, past, pending
     const navigate = useNavigate();
 
-    useEffect(() => {
-        fetchEvents();
-    }, []);
-
-    const fetchEvents = async () => {
+    // 1. Tối ưu hàm fetch với useCallback và xử lý dữ liệu unwrapped từ axiosClient
+    const fetchEvents = useCallback(async () => {
         setLoading(true);
         try {
             const response = await callFetchAllEvents();
-            const data = response?.data?.content || response?.data || [];
-            setEvents(data);
+            // axiosClient đã unwrapped data, response thường là mảng hoặc object chứa content
+            const data = response?.content || response || [];
+            setEvents(Array.isArray(data) ? data : []);
         } catch (error) {
             console.error('Lỗi khi lấy danh sách sự kiện:', error);
+            // axiosClient thường đã có toast lỗi toàn cục, nhưng có thể bổ sung nếu cần
         } finally {
             setLoading(false);
         }
-    };
+    }, []);
 
-    // Logic phân loại và tìm kiếm
+    useEffect(() => {
+        fetchEvents();
+    }, [fetchEvents]);
+
+    // 2. Tối ưu Logic lọc sự kiện với useMemo và kiểm tra an toàn dữ liệu
     const filteredEvents = useMemo(() => {
         const now = dayjs();
 
         return events.filter(event => {
-            const matchSearch = event.name
-                .toLowerCase()
-                .includes(searchTerm.toLowerCase());
+            const name = event?.name?.toLowerCase() || '';
+            const matchSearch = name.includes(searchTerm.toLowerCase());
             if (!matchSearch) return false;
 
-            const eventDate = dayjs(event.startDate);
+            const eventDate = dayjs(event?.startDate);
 
             switch (activeTab) {
                 case 'upcoming':
-                    return event.published && eventDate.isAfter(now);
+                    // Đã duyệt và ngày diễn ra sau hiện tại
+                    return event?.published && eventDate.isAfter(now);
                 case 'past':
+                    // Đã diễn ra
                     return eventDate.isBefore(now);
                 case 'pending':
-                    return !event.published;
+                    // Chưa được duyệt
+                    return !event?.published;
                 default:
                     return true;
             }
@@ -63,6 +74,7 @@ const EventManagement = () => {
         if (window.confirm('Bạn có chắc chắn muốn xóa sự kiện này?')) {
             try {
                 await callDeleteEvent(id);
+                toast.success('Xóa sự kiện thành công!');
                 fetchEvents();
             } catch (error) {
                 console.error('Xóa thất bại:', error);
@@ -71,11 +83,11 @@ const EventManagement = () => {
     };
 
     return (
-        <div className={styles.container}>
+        <div className={cx('container')}>
             {/* Top Bar: Tìm kiếm và Phân loại */}
-            <div className={styles.topBar}>
-                <div className={styles.searchWrapper}>
-                    <SearchOutlined className={styles.searchIcon} />
+            <div className={cx('topBar')}>
+                <div className={cx('searchWrapper')}>
+                    <SearchOutlined className={cx('searchIcon')} />
                     <input
                         type='text'
                         placeholder='Tìm kiếm sự kiện của bạn...'
@@ -84,35 +96,26 @@ const EventManagement = () => {
                     />
                 </div>
 
-                <div className={styles.tabGroup}>
-                    <button
-                        className={
-                            activeTab === 'upcoming' ? styles.activeTab : ''
-                        }
-                        onClick={() => setActiveTab('upcoming')}
-                    >
-                        Sự kiện sắp tới
-                    </button>
-                    <button
-                        className={activeTab === 'past' ? styles.activeTab : ''}
-                        onClick={() => setActiveTab('past')}
-                    >
-                        Sự kiện đã qua
-                    </button>
-                    <button
-                        className={
-                            activeTab === 'pending' ? styles.activeTab : ''
-                        }
-                        onClick={() => setActiveTab('pending')}
-                    >
-                        Chờ duyệt
-                    </button>
+                <div className={cx('tabGroup')}>
+                    {['upcoming', 'past', 'pending'].map(tab => (
+                        <button
+                            key={tab}
+                            className={cx({ activeTab: activeTab === tab })}
+                            onClick={() => setActiveTab(tab)}
+                        >
+                            {tab === 'upcoming'
+                                ? 'Sự kiện sắp tới'
+                                : tab === 'past'
+                                  ? 'Sự kiện đã qua'
+                                  : 'Chờ duyệt'}
+                        </button>
+                    ))}
                 </div>
             </div>
 
             {/* Content Area */}
-            <div className={styles.content}>
-                <div className={styles.headerTitle}>
+            <div className={cx('content')}>
+                <div className={cx('headerTitle')}>
                     <h3>
                         {activeTab === 'upcoming'
                             ? 'Sắp diễn ra'
@@ -121,28 +124,27 @@ const EventManagement = () => {
                               : 'Đang chờ hệ thống duyệt'}{' '}
                         ({filteredEvents.length})
                     </h3>
-                    {/* Nút tạo sự kiện đã được gỡ bỏ khỏi đây */}
                 </div>
 
                 {loading ? (
-                    <div className={styles.loading}>Đang tải...</div>
+                    <div className={cx('loading')}>Đang tải dữ liệu...</div>
                 ) : (
-                    <div className={styles.eventGrid}>
+                    <div className={cx('eventGrid')}>
                         {filteredEvents.map(event => (
-                            <div key={event.id} className={styles.eventCard}>
-                                <div className={styles.eventInfo}>
-                                    <h4>{event.name}</h4>
+                            <div key={event.id} className={cx('eventCard')}>
+                                <div className={cx('eventInfo')}>
+                                    <h4 title={event.name}>{event.name}</h4>
                                     <p>
                                         <CalendarOutlined />{' '}
                                         {dayjs(event.startDate).format(
                                             'DD/MM/YYYY HH:mm'
                                         )}
                                     </p>
-                                    <p className={styles.location}>
+                                    <p className={cx('location')}>
                                         {event.location}
                                     </p>
                                 </div>
-                                <div className={styles.eventActions}>
+                                <div className={cx('eventActions')}>
                                     <button
                                         onClick={() =>
                                             navigate(
@@ -150,20 +152,24 @@ const EventManagement = () => {
                                             )
                                         }
                                     >
-                                        Sửa
+                                        <EditOutlined /> Sửa
                                     </button>
                                     <button
-                                        className={styles.delBtn}
+                                        className={cx('delBtn')}
                                         onClick={() => handleDelete(event.id)}
                                     >
-                                        Xóa
+                                        <DeleteOutlined /> Xóa
                                     </button>
                                 </div>
                             </div>
                         ))}
-                        {filteredEvents.length === 0 && (
-                            <div className={styles.empty}>
-                                Không tìm thấy sự kiện nào trong mục này.
+
+                        {!loading && filteredEvents.length === 0 && (
+                            <div className={cx('empty')}>
+                                <InboxOutlined
+                                    style={{ fontSize: 40, marginBottom: 10 }}
+                                />
+                                <p>Không tìm thấy sự kiện nào trong mục này.</p>
                             </div>
                         )}
                     </div>
