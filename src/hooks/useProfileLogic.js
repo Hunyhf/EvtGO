@@ -18,10 +18,15 @@ export const useProfileLogic = () => {
 
     useEffect(() => {
         if (user) {
+            // SỬA TẠI ĐÂY: Đảm bảo mọi giá trị đều là defined (không undefined/null)
             setFormData({
-                ...user,
+                id: user.id || '',
+                name: user.name || '',
+                email: user.email || '',
+                phone: user.phone || '',
+                age: user.age ?? '', // Giữ số 0 nếu có, nếu null/undefined thì lấy ''
                 gender: user.gender || 'OTHER',
-                age: user.age ?? ''
+                address: user.address || ''
             });
         }
     }, [user]);
@@ -40,12 +45,10 @@ export const useProfileLogic = () => {
         e.preventDefault();
         setIsUpdating(true);
 
-        // Data cleaning tối thiểu trước khi gửi qua service
-        const { email, ...updateData } = formData;
+        // Chuẩn bị dữ liệu gửi đi
         const payload = { ...formData, age: Number(formData.age) || 0 };
 
         try {
-            // Gọi service thay vì gọi API trực tiếp
             const updatedData = await userService.updateProfile(
                 payload,
                 user.id
@@ -55,7 +58,7 @@ export const useProfileLogic = () => {
                 updateUserContext(updatedData);
             }
         } catch (error) {
-            // Lỗi đã được service toast, ở đây chỉ cần quản lý flow (nếu cần)
+            // Lỗi đã được service xử lý (toast), ở đây chỉ quản lý luồng loading
         } finally {
             setIsUpdating(false);
         }

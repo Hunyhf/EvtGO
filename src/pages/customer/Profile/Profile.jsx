@@ -15,10 +15,8 @@ function Profile() {
                 <h2 className={cx('title')}>Thông tin tài khoản</h2>
 
                 <div className={cx('avatarSection')}>
-                    {' '}
-                    {/* Đổi từ avatar-section */}
                     <img
-                        className={cx('avatarImg')} // Đổi từ avatar-img
+                        className={cx('avatarImg')}
                         src='https://static.ticketbox.vn/avatar.png'
                         alt='Avatar'
                     />
@@ -28,16 +26,16 @@ function Profile() {
                     <FormGroup
                         label='Họ tên'
                         name='name'
-                        value={formData.name}
+                        value={formData.name || ''} // Sửa: Thêm fallback chuỗi rỗng
                         onChange={handleChange}
                         placeholder='Nhập họ và tên'
-                        className={cx('formGroup')} // Đổi từ form-group
+                        className={cx('formGroup')}
                     />
 
                     <FormGroup
                         label='Email'
                         name='email'
-                        value={formData.email}
+                        value={formData.email || ''} // Sửa: Thêm fallback chuỗi rỗng
                         readOnly
                         className={cx('formGroup')}
                     />
@@ -46,7 +44,7 @@ function Profile() {
                         label='Tuổi'
                         name='age'
                         type='number'
-                        value={formData.age}
+                        value={formData.age ?? ''} // Sửa: Dùng ?? để giữ giá trị 0
                         onChange={handleChange}
                         placeholder='Nhập tuổi'
                         className={cx('formGroup')}
@@ -55,19 +53,15 @@ function Profile() {
                     <FormGroup
                         label='Địa chỉ'
                         name='address'
-                        value={formData.address}
+                        value={formData.address || ''} // Sửa: Thêm fallback chuỗi rỗng
                         onChange={handleChange}
                         placeholder='Nhập địa chỉ cư trú'
                         className={cx('formGroup')}
                     />
 
                     <div className={cx('radioContainer')}>
-                        {' '}
-                        {/* Đổi từ radio-container */}
                         <span className={cx('label')}>Giới tính</span>
                         <div className={cx('radioGroup')}>
-                            {' '}
-                            {/* Đổi từ radio-group */}
                             {[
                                 { val: 'MALE', lab: 'Nam' },
                                 { val: 'FEMALE', lab: 'Nữ' },
@@ -75,7 +69,7 @@ function Profile() {
                             ].map(item => (
                                 <label
                                     key={item.val}
-                                    className={cx('radioItem')} // Đổi từ radio-item
+                                    className={cx('radioItem')}
                                 >
                                     <input
                                         type='radio'
@@ -92,7 +86,7 @@ function Profile() {
 
                     <button
                         type='submit'
-                        className={cx('updateBtn', { loading: isUpdating })} // Đổi từ update-btn
+                        className={cx('updateBtn', { loading: isUpdating })}
                         disabled={isUpdating}
                     >
                         {isUpdating ? 'Đang cập nhật...' : 'Lưu thay đổi'}
