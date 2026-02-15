@@ -8,26 +8,44 @@ const FormGroup = ({
     className,
     error,
     trigger,
+    maxLength, // Nhận thêm maxLength
+    value = '', // Nhận giá trị để đếm
     ...props
 }) => {
     const [localError, setLocalError] = useState(error);
 
     useEffect(() => {
         setLocalError(error);
-
         if (error) {
             const timer = setTimeout(() => {
                 setLocalError('');
-            }, 2000); // Biến mất sau 2 giây
+            }, 2000);
             return () => clearTimeout(timer);
         }
-    }, [error, trigger]); // Lắng nghe cả nội dung lỗi và trigger bấm nút
+    }, [error, trigger]);
 
     return (
         <div className={classNames('formGroupContainer', className)}>
-            <label>{label}</label>
+            <div
+                style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    marginBottom: '4px'
+                }}
+            >
+                <label style={{ margin: 0 }}>{label}</label>
+                {/* Hiển thị bộ đếm nếu có maxLength */}
+                {maxLength && (
+                    <span style={{ fontSize: '12px', color: '#8c8c8c' }}>
+                        {String(value || '').length}/{maxLength}
+                    </span>
+                )}
+            </div>
             <input
                 type={type}
+                value={value}
+                maxLength={maxLength}
                 {...props}
                 className={classNames({ errorInput: !!localError })}
             />

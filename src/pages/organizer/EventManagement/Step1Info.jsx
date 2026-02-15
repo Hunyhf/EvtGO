@@ -290,6 +290,7 @@ const Step1Info = ({ formData, setFormData, errors, validateTrigger }) => {
                             error={errors.addressDetail}
                             trigger={validateTrigger}
                             placeholder='VD: 123 đường ABC'
+                            maxLength={80}
                             className={cx('inputCustom')}
                         />
                     </div>
