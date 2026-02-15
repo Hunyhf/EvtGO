@@ -20,7 +20,6 @@ const Sidebar = ({ items, collapsed, onLogoClick }) => {
                     alt='Logo'
                     className={cx('logoImg')}
                 />
-                {!collapsed && <span className={cx('logoText')}>EvtGO</span>}
             </div>
 
             <ul className={cx('navMenu')}>

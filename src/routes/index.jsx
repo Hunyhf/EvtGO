@@ -1,3 +1,4 @@
+// src/routes/index.jsx
 import { createBrowserRouter, Outlet } from 'react-router-dom';
 
 // Import các Layout
@@ -31,7 +32,9 @@ import { ROLE_ID } from '@constants/roles.js';
 export const BREADCRUMB_LABELS = {
     '/': 'Trang chủ',
     '/my-tickets': 'Vé của tôi',
-    '/profile': 'Hồ sơ cá nhân'
+    '/profile': 'Hồ sơ cá nhân',
+    '/organizer': 'Quản lý sự kiện',
+    '/organizer/events/create': 'Tạo sự kiện mới'
 };
 
 export const routes = createBrowserRouter([
@@ -112,19 +115,19 @@ export const routes = createBrowserRouter([
                 ),
                 children: [
                     {
-                        path: '/organizer',
+                        index: true, // Tương đương /organizer
                         element: <EventManagement />
                     },
                     {
-                        path: '/organizer/events/create',
+                        path: 'events/create', // Tương đương /organizer/events/create
                         element: <CreateEvent />
                     },
                     {
-                        path: '/organizer/profile',
+                        path: 'profile', // Tương đương /organizer/profile
                         element: <Profile />
                     },
                     {
-                        path: '/organizer/terms',
+                        path: 'terms', // Tương đương /organizer/terms
                         element: <div>Trang điều khoản</div>
                     }
                 ]
