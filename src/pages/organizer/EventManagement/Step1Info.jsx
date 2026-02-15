@@ -1,3 +1,4 @@
+// src/pages/organizer/EventManagement/Step1Info.jsx
 import React, { useState, useEffect } from 'react';
 import classNames from 'classnames/bind';
 import ReactQuill from 'react-quill';
@@ -6,7 +7,7 @@ import styles from './Step1Info.module.scss';
 import FormGroup from '@components/Common/FormGroup';
 import categoryApi from '@apis/categoryApi';
 import { CameraOutlined, PictureOutlined } from '@ant-design/icons';
-import { toast } from 'react-toastify'; // Import toast để thông báo lỗi
+import { toast } from 'react-toastify';
 
 const cx = classNames.bind(styles);
 
@@ -31,12 +32,10 @@ const Step1Info = ({ formData, setFormData, errors }) => {
         setFormData(prev => ({ ...prev, [name]: value }));
     };
 
-    // === PHẦN SỬA ĐỔI: VALIDATE KÍCH THƯỚC ẢNH ===
     const handleFileChange = (e, field) => {
         const file = e.target.files[0];
         if (!file) return;
 
-        // Định nghĩa kích thước yêu cầu
         const config = {
             poster: { w: 1280, h: 720, label: 'Ảnh nền' },
             organizerLogo: { w: 275, h: 275, label: 'Logo' }
@@ -45,33 +44,20 @@ const Step1Info = ({ formData, setFormData, errors }) => {
         const target = config[field];
         const img = new Image();
         const objectUrl = URL.createObjectURL(file);
-
         img.src = objectUrl;
 
         img.onload = () => {
-            // Kiểm tra kích thước chính xác
             if (img.width === target.w && img.height === target.h) {
-                setFormData(prev => ({
-                    ...prev,
-                    [field]: objectUrl
-                }));
+                setFormData(prev => ({ ...prev, [field]: objectUrl }));
             } else {
-                // Nếu sai kích thước: Thông báo, xóa input và giải phóng bộ nhớ tạm
                 toast.error(
-                    `${target.label} không đúng kích thước! Yêu cầu: ${target.w}x${target.h}px (Hiện tại: ${img.width}x${img.height}px)`
+                    `${target.label} sai kích thước (${target.w}x${target.h}px)`
                 );
-                e.target.value = ''; // Reset input file
+                e.target.value = '';
                 URL.revokeObjectURL(objectUrl);
             }
         };
-
-        img.onerror = () => {
-            toast.error('File ảnh bị lỗi hoặc không định dạng được.');
-            e.target.value = '';
-            URL.revokeObjectURL(objectUrl);
-        };
     };
-    // ============================================
 
     const quillModules = {
         toolbar: [
@@ -91,7 +77,7 @@ const Step1Info = ({ formData, setFormData, errors }) => {
             <div className={cx('section')}>
                 <div
                     className={cx('coverUpload', {
-                        errorBorder: errors.poster
+                        errorBorder: !!errors.poster
                     })}
                 >
                     {formData.poster ? (
@@ -113,9 +99,7 @@ const Step1Info = ({ formData, setFormData, errors }) => {
                     />
                 </div>
                 {errors.poster && (
-                    <span className={cx('errorText')}>
-                        Vui lòng up ảnh sự kiện
-                    </span>
+                    <span className={cx('errorText')}>{errors.poster}</span>
                 )}
             </div>
 
@@ -124,7 +108,11 @@ const Step1Info = ({ formData, setFormData, errors }) => {
                 <h3 className={cx('sectionTitle')}>Thông tin ban tổ chức</h3>
                 <div className={cx('organizerInfo')}>
                     <div className={cx('logoUpload')}>
-                        <div className={cx('logoCircle')}>
+                        <div
+                            className={cx('logoCircle', {
+                                errorBorder: !!errors.organizerLogo
+                            })}
+                        >
                             {formData.organizerLogo ? (
                                 <img src={formData.organizerLogo} alt='Logo' />
                             ) : (
@@ -140,6 +128,12 @@ const Step1Info = ({ formData, setFormData, errors }) => {
                         </div>
                         <span className={cx('logoLabel')}>Logo (275x275)</span>
                     </div>
+                    {/* Hiển thị lỗi Logo */}
+                    {errors.organizerLogo && (
+                        <span className={cx('errorText', 'small')}>
+                            {errors.organizerLogo}
+                        </span>
+                    )}
 
                     <div className={cx('organizerName')}>
                         <FormGroup
@@ -147,18 +141,16 @@ const Step1Info = ({ formData, setFormData, errors }) => {
                             name='organizerName'
                             value={formData.organizerName || ''}
                             onChange={handleInputChange}
+                            error={errors.organizerName} // Truyền lỗi vào FormGroup
                             maxLength={80}
                             placeholder='Nhập tên ban tổ chức'
                             className={cx('inputCustom')}
                         />
-                        <span className={cx('charCount')}>
-                            {formData.organizerName?.length || 0}/80
-                        </span>
                     </div>
                 </div>
             </div>
 
-            {/* ... Các phần còn lại của code (Địa điểm, Thể loại, Mô tả) giữ nguyên ... */}
+            {/* 3. THÔNG TIN SỰ KIỆN & ĐỊA CHỈ */}
             <div className={cx('section')}>
                 <h3 className={cx('sectionTitle')}>Địa điểm & Thể loại</h3>
                 <div className={cx('formGrid')}>
@@ -167,6 +159,7 @@ const Step1Info = ({ formData, setFormData, errors }) => {
                         name='name'
                         value={formData.name}
                         onChange={handleInputChange}
+                        error={errors.name}
                         maxLength={100}
                         className={cx('inputCustom')}
                     />
@@ -175,6 +168,7 @@ const Step1Info = ({ formData, setFormData, errors }) => {
                         name='locationName'
                         value={formData.locationName}
                         onChange={handleInputChange}
+                        error={errors.locationName}
                         maxLength={80}
                         className={cx('inputCustom')}
                     />
@@ -185,7 +179,9 @@ const Step1Info = ({ formData, setFormData, errors }) => {
                         <label className={cx('label')}>Tỉnh/Thành phố</label>
                         <select
                             name='province'
-                            className={cx('select')}
+                            className={cx('select', {
+                                errorInput: !!errors.province
+                            })}
                             value={formData.province}
                             onChange={handleInputChange}
                         >
@@ -193,30 +189,49 @@ const Step1Info = ({ formData, setFormData, errors }) => {
                             <option value='Hồ Chí Minh'>Hồ Chí Minh</option>
                             <option value='Hà Nội'>Hà Nội</option>
                         </select>
+                        {errors.province && (
+                            <span className={cx('errorText')}>
+                                {errors.province}
+                            </span>
+                        )}
                     </div>
 
                     <div className={cx('inputWrapper')}>
                         <label className={cx('label')}>Quận/Huyện</label>
                         <select
                             name='district'
-                            className={cx('select')}
+                            className={cx('select', {
+                                errorInput: !!errors.district
+                            })}
                             value={formData.district}
                             onChange={handleInputChange}
                         >
                             <option value=''>Chọn Quận/Huyện</option>
                         </select>
+                        {errors.district && (
+                            <span className={cx('errorText')}>
+                                {errors.district}
+                            </span>
+                        )}
                     </div>
 
                     <div className={cx('inputWrapper')}>
                         <label className={cx('label')}>Phường/Xã</label>
                         <select
                             name='ward'
-                            className={cx('select')}
+                            className={cx('select', {
+                                errorInput: !!errors.ward
+                            })}
                             value={formData.ward}
                             onChange={handleInputChange}
                         >
                             <option value=''>Chọn Phường/Xã</option>
                         </select>
+                        {errors.ward && (
+                            <span className={cx('errorText')}>
+                                {errors.ward}
+                            </span>
+                        )}
                     </div>
 
                     <div className={cx('inputWrapper')}>
@@ -224,7 +239,7 @@ const Step1Info = ({ formData, setFormData, errors }) => {
                         <select
                             name='genreId'
                             className={cx('select', {
-                                errorInput: errors.genreId
+                                errorInput: !!errors.genreId
                             })}
                             value={formData.genreId}
                             onChange={handleInputChange}
@@ -238,7 +253,7 @@ const Step1Info = ({ formData, setFormData, errors }) => {
                         </select>
                         {errors.genreId && (
                             <span className={cx('errorText')}>
-                                Vui lòng chọn thể loại
+                                {errors.genreId}
                             </span>
                         )}
                     </div>
@@ -249,6 +264,7 @@ const Step1Info = ({ formData, setFormData, errors }) => {
                             name='addressDetail'
                             value={formData.addressDetail}
                             onChange={handleInputChange}
+                            error={errors.addressDetail}
                             placeholder='VD: 123 đường ABC'
                             className={cx('inputCustom')}
                         />
@@ -256,13 +272,14 @@ const Step1Info = ({ formData, setFormData, errors }) => {
                 </div>
             </div>
 
+            {/* 4. MÔ TẢ CHI TIẾT */}
             <div className={cx('section')}>
                 <h3 className={cx('sectionTitle')}>
                     Thông tin chi tiết sự kiện
                 </h3>
                 <div
                     className={cx('editorContainer', {
-                        errorBorder: errors.description
+                        errorBorder: !!errors.description
                     })}
                 >
                     <ReactQuill
@@ -275,12 +292,12 @@ const Step1Info = ({ formData, setFormData, errors }) => {
                                 description: content
                             }))
                         }
-                        placeholder='Viết mô tả sự kiện (hỗ trợ in đậm, màu sắc, up ảnh...)'
+                        placeholder='Viết mô tả sự kiện...'
                     />
                 </div>
                 {errors.description && (
                     <span className={cx('errorText')}>
-                        Vui lòng nhập thông tin sự kiện
+                        {errors.description}
                     </span>
                 )}
             </div>
