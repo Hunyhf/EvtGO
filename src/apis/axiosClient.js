@@ -22,15 +22,11 @@ const processQueue = (error, token = null) => {
 instance.interceptors.request.use(
     config => {
         const token = Cookies.get('access_token');
-
-        // CHỈ thêm Authorization header NẾU THỰC SỰ CÓ TOKEN hợp lệ
         if (token && token !== 'undefined' && token !== 'null') {
             config.headers.Authorization = `Bearer ${token}`;
         } else {
-            // Đảm bảo không gửi chuỗi "Bearer undefined" hay "Bearer null" làm Backend nhầm lẫn
             delete config.headers.Authorization;
         }
-
         return config;
     },
     error => Promise.reject(error)
@@ -46,24 +42,29 @@ instance.interceptors.response.use(
     async error => {
         const originalRequest = error.config;
         const status = error.response?.status;
-        const url = originalRequest.url; // Lấy URL để kiểm tra điều kiện
+        const url = originalRequest.url;
 
         const errorMessage =
             error.response?.data?.message ||
             error.message ||
             'Đã có lỗi xảy ra';
 
-        // Danh sách các API không cần hiện thông báo lỗi (Silent APIs)
-        // Guest truy cập các API này thường xuyên gặp 401/403/400
+        // 1. Cập nhật danh sách Silent Paths
         const silentPaths = [
             '/api/v1/auth/account',
             '/api/v1/auth/refresh',
+            '/api/v1/auth/login', // Thêm login vào đây để không hiện toast khi sai pass
             '/api/v1/genres'
         ];
         const isSilent = silentPaths.some(path => url.includes(path));
 
-        // A. Xử lý lỗi 401 - Refresh Token
-        if (status === 401 && !originalRequest._retry) {
+        // 2. Xử lý lỗi 401 - Refresh Token
+        // Chỉ chạy refresh token nếu KHÔNG phải API login
+        if (
+            status === 401 &&
+            !url.includes('/api/v1/auth/login') &&
+            !originalRequest._retry
+        ) {
             if (isRefreshing) {
                 return new Promise((resolve, reject) => {
                     failedQueue.push({ resolve, reject });
@@ -91,8 +92,6 @@ instance.interceptors.response.use(
             } catch (refreshError) {
                 processQueue(refreshError, null);
                 Cookies.remove('access_token');
-
-                // Chỉ chuyển hướng nếu không phải là guest đang ở trang chủ
                 if (window.location.pathname !== '/' && !isSilent) {
                     window.location.href = '/';
                 }
@@ -102,21 +101,15 @@ instance.interceptors.response.use(
             }
         }
 
-        // B. Global Error Handling
+        // 3. Global Error Handling (Dựa trên biến isSilent)
         if (status) {
             switch (status) {
                 case 400:
-                    // Không hiện toast 400 cho API refresh (Guest thường bị lỗi này)
-                    if (!url.includes('/api/v1/auth/refresh')) {
-                        toast.error(errorMessage);
-                    }
-                    break;
+                case 401:
                 case 403:
-                    // Không hiện toast 403 cho các API trong danh sách silent
+                    // Nếu thuộc silentPaths (như login), sẽ không hiện toast
                     if (!isSilent) {
-                        toast.error(
-                            'Bạn không có quyền thực hiện hành động này!'
-                        );
+                        toast.error(errorMessage);
                     }
                     break;
                 case 404:
