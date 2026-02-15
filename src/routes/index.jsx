@@ -118,6 +118,14 @@ export const routes = createBrowserRouter([
                     {
                         path: '/organizer/events/create',
                         element: <CreateEvent />
+                    },
+                    {
+                        path: '/organizer/profile',
+                        element: <Profile />
+                    },
+                    {
+                        path: '/organizer/terms',
+                        element: <div>Trang điều khoản</div>
                     }
                 ]
             },

@@ -93,7 +93,10 @@ function OrganizerLayout() {
 
                         {/* Dropdown Menu hiện khi hover */}
                         <div className={styles.dropdownMenu}>
-                            <Link to='/profile' className={styles.menuItem}>
+                            <Link
+                                to='/organizer/profile'
+                                className={styles.menuItem}
+                            >
                                 <UserOutlined /> Thông tin cá nhân
                             </Link>
                             <div
