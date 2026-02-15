@@ -6,11 +6,9 @@ import {
     MenuFoldOutlined,
     MenuUnfoldOutlined,
     CalendarOutlined,
-    TeamOutlined,
-    FileTextOutlined,
+    FileProtectOutlined,
     LogoutOutlined,
-    UserOutlined,
-    SettingOutlined
+    UserOutlined
 } from '@ant-design/icons';
 
 function OrganizerLayout() {
@@ -19,6 +17,7 @@ function OrganizerLayout() {
     const navigate = useNavigate();
     const location = useLocation();
 
+    // Menu sidebar đồng bộ với logic yêu cầu
     const menuItems = [
         {
             path: '/organizer',
@@ -26,20 +25,15 @@ function OrganizerLayout() {
             icon: <CalendarOutlined />
         },
         {
-            path: '/organizer/tickets',
-            label: 'Quản lý vé',
-            icon: <FileTextOutlined />
-        },
-        {
-            path: '/organizer/staff',
-            label: 'Quản lý nhân viên',
-            icon: <TeamOutlined />
+            path: '/organizer/terms', // Đường dẫn cho điều khoản
+            label: 'Điều khoản ban tổ chức',
+            icon: <FileProtectOutlined />
         }
     ];
 
     return (
         <div className={styles.container}>
-            {/* Sidebar tự dựng */}
+            {/* Sidebar */}
             <aside
                 className={`${styles.sidebar} ${collapsed ? styles.collapsed : ''}`}
             >
@@ -64,7 +58,7 @@ function OrganizerLayout() {
                 </ul>
             </aside>
 
-            {/* Vùng nội dung chính */}
+            {/* Main Content Area */}
             <div className={styles.mainLayout}>
                 <header className={styles.header}>
                     <button
@@ -78,36 +72,29 @@ function OrganizerLayout() {
                         )}
                     </button>
 
-                    {/* Khối User Actions với Dropdown tương tự Customer Header */}
                     <div className={styles.userActions}>
                         <div className={styles.userInfo}>
                             <span className={styles.name}>
-                                {user?.name || 'Organizer'}
+                                {user?.name || 'Nhà tổ chức'}
                             </span>
                             <span className={styles.role}>Nhà tổ chức</span>
                         </div>
 
+                        {/* Avatar hình tròn đồng bộ với Customer Header */}
                         <div className={styles.avatar}>
-                            {user?.avatar ? (
-                                <img src={user.avatar} alt='avatar' />
-                            ) : (
-                                <UserOutlined style={{ fontSize: '18px' }} />
-                            )}
+                            <img
+                                src={
+                                    user?.avatar ||
+                                    'https://static.ticketbox.vn/avatar.png'
+                                }
+                                alt='avatar'
+                            />
                         </div>
 
-                        {/* Dropdown Menu hiện khi hover vào userActions */}
+                        {/* Dropdown Menu hiện khi hover */}
                         <div className={styles.dropdownMenu}>
-                            <Link
-                                to='/organizer/profile'
-                                className={styles.menuItem}
-                            >
-                                <UserOutlined /> Hồ sơ cá nhân
-                            </Link>
-                            <Link
-                                to='/organizer/settings'
-                                className={styles.menuItem}
-                            >
-                                <SettingOutlined /> Cài đặt hệ thống
+                            <Link to='/profile' className={styles.menuItem}>
+                                <UserOutlined /> Thông tin cá nhân
                             </Link>
                             <div
                                 className={`${styles.menuItem} ${styles.logout}`}
