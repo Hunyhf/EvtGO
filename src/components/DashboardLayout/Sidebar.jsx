@@ -12,14 +12,13 @@ const Sidebar = ({ items, collapsed, onLogoClick }) => {
         >
             <div
                 className={styles.logoArea}
-                onClick={onLogoClick || (() => navigate('/'))}
+                onClick={onLogoClick || (() => navigate('/organizer'))}
             >
                 <img
                     src='https://ticketbox.vn/_next/static/images/logo-for-tet.png'
                     alt='Logo'
                     className={styles.logoImg}
                 />
-                {!collapsed && <span className={styles.logoText}>EvtGO</span>}
             </div>
 
             <ul className={styles.navMenu}>

@@ -5,9 +5,9 @@ import {
     FileProtectOutlined,
     PlusCircleOutlined
 } from '@ant-design/icons';
-import Sidebar from '../DashboardLayout/Sidebar';
-import Header from '../DashboardLayout/Header';
-import styles from '../DashboardLayout/DashboardLayout.module.scss';
+import Sidebar from '@components/DashboardLayout/Sidebar';
+import Header from '@components/DashboardLayout/Header';
+import styles from '@components/DashboardLayout/DashboardLayout.module.scss';
 
 function OrganizerLayout() {
     const [collapsed, setCollapsed] = useState(false);
