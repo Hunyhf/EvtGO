@@ -7,21 +7,17 @@ const cx = classNames.bind(styles);
 
 const StatCard = ({ title, value, icon, loading, suffix, color }) => {
     return (
-        <Card className={cx('stat-card')}>
+        <Card className={cx('statCard')}>
             <Skeleton loading={loading} active paragraph={{ rows: 1 }}>
-                <div className={cx('stat-card__content')}>
+                <div className={cx('content')}>
                     <div
-                        className={cx('stat-card__icon')}
+                        className={cx('icon')}
                         style={{ backgroundColor: `${color}15`, color: color }}
                     >
                         {icon}
                     </div>
                     <Statistic
-                        title={
-                            <span className={cx('stat-card__title')}>
-                                {title}
-                            </span>
-                        }
+                        title={<span className={cx('title')}>{title}</span>}
                         value={value}
                         suffix={suffix}
                     />

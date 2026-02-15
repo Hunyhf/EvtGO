@@ -1,7 +1,7 @@
 @import '@styles/variables';
 @import '@styles/mixins';
 
-.stat-card {
+.statCard {
     @include radius-common(12px);
     transition: all 0.3s ease;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
@@ -11,11 +11,13 @@
         box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
     }
 
-    &__content {
+    .content {
+        // Đổi từ __content
         @include flex(flex-start, center, 16px);
     }
 
-    &__icon {
+    .icon {
+        // Đổi từ __icon
         width: 48px;
         height: 48px;
         @include radius-common();
@@ -23,10 +25,11 @@
         font-size: $font-size-xl;
     }
 
-    &__title {
+    .title {
+        // Đổi từ __title
         color: $text-color;
-        font-size: $font-size-sm; // 14px tương đương 1.4rem
-        font-weight: $font-weight-semi-bold; // 500 gần với giá trị 600 (semi-bold) trong hệ thống của bạn
+        font-size: $font-size-sm;
+        font-weight: $font-weight-semi-bold;
         text-transform: uppercase;
         letter-spacing: 0.5px;
     }

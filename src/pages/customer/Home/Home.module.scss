@@ -1,5 +1,5 @@
-@import '@styles/_variables';
-@import '@styles/_mixins';
+@import '../../../assets/styles/variables';
+@import '../../../assets/styles/mixins';
 
 .home {
     background-color: $secondary-color;
@@ -16,11 +16,11 @@
 }
 
 // Banner Section
-.banner-container {
+.bannerContainer {
     width: 100%;
     margin-bottom: 4rem;
 
-    .banner-item {
+    .bannerItem {
         border-radius: 1.2rem;
         overflow: hidden;
         @include flex(center, center);
@@ -34,22 +34,25 @@
 }
 
 // Trending Section
-.trending-section {
+.trendingSection {
     width: 100%;
 
-    .section-title {
-        color: $white-color;
-        font-size: 2.2rem;
-        font-weight: 700;
+    .sectionHeader {
         margin-bottom: 2rem;
     }
 
-    .trending-content {
+    .sectionTitle {
+        color: $white-color;
+        font-size: 2.2rem;
+        font-weight: 700;
+    }
+
+    .trendingContent {
         position: relative;
         display: flex;
         align-items: center;
 
-        .control-btn {
+        .controlBtn {
             position: absolute;
             z-index: 10;
             top: 50%;
@@ -63,9 +66,7 @@
             cursor: pointer;
             font-size: 2rem;
             transition: all 0.3s ease;
-            display: flex;
-            align-items: center;
-            justify-content: center;
+            @include flex(center, center);
 
             &:hover {
                 background: rgba(255, 255, 255, 0.9);
@@ -73,11 +74,10 @@
             }
 
             &.prev {
-                left: 0; // Đẩy ra mép trái
+                left: 0;
             }
-
             &.next {
-                right: 0.3rem; // Đẩy ra mép phải
+                right: 0.3rem;
             }
 
             @include mobile-width {
@@ -86,7 +86,7 @@
         }
     }
 
-    .event-grid-manual {
+    .eventGridManual {
         display: flex;
         gap: 1.5rem;
         overflow-x: auto;
@@ -100,7 +100,7 @@
         }
         scrollbar-width: none;
 
-        .trending-img-wrapper {
+        .trendingImgWrapper {
             flex: 0 0 calc(25% - 1.2rem);
             scroll-snap-align: start;
             border-radius: 1.2rem;
@@ -110,7 +110,6 @@
             @include tablet-width {
                 flex: 0 0 24rem;
             }
-
             @include mobile-width {
                 flex: 0 0 20rem;
             }
@@ -124,24 +123,23 @@
         }
     }
 }
-.genre-section {
+
+.genreSection {
     margin-top: 5rem;
 }
 
-.section-header-genre {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
+.sectionHeaderGenre {
+    @include flex(space-between, center);
     margin-bottom: 2.4rem;
 
-    .section-title {
+    .sectionTitle {
         color: $white-color;
         font-size: 2.2rem;
         font-weight: 700;
         margin: 0;
     }
 
-    .view-more {
+    .viewMore {
         color: $primary-color;
         font-size: 1.5rem;
         font-weight: 500;
@@ -152,98 +150,31 @@
         }
     }
 }
-.event-card {
-    background-color: #2a2a2e; // Màu nền thẻ nhẹ hơn nền home một chút
-    border-radius: 1.2rem;
-    overflow: hidden;
-    transition: transform 0.3s ease;
-    height: 100%;
-    cursor: pointer;
 
-    &:hover {
-        transform: translateY(-5px);
-    }
-}
-
-.event-image {
-    width: 100%;
-    aspect-ratio: 16 / 9;
-    overflow: hidden;
-
-    img {
-        width: 100%;
-        height: 100%;
-        object-fit: cover;
-    }
-}
-
-.event-info {
-    padding: 1.2rem;
-
-    .event-title {
-        color: $white-color;
-        font-size: 1.6rem;
-        font-weight: 600;
-        margin-bottom: 0.8rem;
-        // Giới hạn 2 dòng cho tiêu đề
-        display: -webkit-box;
-        -webkit-line-clamp: 2;
-        -webkit-box-orient: vertical;
-        overflow: hidden;
-    }
-}
-
-.event-details {
-    display: flex;
-    flex-direction: column; // Sắp xếp giá trên, ngày dưới
-    gap: 0.4rem;
-
-    .event-price {
-        color: $primary-color; // Màu chủ đạo theo yêu cầu của bạn
-        font-size: 1.5rem;
-        font-weight: 700;
-    }
-
-    .event-date {
-        color: #a0a0a0;
-        font-size: 1.3rem;
-    }
-}
-
-.event-grid-responsive {
+// Layout lưới cho các section danh mục
+.eventGridResponsive {
     display: grid;
     gap: 2rem;
-
-    /* PC: Hiển thị đúng 4 item (1 hàng) */
     grid-template-columns: repeat(4, 1fr);
 
-    /* Ẩn từ item thứ 5 trở đi trên PC */
-    .grid-item:nth-child(n + 5) {
+    .gridItem:nth-child(n + 5) {
         display: none;
     }
 
     @include tablet-width {
-        /* Tablet: Hiển thị đúng 3 item (1 hàng) */
         grid-template-columns: repeat(3, 1fr);
-
-        /* Hiện item 4 nhưng ẩn từ item thứ 4 trở đi trên Tablet */
-        .grid-item:nth-child(n + 4) {
+        .gridItem:nth-child(n + 4) {
             display: none;
         }
-        /* Ghi đè bộ chọn của PC để đảm bảo ẩn đúng */
-        .grid-item:nth-child(n + 5) {
-            display: block; // Reset lại để bộ chọn n+4 chiếm quyền ưu tiên
+        .gridItem:nth-child(n + 5) {
             display: none;
         }
     }
 
     @include mobile-width {
-        /* Mobile: Hiển thị đúng 2 item (1 hàng) */
         grid-template-columns: repeat(2, 1fr);
         gap: 1.5rem;
-
-        /* Ẩn từ item thứ 3 trở đi trên Mobile */
-        .grid-item:nth-child(n + 3) {
+        .gridItem:nth-child(n + 3) {
             display: none;
         }
     }

@@ -1,7 +1,7 @@
-@import '@styles/_variables';
-@import '@styles/_mixins';
+@import '@styles/variables';
+@import '@styles/mixins';
 
-.event-card {
+.eventCard {
     background-color: #2a2a2e;
     border-radius: 1.2rem;
     overflow: hidden;
@@ -14,9 +14,10 @@
     }
 }
 
-.event-image {
+.eventImage {
     width: 100%;
     aspect-ratio: 16 / 9;
+
     img {
         width: 100%;
         height: 100%;
@@ -24,10 +25,10 @@
     }
 }
 
-.event-info {
+.eventInfo {
     padding: 1.2rem;
 
-    .event-title {
+    .eventTitle {
         color: $white-color;
         font-size: 1.6rem;
         font-weight: 600;
@@ -38,18 +39,18 @@
         overflow: hidden;
     }
 
-    .event-details {
+    .eventDetails {
         display: flex;
         flex-direction: column; // Xếp chồng dọc
         gap: 0.4rem;
 
-        .event-price {
-            color: $primary-color; // Màu chủ đạo theo yêu cầu
+        .eventPrice {
+            color: $primary-color;
             font-size: 1.5rem;
             font-weight: 700;
         }
 
-        .event-date {
+        .eventDate {
             color: #a0a0a0;
             font-size: 1.3rem;
         }

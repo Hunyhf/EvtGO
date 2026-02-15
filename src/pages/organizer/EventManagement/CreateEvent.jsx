@@ -1,8 +1,10 @@
-// src/pages/organizer/EventManagement/CreateEvent.jsx
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import classNames from 'classnames/bind';
 import Step1Info from './Step1Info';
 import styles from './CreateEvent.module.scss';
+
+const cx = classNames.bind(styles);
 
 const STEPS = [
     { id: 1, label: 'Thông tin sự kiện' },
@@ -15,7 +17,6 @@ const CreateEvent = () => {
     const navigate = useNavigate();
     const [currentStep, setCurrentStep] = useState(1);
 
-    // State lưu toàn bộ dữ liệu của tất cả các bước
     const [formData, setFormData] = useState({
         name: '',
         eventType: 'offline',
@@ -31,16 +32,13 @@ const CreateEvent = () => {
 
     const [errors, setErrors] = useState({});
 
-    // Hàm kiểm tra lỗi trước khi sang bước tiếp theo
     const validateStep1 = () => {
         let newErrors = {};
         if (!formData.name.trim()) newErrors.name = 'Vui lòng nhập tên sự kiện';
         if (!formData.genreId) newErrors.genreId = 'Vui lòng chọn thể loại';
-        // Tạm ẩn check poster để bạn test UI dễ hơn
-        // if (!formData.poster) newErrors.poster = true;
 
         setErrors(newErrors);
-        return Object.keys(newErrors).length === 0; // Trả về true nếu không có lỗi
+        return Object.keys(newErrors).length === 0;
     };
 
     const handleNext = () => {
@@ -49,7 +47,6 @@ const CreateEvent = () => {
         if (currentStep < 4) {
             setCurrentStep(prev => prev + 1);
         } else {
-            // Bước cuối: Submit API ở đây
             alert('Tiến hành gọi API tạo sự kiện!');
         }
     };
@@ -59,41 +56,44 @@ const CreateEvent = () => {
     };
 
     return (
-        <div className={styles.layout}>
+        <div className={cx('layout')}>
             {/* TOP HEADER */}
-            <div className={styles.header}>
-                <div className={styles.stepper}>
+            <div className={cx('header')}>
+                <div className={cx('stepper')}>
                     {STEPS.map(step => (
                         <div
                             key={step.id}
-                            className={`${styles.step} ${currentStep === step.id ? styles.activeStep : ''} ${currentStep > step.id ? styles.passedStep : ''}`}
+                            className={cx('step', {
+                                activeStep: currentStep === step.id,
+                                passedStep: currentStep > step.id
+                            })}
                         >
-                            <div className={styles.stepCircle}>{step.id}</div>
-                            <span className={styles.stepLabel}>
+                            <div className={cx('stepCircle')}>{step.id}</div>
+                            <span className={cx('stepLabel')}>
                                 {step.label}
                             </span>
                             {step.id !== 4 && (
-                                <div className={styles.stepLine}></div>
+                                <div className={cx('stepLine')}></div>
                             )}
                         </div>
                     ))}
                 </div>
 
-                <div className={styles.headerActions}>
+                <div className={cx('headerActions')}>
                     <button
-                        className={styles.btnOutline}
+                        className={cx('btnOutline')}
                         onClick={handleSaveDraft}
                     >
-                        Lưu
+                        Lưu nháp
                     </button>
-                    <button className={styles.btnPrimary} onClick={handleNext}>
+                    <button className={cx('btnPrimary')} onClick={handleNext}>
                         {currentStep === 4 ? 'Hoàn tất' : 'Tiếp tục'}
                     </button>
                 </div>
             </div>
 
             {/* BODY CONTENT */}
-            <div className={styles.content}>
+            <div className={cx('content')}>
                 {currentStep === 1 && (
                     <Step1Info
                         formData={formData}
@@ -102,7 +102,7 @@ const CreateEvent = () => {
                     />
                 )}
                 {currentStep === 2 && (
-                    <div>
+                    <div className={cx('stepPlaceholder')}>
                         <h2>Giao diện Bước 2 đang xây dựng...</h2>
                         <button onClick={() => setCurrentStep(1)}>
                             Quay lại bước 1
@@ -110,12 +110,12 @@ const CreateEvent = () => {
                     </div>
                 )}
                 {currentStep === 3 && (
-                    <div>
+                    <div className={cx('stepPlaceholder')}>
                         <h2>Giao diện Bước 3...</h2>
                     </div>
                 )}
                 {currentStep === 4 && (
-                    <div>
+                    <div className={cx('stepPlaceholder')}>
                         <h2>Giao diện Bước 4...</h2>
                     </div>
                 )}

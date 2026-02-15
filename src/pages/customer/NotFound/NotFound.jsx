@@ -13,7 +13,7 @@ function NotFound() {
             <p className={cx('desc')}>
                 Oops! Trang bạn đang tìm kiếm không tồn tại.
             </p>
-            <button className={cx('back-btn')} onClick={() => navigate('/')}>
+            <button className={cx('backBtn')} onClick={() => navigate('/')}>
                 Quay lại Trang chủ
             </button>
         </div>

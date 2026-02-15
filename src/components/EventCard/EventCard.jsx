@@ -15,19 +15,19 @@ const EventCard = ({ data }) => {
     };
 
     return (
-        <div className={cx('event-card')}>
-            <div className={cx('event-image')}>
+        <div className={cx('eventCard')}>
+            <div className={cx('eventImage')}>
                 <img src={data.url} alt={data.title} loading='lazy' />
             </div>
-            <div className={cx('event-info')}>
-                <h4 className={cx('event-title')}>{data.title}</h4>
-                <div className={cx('event-details')}>
+            <div className={cx('eventInfo')}>
+                <h4 className={cx('eventTitle')}>{data.title}</h4>
+                <div className={cx('eventDetails')}>
                     {/* Giá tiền ở trên với màu primary */}
-                    <span className={cx('event-price')}>
+                    <span className={cx('eventPrice')}>
                         {formatPrice(data.price)}
                     </span>
                     {/* Thời gian ở dưới */}
-                    <span className={cx('event-date')}>{data.date}</span>
+                    <span className={cx('eventDate')}>{data.date}</span>
                 </div>
             </div>
         </div>

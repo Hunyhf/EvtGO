@@ -6,7 +6,8 @@
     height: $header-height;
     background-color: $primary-color;
 
-    &__inner {
+    .headerInner {
+        // Đổi từ __inner
         height: 100%;
         @include grid-wide();
         position: relative;
@@ -15,18 +16,19 @@
         @include tablet-width {
             padding: 0 24px;
         }
-
         @include mobile-width {
             padding: 0 16px;
         }
     }
 
-    &__logo {
+    .headerLogo {
+        // Đổi từ __logo
         width: 180px;
         height: 35px;
     }
 
-    &__right {
+    .headerRight {
+        // Đổi từ __right
         margin-left: 220px;
         height: 100%;
         flex: 1;
@@ -44,7 +46,8 @@
         }
     }
 
-    &__actions {
+    .headerActions {
+        // Đổi từ __actions
         height: 100%;
         margin-left: auto;
         @include flex(center, center, 8px);
@@ -52,14 +55,14 @@
         @include tablet-width {
             margin-left: 0;
         }
-
         @include mobile-width {
             margin-left: 0;
         }
     }
 
-    &__tickets {
-        font-size: $font-size-md; // 1.6rem
+    .headerTickets {
+        // Đổi từ __tickets
+        font-size: $font-size-md;
         font-weight: $font-weight-bold;
         color: $white-color;
         padding: 0 8px;
@@ -72,7 +75,7 @@
         }
 
         svg {
-            width: $icon-size-lg; // 24px ~ 2.4rem
+            width: $icon-size-lg;
             height: $icon-size-lg;
         }
 
@@ -81,9 +84,10 @@
         }
     }
 
-    &__guest {
+    .headerGuest {
+        // Đổi từ __guest
         height: 100%;
-        font-size: $font-size-md; // 1.6rem
+        font-size: $font-size-md;
         font-weight: $font-weight-bold;
         color: $white-color;
         padding: 0 8px;
@@ -96,28 +100,29 @@
         }
     }
 
-    &__divider {
+    .headerDivider {
+        // Đổi từ __divider
         opacity: 0.9;
         margin-left: 42px;
         color: $sub-color;
-
         @include mobile-tablet-width {
             display: none;
         }
     }
 
-    &__text--hide {
+    .textHide {
+        // Đổi từ __text--hide
         @include tablet-width {
             display: none;
         }
-
         @include mobile-width {
             display: none;
         }
     }
 }
 
-.header-search {
+.headerSearch {
+    // Đổi từ .header-search
     position: relative;
     width: 359px;
     height: 43px;
@@ -139,7 +144,8 @@
         margin: 0 auto;
     }
 
-    &__icon {
+    .headerSearchIcon {
+        // Đổi từ __icon
         width: 29px;
         height: 29px;
         cursor: pointer;
@@ -147,47 +153,48 @@
         flex-shrink: 0;
 
         svg {
-            width: $icon-size-sm; // 16px ~ 1.6rem
+            width: $icon-size-sm;
             height: $icon-size-sm;
             filter: $sub-color;
         }
 
         @include mobile-width {
             svg {
-                width: 40px; // Giữ nguyên theo thiết kế riêng biệt cho mobile
+                width: 40px;
                 height: 40px;
                 filter: brightness(0) invert(1);
             }
         }
     }
 
-    &__input {
+    .headerSearchInput {
+        // Đổi từ __input
         width: 194px;
         height: 18px;
         border: none;
         outline: none;
-        font-size: $font-size-md; // 1.6rem
+        font-size: $font-size-md;
         margin-left: 8px;
         color: $sub-color;
 
         &::placeholder {
             color: $sub-color;
         }
-
         @include mobile-width {
             display: none;
         }
     }
 
-    &__btn {
+    .headerSearchBtn {
+        // Đổi từ __btn
         height: 29px;
         padding: 0 12px;
         margin-left: auto;
         border: none;
         background-color: $white-color;
         color: $sub-color;
-        font-size: $font-size-md; // 1.6rem
-        font-weight: $font-weight-semi-bold; // 500 gần với 600
+        font-size: $font-size-md;
+        font-weight: $font-weight-semi-bold;
         cursor: pointer;
         @include radius-common(4px);
         transition: opacity 0.3s ease;
@@ -198,14 +205,14 @@
         &:hover {
             opacity: 0.9;
         }
-
         @include mobile-width {
             display: none;
         }
     }
 }
 
-.search-history {
+.searchHistory {
+    // Đổi từ .search-history
     position: absolute;
     top: calc(100% + 8px);
     left: 0;
@@ -217,9 +224,10 @@
     padding: 8px 0;
     overflow: hidden;
 
-    &__title {
+    .searchHistoryTitle {
+        // Đổi từ __title
         padding: 8px 16px;
-        font-size: $font-size-xs; // 1.2rem
+        font-size: $font-size-xs;
         color: #888;
         font-weight: $font-weight-semi-bold;
         text-transform: uppercase;
@@ -227,13 +235,15 @@
         margin-bottom: 4px;
     }
 
-    &__list {
+    .searchHistoryList {
+        // Đổi từ __list
         list-style: none;
         padding: 0;
         margin: 0;
     }
 
-    &__item {
+    .searchHistoryItem {
+        // Đổi từ __item
         padding: 10px 16px;
         @include flex(space-between, center);
         cursor: pointer;
@@ -244,7 +254,7 @@
         }
 
         span {
-            font-size: $font-size-sm; // 1.4rem
+            font-size: $font-size-sm;
             color: $sub-color;
             flex: 1;
             white-space: nowrap;
@@ -253,11 +263,12 @@
         }
     }
 
-    &__remove {
+    .searchHistoryRemove {
+        // Đổi từ __remove
         background: none;
         border: none;
         color: #ccc;
-        font-size: $font-size-md; // 1.6rem
+        font-size: $font-size-md;
         cursor: pointer;
         padding: 4px;
         margin-left: 8px;
@@ -273,7 +284,8 @@
     }
 }
 
-.mobile-search-overlay {
+.mobileSearchOverlay {
+    // Đổi từ .mobile-search-overlay
     display: none;
 
     @include mobile-width {
@@ -285,76 +297,74 @@
         background-color: $white-color;
         z-index: 2000;
 
-        .mobile-search-header {
+        .mobileSearchHeader {
             padding: 12px 16px;
             @include flex(center, center, 12px);
             border-bottom: 1px solid $border-color;
             background-color: $white-color;
 
-            .mobile-search-back {
+            .mobileSearchBack {
                 background: none;
                 border: none;
-                font-size: $font-size-h3; // 2.4rem
+                font-size: $font-size-h3;
                 color: $sub-color;
                 cursor: pointer;
                 padding: 4px;
             }
 
-            .mobile-search-input {
+            .mobileSearchInput {
                 flex: 1;
                 height: 44px;
                 border: none;
                 outline: none;
-                font-size: $font-size-md; // 1.6rem
+                font-size: $font-size-md;
                 background-color: $hover-color;
                 @include radius-common(22px);
                 padding: 0 16px;
                 color: $sub-color;
-
                 &::placeholder {
                     color: #999;
                 }
             }
         }
 
-        .mobile-search-body {
+        .mobileSearchBody {
             flex: 1;
             padding: 20px 16px;
             overflow-y: auto;
 
-            .search-history__title {
+            .searchHistoryTitle {
                 margin-bottom: 12px;
                 display: block;
             }
 
-            .search-history__item {
+            .searchHistoryItem {
                 padding: 16px 0;
                 border-bottom: 1px solid $border-color;
-
                 span {
-                    font-size: $font-size-md; // Tăng size cho mobile (1.6rem)
+                    font-size: $font-size-md;
                 }
-
-                .search-history__remove {
-                    font-size: $icon-size-md; // 2rem
+                .searchHistoryRemove {
+                    font-size: $icon-size-md;
                     padding: 8px;
                 }
             }
 
-            .empty-text {
+            .emptyText {
                 text-align: center;
                 color: #999;
-                font-size: $font-size-sm; // 1.4rem
+                font-size: $font-size-sm;
                 margin-top: 60px;
             }
         }
     }
 }
 
-.header-user {
+.headerUser {
+    // Đổi từ .header-user
     @include flex(center, center, 8px);
     color: $white-color;
-    font-size: $font-size-md; // 1.6rem
+    font-size: $font-size-md;
     font-weight: $font-weight-bold;
     padding: 5px;
     position: relative;
@@ -365,14 +375,15 @@
         @include radius-common(6px);
     }
 
-    &:hover &__dropdown {
+    &:hover .userDropdown {
         opacity: 1;
         visibility: visible;
         transform: translateY(0);
     }
 
-    &__avatar {
-        width: $icon-size-lg; // 24px
+    .userAvatar {
+        // Đổi từ __avatar
+        width: $icon-size-lg;
         height: $icon-size-lg;
         border-radius: 50%;
         @include mobile-tablet-width {
@@ -381,15 +392,17 @@
         }
     }
 
-    &__toggle {
+    .userToggle {
+        // Đổi từ __toggle
         svg {
-            width: 12px; // Kích thước quá nhỏ, không có biến tương ứng trong file
+            width: 12px;
             height: 12px;
             fill: $white-color;
         }
     }
 
-    &__dropdown {
+    .userDropdown {
+        // Đổi từ __dropdown
         position: absolute;
         top: 110%;
         right: 0;
@@ -404,38 +417,44 @@
         transition: all 0.2s ease;
         z-index: 1000;
         padding: 8px 0;
-    }
 
-    &__dropdown-item {
-        @include flex(flex-start, center, 12px);
-        padding: 12px 16px;
-        color: $sub-color;
-        font-weight: $font-weight-regular;
-        font-size: $font-size-md; // 1.6rem
-        cursor: pointer;
-        transition: background-color 0.2s ease;
-        display: flex;
-
-        &:hover {
-            background-color: rgba(0, 0, 0, 0.05);
+        .dropdownItem {
+            // Đổi từ __dropdown-item
+            @include flex(flex-start, center, 12px);
+            padding: 12px 16px;
+            color: $sub-color;
+            font-weight: $font-weight-regular;
+            font-size: $font-size-md;
+            cursor: pointer;
+            transition: background-color 0.2s ease;
+            display: flex;
+            &:hover {
+                background-color: rgba(0, 0, 0, 0.05);
+            }
         }
-    }
 
-    &__dropdown-icon {
-        width: $icon-size-md; // 20px
-        height: $icon-size-md;
-        stroke: $primary-color;
-        flex-shrink: 0;
+        .dropdownIcon {
+            // Đổi từ __dropdown-icon
+            width: $icon-size-md;
+            height: $icon-size-md;
+            stroke: $primary-color;
+            flex-shrink: 0;
 
-        &--profile {
-            border: solid 2px $sub-color;
-            border-radius: 50%;
+            &.profileIcon {
+                // Đổi từ --profile
+                border: solid 2px $sub-color;
+                border-radius: 50%;
+            }
+            &.logoutIcon {
+                // Đổi từ --logout
+                // style cho logout icon nếu cần
+            }
         }
     }
 }
 
-// Bottom Navigation Mobile
-.bottom-nav {
+.bottomNav {
+    // Đổi từ .bottom-nav
     display: none;
 
     @include mobile-width {
@@ -452,17 +471,18 @@
         box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.05);
     }
 
-    &__item {
+    .bottomNavItem {
+        // Đổi từ __item
         @include flex(center, center);
         flex-direction: column;
         text-decoration: none;
         color: $white-color;
-        font-size: 1.1rem; // Giữ nguyên vì không có biến nhỏ hơn 1.2rem
+        font-size: 1.1rem;
         gap: 4px;
         flex: 1;
 
         svg {
-            width: 22px; // Kích thước đặc thù
+            width: 22px;
             height: 22px;
             fill: $white-color;
         }
@@ -476,21 +496,22 @@
     }
 }
 
-.logo-img {
+.logoImg {
+    // Đổi từ .logo-img
     @include mobile-width {
-        &.hide-mobile {
+        &.hideMobile {
             display: none;
         }
     }
 }
 
-.back-home-text {
+.backHomeText {
+    // Đổi từ .back-home-text
     display: none;
-
     @include mobile-width {
         display: block;
         color: $white-color;
-        font-size: $font-size-md; // 1.6rem
+        font-size: $font-size-md;
         font-weight: $font-weight-semi-bold;
     }
 }

@@ -14,9 +14,11 @@ function Profile() {
             <div className={cx('wrapper')}>
                 <h2 className={cx('title')}>Thông tin tài khoản</h2>
 
-                <div className={cx('avatar-section')}>
+                <div className={cx('avatarSection')}>
+                    {' '}
+                    {/* Đổi từ avatar-section */}
                     <img
-                        className={cx('avatar-img')}
+                        className={cx('avatarImg')} // Đổi từ avatar-img
                         src='https://static.ticketbox.vn/avatar.png'
                         alt='Avatar'
                     />
@@ -29,7 +31,7 @@ function Profile() {
                         value={formData.name}
                         onChange={handleChange}
                         placeholder='Nhập họ và tên'
-                        className={cx('form-group')}
+                        className={cx('formGroup')} // Đổi từ form-group
                     />
 
                     <FormGroup
@@ -37,7 +39,7 @@ function Profile() {
                         name='email'
                         value={formData.email}
                         readOnly
-                        className={cx('form-group')}
+                        className={cx('formGroup')}
                     />
 
                     <FormGroup
@@ -47,7 +49,7 @@ function Profile() {
                         value={formData.age}
                         onChange={handleChange}
                         placeholder='Nhập tuổi'
-                        className={cx('form-group')}
+                        className={cx('formGroup')}
                     />
 
                     <FormGroup
@@ -56,12 +58,16 @@ function Profile() {
                         value={formData.address}
                         onChange={handleChange}
                         placeholder='Nhập địa chỉ cư trú'
-                        className={cx('form-group')}
+                        className={cx('formGroup')}
                     />
 
-                    <div className={cx('radio-container')}>
+                    <div className={cx('radioContainer')}>
+                        {' '}
+                        {/* Đổi từ radio-container */}
                         <span className={cx('label')}>Giới tính</span>
-                        <div className={cx('radio-group')}>
+                        <div className={cx('radioGroup')}>
+                            {' '}
+                            {/* Đổi từ radio-group */}
                             {[
                                 { val: 'MALE', lab: 'Nam' },
                                 { val: 'FEMALE', lab: 'Nữ' },
@@ -69,7 +75,7 @@ function Profile() {
                             ].map(item => (
                                 <label
                                     key={item.val}
-                                    className={cx('radio-item')}
+                                    className={cx('radioItem')} // Đổi từ radio-item
                                 >
                                     <input
                                         type='radio'
@@ -86,7 +92,7 @@ function Profile() {
 
                     <button
                         type='submit'
-                        className={cx('update-btn', { loading: isUpdating })}
+                        className={cx('updateBtn', { loading: isUpdating })} // Đổi từ update-btn
                         disabled={isUpdating}
                     >
                         {isUpdating ? 'Đang cập nhật...' : 'Lưu thay đổi'}

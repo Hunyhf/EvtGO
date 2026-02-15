@@ -31,11 +31,10 @@ const slugify = str => {
 
 function Nav() {
     const [genres, setGenres] = useState(DEFAULT_GENRES);
-    const { isAuthenticated, isLoading } = useContext(AuthContext); // Lấy trạng thái từ Context
+    const { isAuthenticated, isLoading } = useContext(AuthContext);
 
     useEffect(() => {
         const fetchGenres = async () => {
-            // Kiểm tra nếu hệ thống đang load Auth thì đợi
             if (isLoading) return;
 
             const token = Cookies.get('access_token');
@@ -59,17 +58,22 @@ function Nav() {
         };
 
         fetchGenres();
-    }, [isAuthenticated, isLoading]); // Chạy lại khi trạng thái đăng nhập thay đổi
+    }, [isAuthenticated, isLoading]);
 
     return (
         <nav className={cx('wrapper')}>
-            <ul className={cx('nav-list')}>
+            <ul className={cx('navList')}>
+                {' '}
+                {/* Đổi từ nav-list */}
                 {genres.map(item => (
-                    <li key={item.id} className={cx('nav-item')}>
+                    <li key={item.id} className={cx('navItem')}>
+                        {' '}
+                        {/* Đổi từ nav-item */}
                         <NavLink
                             to={`/category?name=${slugify(item.name)}`}
-                            className={({ isActive }) =>
-                                cx('nav-link', { active: isActive })
+                            className={
+                                ({ isActive }) =>
+                                    cx('navLink', { active: isActive }) // Đổi từ nav-link
                             }
                         >
                             {item.name}

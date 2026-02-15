@@ -4,7 +4,7 @@ const cx = classNames.bind(styles);
 
 function Footer() {
     return (
-        <footer className={cx('footer-container')}>
+        <footer className={cx('footerContainer')}>
             <div className={cx('content')}>FOOTER</div>
         </footer>
     );

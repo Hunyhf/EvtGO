@@ -8,7 +8,7 @@ import HidePassIcon from '@icons/svgs/hidePassIcon.svg?react';
 import { callLogin, callRegister } from '@apis/authApi';
 import { AuthContext } from '@contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
-import { ROLE_REDIRECT_MAP, ROLE_ID } from '@constants/roles.js';
+import { ROLE_ID } from '@constants/roles.js';
 
 const cx = classNames.bind(styles);
 
@@ -79,7 +79,6 @@ function AuthModal({ isOpen, onClose }) {
                 }
             } else {
                 const defaultName = email.split('@')[0];
-                // Gán role_id dựa trên chế độ đang chọn (Organizer hoặc Customer)
                 const roleToRegister = isOrganizerMode
                     ? ROLE_ID.ORGANIZER
                     : ROLE_ID.CUSTOMER;
@@ -95,7 +94,6 @@ function AuthModal({ isOpen, onClose }) {
                     toast.success(
                         'Đăng ký tài khoản thành công! Vui lòng đăng nhập để tiếp tục.'
                     );
-
                     setIsLoginMode(true);
                     setIsOrganizerMode(false);
                     setPassword('');
@@ -105,19 +103,14 @@ function AuthModal({ isOpen, onClose }) {
         } catch (error) {
             const serverMessage =
                 error?.response?.data?.message || error?.message;
-
             if (serverMessage?.toLowerCase().includes('email')) {
-                setErrors({
-                    ...errors,
-                    email: 'Email này đã được sử dụng hoặc không hợp lệ'
-                });
+                setErrors({ ...errors, email: 'Email này đã được sử dụng' });
             } else {
                 setErrors({
                     ...errors,
                     common: isLoginMode
-                        ? 'Tài khoản hoặc mật khẩu chưa chính xác, vui lòng thử lại'
-                        : serverMessage ||
-                          'Đăng ký không thành công, vui lòng thử lại sau'
+                        ? 'Tài khoản hoặc mật khẩu chưa chính xác'
+                        : serverMessage || 'Đăng ký không thành công'
                 });
             }
         }
@@ -128,7 +121,8 @@ function AuthModal({ isOpen, onClose }) {
     return (
         <div className={cx('wrapper')}>
             <div className={cx('container')} onClick={e => e.stopPropagation()}>
-                <button className={cx('close-btn')} onClick={onClose}>
+                {/* Sửa close-btn -> closeBtn */}
+                <button className={cx('closeBtn')} onClick={onClose}>
                     <CloseBtnIcon />
                 </button>
 
@@ -146,36 +140,38 @@ function AuthModal({ isOpen, onClose }) {
                         onSubmit={handleSubmit}
                         noValidate
                     >
-                        <div className={cx('input-group')}>
+                        {/* Sửa input-group -> inputGroup */}
+                        <div className={cx('inputGroup')}>
                             <input
                                 type='email'
                                 placeholder='Email'
                                 className={cx('input', {
-                                    'input-error': errors.email
+                                    inputError: errors.email // Sửa input-error -> inputError
                                 })}
                                 value={email}
                                 onChange={e => setEmail(e.target.value)}
                             />
                             {errors.email && (
-                                <span className={cx('error-msg')}>
+                                <span className={cx('errorMsg')}>
                                     {errors.email}
                                 </span>
                             )}
                         </div>
 
-                        <div className={cx('input-group')}>
-                            <div className={cx('password-wrapper')}>
+                        <div className={cx('inputGroup')}>
+                            {/* Sửa password-wrapper -> passwordWrapper */}
+                            <div className={cx('passwordWrapper')}>
                                 <input
                                     type={showPassword ? 'text' : 'password'}
                                     placeholder='Mật khẩu'
                                     className={cx('input', {
-                                        'input-error': errors.password
+                                        inputError: errors.password
                                     })}
                                     value={password}
                                     onChange={e => setPassword(e.target.value)}
                                 />
                                 <span
-                                    className={cx('toggle-icon')}
+                                    className={cx('toggleIcon')} // Sửa toggle-icon -> toggleIcon
                                     onClick={() =>
                                         setShowPassword(!showPassword)
                                     }
@@ -188,23 +184,22 @@ function AuthModal({ isOpen, onClose }) {
                                 </span>
                             </div>
                             {errors.password && (
-                                <span className={cx('error-msg')}>
+                                <span className={cx('errorMsg')}>
                                     {errors.password}
                                 </span>
                             )}
                         </div>
 
                         {!isLoginMode && (
-                            <div className={cx('input-group')}>
-                                <div className={cx('password-wrapper')}>
+                            <div className={cx('inputGroup')}>
+                                <div className={cx('passwordWrapper')}>
                                     <input
                                         type={
                                             showPassword ? 'text' : 'password'
                                         }
                                         placeholder='Nhập lại mật khẩu'
                                         className={cx('input', {
-                                            'input-error':
-                                                errors.confirmPassword
+                                            inputError: errors.confirmPassword
                                         })}
                                         value={confirmPassword}
                                         onChange={e =>
@@ -212,7 +207,7 @@ function AuthModal({ isOpen, onClose }) {
                                         }
                                     />
                                     <span
-                                        className={cx('toggle-icon')}
+                                        className={cx('toggleIcon')}
                                         onClick={() =>
                                             setShowPassword(!showPassword)
                                         }
@@ -225,7 +220,7 @@ function AuthModal({ isOpen, onClose }) {
                                     </span>
                                 </div>
                                 {errors.confirmPassword && (
-                                    <span className={cx('error-msg')}>
+                                    <span className={cx('errorMsg')}>
                                         {errors.confirmPassword}
                                     </span>
                                 )}
@@ -233,19 +228,21 @@ function AuthModal({ isOpen, onClose }) {
                         )}
 
                         {errors.common && (
-                            <div className={cx('error-msg', 'center')}>
+                            <div className={cx('errorMsg', 'center')}>
                                 {errors.common}
                             </div>
                         )}
 
-                        <button type='submit' className={cx('submit-btn')}>
+                        <button type='submit' className={cx('submitBtn')}>
                             {isLoginMode ? 'Đăng nhập' : 'Đăng ký'}
                         </button>
                     </form>
 
                     <div className={cx('footer')}>
                         {isLoginMode && (
-                            <div className={cx('footer__organizer')}>
+                            <div className={cx('organizerLink')}>
+                                {' '}
+                                {/* Sửa footer__organizer -> organizerLink */}
                                 Bạn muốn tổ chức sự kiện?{' '}
                                 <strong
                                     onClick={() => {

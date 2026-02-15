@@ -8,9 +8,7 @@ const ProtectedRoute = ({ children, allowedRoles }) => {
 
     if (isLoading) {
         return (
-            <div className='loading-screen'>
-                Đang xác thực quyền truy cập...
-            </div>
+            <div className='loadingScreen'>Đang xác thực quyền truy cập...</div>
         );
     }
 

@@ -22,7 +22,6 @@ function Header() {
     const { isAuthenticated, logoutContext } = useContext(AuthContext);
     const searchRef = useRef(null);
 
-    // Sử dụng logic từ Custom Hook
     const {
         searchTerm,
         setSearchTerm,
@@ -37,7 +36,6 @@ function Header() {
 
     const isHomePage = pathname === '/';
 
-    // Click ra ngoài để đóng history (Vẫn giữ Ref ở UI để quản lý DOM)
     useEffect(() => {
         const handleClickOutside = event => {
             if (
@@ -65,29 +63,29 @@ function Header() {
     return (
         <>
             <header className={cx('header')}>
-                <div className={cx('header__inner')}>
-                    <div className={cx('header__logo')}>
+                <div className={cx('headerInner')}>
+                    <div className={cx('headerLogo')}>
                         <Link to='/'>
                             <img
-                                className={cx('logo-img', {
-                                    'hide-mobile': !isHomePage
+                                className={cx('logoImg', {
+                                    hideMobile: !isHomePage
                                 })}
                                 src='https://ticketbox.vn/_next/static/images/logo-for-tet.png'
                                 alt='logo'
                             />
                             {!isHomePage && (
-                                <span className={cx('back-home-text')}>
+                                <span className={cx('backHomeText')}>
                                     ← Về trang chủ
                                 </span>
                             )}
                         </Link>
                     </div>
 
-                    <div className={cx('header__right')}>
+                    <div className={cx('headerRight')}>
                         {/* Search Bar */}
-                        <div className={cx('header-search')} ref={searchRef}>
+                        <div className={cx('headerSearch')} ref={searchRef}>
                             <div
-                                className={cx('header-search__icon')}
+                                className={cx('headerSearchIcon')}
                                 onClick={() =>
                                     isMobileSearchOpen
                                         ? handleSearch()
@@ -97,7 +95,7 @@ function Header() {
                                 <SearchIcon />
                             </div>
                             <input
-                                className={cx('header-search__input')}
+                                className={cx('headerSearchInput')}
                                 placeholder='Search...'
                                 value={searchTerm}
                                 onChange={e => setSearchTerm(e.target.value)}
@@ -107,20 +105,18 @@ function Header() {
                                 }
                             />
 
-                            {/* Dropdown History (Desktop) */}
+                            {/* Dropdown History */}
                             {showHistory && searchHistory.length > 0 && (
-                                <div className={cx('search-history')}>
-                                    <div
-                                        className={cx('search-history__title')}
-                                    >
+                                <div className={cx('searchHistory')}>
+                                    <div className={cx('searchHistoryTitle')}>
                                         Tìm kiếm gần đây
                                     </div>
-                                    <ul className={cx('search-history__list')}>
+                                    <ul className={cx('searchHistoryList')}>
                                         {searchHistory.map((item, index) => (
                                             <li
                                                 key={index}
                                                 className={cx(
-                                                    'search-history__item'
+                                                    'searchHistoryItem'
                                                 )}
                                                 onClick={() =>
                                                     handleSearch(item)
@@ -129,7 +125,7 @@ function Header() {
                                                 <span>{item}</span>
                                                 <button
                                                     className={cx(
-                                                        'search-history__remove'
+                                                        'searchHistoryRemove'
                                                     )}
                                                     onClick={e =>
                                                         removeHistoryItem(
@@ -146,96 +142,84 @@ function Header() {
                                 </div>
                             )}
 
-                            <span className={cx('header__divider')}>|</span>
+                            <span className={cx('headerDivider')}>|</span>
                             <button
                                 type='button'
-                                className={cx('header-search__btn')}
+                                className={cx('headerSearchBtn')}
                                 onClick={handleSearch}
                             >
                                 Tìm kiếm
                             </button>
                         </div>
 
-                        <div className={cx('header__actions')}>
+                        <div className={cx('headerActions')}>
                             <Link
                                 to='/my-tickets'
-                                className={cx('header__tickets')}
+                                className={cx('headerTickets')}
                             >
                                 <TicketIcon />
-                                <span className={cx('header__text--hide')}>
+                                <span className={cx('textHide')}>
                                     Vé của tôi
                                 </span>
                             </Link>
 
                             {isAuthenticated ? (
-                                <div className={cx('header-user')}>
+                                <div className={cx('headerUser')}>
                                     <img
-                                        className={cx('header-user__avatar')}
+                                        className={cx('userAvatar')}
                                         src='https://static.ticketbox.vn/avatar.png'
                                         alt='avatar'
                                     />
-                                    <span className={cx('header__text--hide')}>
+                                    <span className={cx('textHide')}>
                                         Tài khoản
                                     </span>
-                                    <div className={cx('header-user__toggle')}>
+                                    <div className={cx('userToggle')}>
                                         <DropDownIcon />
                                     </div>
-                                    <div
-                                        className={cx('header-user__dropdown')}
-                                    >
+                                    <div className={cx('userDropdown')}>
                                         <Link
                                             to='/my-tickets'
-                                            className={cx(
-                                                'header-user__dropdown-item'
-                                            )}
+                                            className={cx('dropdownItem')}
                                         >
                                             <TicketIcon
-                                                className={cx(
-                                                    'header-user__dropdown-icon'
-                                                )}
+                                                className={cx('dropdownIcon')}
                                             />
                                             Vé của tôi
                                         </Link>
                                         <Link
                                             to='/profile'
-                                            className={cx(
-                                                'header-user__dropdown-item'
-                                            )}
+                                            className={cx('dropdownItem')}
                                         >
                                             <UserIcon
                                                 className={cx(
-                                                    'header-user__dropdown-icon',
-                                                    'header-user__dropdown-icon--profile'
+                                                    'dropdownIcon',
+                                                    'profileIcon'
                                                 )}
                                             />
                                             Thông tin cá nhân
                                         </Link>
-                                        <span
-                                            className={cx(
-                                                'header-user__dropdown-item'
-                                            )}
+                                        <div
+                                            className={cx('dropdownItem')}
                                             onClick={handleLogout}
                                         >
                                             <LogOutIcon
                                                 className={cx(
-                                                    'header-user__dropdown-icon',
-                                                    'header-user__dropdown-icon--logout'
+                                                    'dropdownIcon',
+                                                    'logoutIcon'
                                                 )}
                                             />
                                             Đăng xuất
-                                        </span>
+                                        </div>
                                     </div>
                                 </div>
                             ) : (
                                 <div
-                                    className={cx('header__guest')}
+                                    className={cx('headerGuest')}
                                     onClick={() => setShowAuthModal(true)}
                                 >
                                     <span>Đăng nhập</span>
-                                    <span className={cx('header__text--hide')}>
-                                        |
-                                    </span>
-                                    <span className={cx('header__text--hide')}>
+                                    <span className={cx('textHide')}> | </span>
+                                    <span className={cx('textHide')}>
                                         Đăng ký
                                     </span>
                                 </div>
@@ -247,39 +231,39 @@ function Header() {
 
             {/* Mobile Search Overlay */}
             {isMobileSearchOpen && (
-                <div className={cx('mobile-search-overlay')}>
-                    <div className={cx('mobile-search-header')}>
+                <div className={cx('mobileSearchOverlay')}>
+                    <div className={cx('mobileSearchHeader')}>
                         <button
-                            className={cx('mobile-search-back')}
+                            className={cx('mobileSearchBack')}
                             onClick={() => setIsMobileSearchOpen(false)}
                         >
                             ←
                         </button>
                         <input
                             autoFocus
-                            className={cx('mobile-search-input')}
+                            className={cx('mobileSearchInput')}
                             placeholder='Tìm sự kiện, nghệ sĩ...'
                             value={searchTerm}
                             onChange={e => setSearchTerm(e.target.value)}
                             onKeyDown={e => e.key === 'Enter' && handleSearch()}
                         />
                     </div>
-                    <div className={cx('mobile-search-body')}>
-                        <div className={cx('search-history__title')}>
+                    <div className={cx('mobileSearchBody')}>
+                        <div className={cx('searchHistoryTitle')}>
                             Tìm kiếm gần đây
                         </div>
                         {searchHistory.length > 0 ? (
-                            <ul className={cx('search-history__list')}>
+                            <ul className={cx('searchHistoryList')}>
                                 {searchHistory.map((item, index) => (
                                     <li
                                         key={index}
-                                        className={cx('search-history__item')}
+                                        className={cx('searchHistoryItem')}
                                         onClick={() => handleSearch(item)}
                                     >
                                         <span>{item}</span>
                                         <button
                                             className={cx(
-                                                'search-history__remove'
+                                                'searchHistoryRemove'
                                             )}
                                             onClick={e =>
                                                 removeHistoryItem(e, item)
@@ -291,7 +275,7 @@ function Header() {
                                 ))}
                             </ul>
                         ) : (
-                            <p className={cx('empty-text')}>
+                            <p className={cx('emptyText')}>
                                 Bạn chưa tìm kiếm gì gần đây
                             </p>
                         )}
@@ -300,10 +284,10 @@ function Header() {
             )}
 
             {/* Bottom Nav Mobile */}
-            <nav className={cx('bottom-nav')}>
+            <nav className={cx('bottomNav')}>
                 <Link
                     to='/'
-                    className={cx('bottom-nav__item', {
+                    className={cx('bottomNavItem', {
                         active: pathname === '/'
                     })}
                 >
@@ -312,7 +296,7 @@ function Header() {
                 </Link>
                 <Link
                     to='/my-tickets'
-                    className={cx('bottom-nav__item', {
+                    className={cx('bottomNavItem', {
                         active: pathname === '/my-tickets'
                     })}
                 >
@@ -321,7 +305,7 @@ function Header() {
                 </Link>
                 <Link
                     to='/profile'
-                    className={cx('bottom-nav__item', {
+                    className={cx('bottomNavItem', {
                         active: pathname === '/profile'
                     })}
                 >

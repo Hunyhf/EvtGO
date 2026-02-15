@@ -1,4 +1,4 @@
-@import '../../assets/styles/variables';
+@import '@styles/variables';
 
 .sidebar {
     width: 260px;
@@ -18,7 +18,7 @@
             display: none;
         }
 
-        .navMenu li {
+        .menuItem {
             justify-content: center;
             padding: 14px 0;
 
@@ -64,48 +64,49 @@
     padding: 20px 0;
     list-style: none;
     margin: 0;
+}
 
-    li {
-        padding: 14px 24px;
+.menuItem {
+    padding: 14px 24px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    color: $text-color;
+    white-space: nowrap;
+    position: relative;
+
+    .icon {
+        font-size: $icon-size-md;
         display: flex;
         align-items: center;
-        gap: 14px;
-        cursor: pointer;
-        transition: all 0.2s ease;
-        color: $text-color;
-        white-space: nowrap;
+        justify-content: center;
+    }
 
-        .icon {
-            font-size: $icon-size-md;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
+    .label {
+        font-size: $font-size-sm;
+        font-weight: $font-weight-regular;
+    }
 
-        .label {
-            font-size: $font-size-sm;
-            font-weight: $font-weight-regular;
-        }
+    &:hover {
+        color: $white-color;
+        background-color: rgba(255, 255, 255, 0.05);
+    }
 
-        &:hover {
-            color: $white-color;
-            background-color: rgba(255, 255, 255, 0.05);
-        }
+    &.active {
+        background-color: $primary-color;
+        color: $white-color;
+        font-weight: $font-weight-semi-bold;
 
-        &.active {
-            background-color: $primary-color;
-            color: $white-color;
-            font-weight: $font-weight-semi-bold;
-
-            &::before {
-                content: '';
-                position: absolute;
-                left: 0;
-                width: 4px;
-                height: 40px;
-                background-color: $white-color;
-                border-radius: 0 4px 4px 0;
-            }
+        &::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            width: 4px;
+            height: 40px;
+            background-color: $white-color;
+            border-radius: 0 4px 4px 0;
         }
     }
 }

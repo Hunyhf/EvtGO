@@ -16,7 +16,6 @@ import { BANNER_DATA, TRENDING_DATA } from './constants';
 
 const cx = classNames.bind(styles);
 
-// Cấu hình Banner Swiper
 const swiperConfig = {
     modules: [Navigation, Pagination, Autoplay],
     spaceBetween: 20,
@@ -38,14 +37,12 @@ function Home() {
     useEffect(() => {
         const loadHomeData = async () => {
             try {
-                // 1. Lấy danh mục thực tế từ API
                 const categoryRes = await categoryApi.getAll();
                 const genres = categoryRes.data || [
                     { id: 'music', name: 'Âm nhạc' },
                     { id: 'theater', name: 'Sân khấu' }
                 ];
 
-                // 2. Mock 8 sự kiện để demo hiển thị lưới
                 const mockEvents = Array.from({ length: 8 }, (_, i) => ({
                     id: i + 1,
                     title: `Sự kiện tiêu biểu ${i + 1}`,
@@ -54,7 +51,6 @@ function Home() {
                     url: `https://picsum.photos/400/250?random=${i + 10}`
                 }));
 
-                // Gán sự kiện vào từng danh mục
                 const dataWithEvents = genres.map(genre => ({
                     ...genre,
                     events: mockEvents
@@ -83,11 +79,13 @@ function Home() {
 
             <div className={cx('wrapper')}>
                 {/* Banner Section */}
-                <section className={cx('banner-container')}>
+                <section className={cx('bannerContainer')}>
+                    {' '}
+                    {/* banner-container -> bannerContainer */}
                     <Swiper {...swiperConfig}>
                         {BANNER_DATA.map(banner => (
                             <SwiperSlide key={banner.id}>
-                                <div className={cx('banner-item')}>
+                                <div className={cx('bannerItem')}>
                                     <img src={banner.url} alt='Banner' />
                                 </div>
                             </SwiperSlide>
@@ -96,34 +94,34 @@ function Home() {
                 </section>
 
                 {/* Trending Section */}
-                <section className={cx('trending-section')}>
-                    <header className={cx('section-header')}>
-                        <h3 className={cx('section-title')}>
+                <section className={cx('trendingSection')}>
+                    <header className={cx('sectionHeader')}>
+                        <h3 className={cx('sectionTitle')}>
                             Sự kiện đang xu hướng
                         </h3>
                     </header>
-                    <div className={cx('trending-content')}>
+                    <div className={cx('trendingContent')}>
                         <button
-                            className={cx('control-btn', 'prev')}
+                            className={cx('controlBtn', 'prev')}
                             onClick={() => handleScroll('left')}
                         >
                             ❮
                         </button>
                         <div
-                            className={cx('event-grid-manual')}
+                            className={cx('eventGridManual')}
                             ref={trendingRef}
                         >
                             {TRENDING_DATA.map(item => (
                                 <div
                                     key={item.id}
-                                    className={cx('trending-img-wrapper')}
+                                    className={cx('trendingImgWrapper')}
                                 >
                                     <img src={item.url} alt={item.title} />
                                 </div>
                             ))}
                         </div>
                         <button
-                            className={cx('control-btn', 'next')}
+                            className={cx('controlBtn', 'next')}
                             onClick={() => handleScroll('right')}
                         >
                             ❯
@@ -131,24 +129,22 @@ function Home() {
                     </div>
                 </section>
 
-                {/* --- Genre Sections (Đã cập nhật) --- */}
+                {/* Genre Sections */}
                 {sections.map(genre => (
-                    <section key={genre.id} className={cx('genre-section')}>
-                        <header className={cx('section-header-genre')}>
-                            <h3 className={cx('section-title')}>
-                                {genre.name}
-                            </h3>
+                    <section key={genre.id} className={cx('genreSection')}>
+                        <header className={cx('sectionHeaderGenre')}>
+                            <h3 className={cx('sectionTitle')}>{genre.name}</h3>
                             <Link
                                 to={`/category/${genre.id}`}
-                                className={cx('view-more')}
+                                className={cx('viewMore')}
                             >
                                 Xem thêm
                             </Link>
                         </header>
 
-                        <div className={cx('event-grid-responsive')}>
+                        <div className={cx('eventGridResponsive')}>
                             {genre.events.map(event => (
-                                <div key={event.id} className={cx('grid-item')}>
+                                <div key={event.id} className={cx('gridItem')}>
                                     <EventCard data={event} />
                                 </div>
                             ))}

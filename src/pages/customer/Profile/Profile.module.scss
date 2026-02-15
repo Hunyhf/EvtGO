@@ -20,17 +20,17 @@
 
     .title {
         font-size: 2.8rem;
-        font-weight: $font-weight-bold; // 700
+        font-weight: $font-weight-bold;
         margin-bottom: 3.2rem;
         color: $white-color;
         letter-spacing: -0.5px;
     }
 
-    .avatar-section {
+    .avatarSection {
         margin-bottom: 3rem;
         position: relative;
 
-        .avatar-img {
+        .avatarImg {
             width: 13rem;
             height: 13rem;
             @include radius-common(50%);
@@ -51,14 +51,14 @@
         @include flex(stretch, stretch);
         flex-direction: column;
 
-        .form-group {
+        .formGroup {
             @include flex(stretch, stretch, 1rem);
             flex-direction: column;
             margin-bottom: 2.2rem;
 
             label {
-                font-size: $font-size-sm; // 1.4rem
-                font-weight: $font-weight-semi-bold; // 600
+                font-size: $font-size-sm;
+                font-weight: $font-weight-semi-bold;
                 color: $white-color;
             }
 
@@ -89,37 +89,27 @@
                     color: rgba($white-color, 0.5);
                     cursor: not-allowed;
                 }
-
-                &::-webkit-outer-spin-button,
-                &::-webkit-inner-spin-button {
-                    -webkit-appearance: none;
-                    margin: 0;
-                }
-
-                &[type='number'] {
-                    -moz-appearance: textfield;
-                }
             }
         }
     }
 
-    .radio-container {
+    .radioContainer {
         margin-bottom: 2.5rem;
 
         .label {
-            font-size: $font-size-sm; // 1.4rem
-            font-weight: $font-weight-semi-bold; // 600
+            font-size: $font-size-sm;
+            font-weight: $font-weight-semi-bold;
             color: $white-color;
             margin-bottom: 1.2rem;
             display: block;
         }
 
-        .radio-group {
+        .radioGroup {
             @include flex(flex-start, center, 3rem);
             padding: 0.5rem 0;
         }
 
-        .radio-item {
+        .radioItem {
             @include flex(flex-start, center, 1rem);
             font-size: 1.5rem;
             color: rgba($white-color, 0.8);
@@ -138,15 +128,15 @@
         }
     }
 
-    .update-btn {
+    .updateBtn {
         width: 100%;
         padding: 1.5rem;
         background-color: $primary-color;
         color: $white-color;
         border: none;
-        @include radius-common(); // Mặc định 10px (~ 1rem)
-        font-size: $font-size-md; // 1.6rem
-        font-weight: $font-weight-bold; // 700
+        @include radius-common();
+        font-size: $font-size-md;
+        font-weight: $font-weight-bold;
         cursor: pointer;
         margin-top: 1rem;
         transition: all 0.3s ease;
