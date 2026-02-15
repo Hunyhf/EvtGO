@@ -1,23 +1,22 @@
 import React, { useState, useEffect } from 'react';
 import classNames from 'classnames/bind';
 import ReactQuill from 'react-quill';
-import 'react-quill/dist/quill.snow.css'; // Theme của trình soạn thảo
+import 'react-quill/dist/quill.snow.css';
 import styles from './Step1Info.module.scss';
 import FormGroup from '@components/Common/FormGroup';
 import categoryApi from '@apis/categoryApi';
 import { CameraOutlined, PictureOutlined } from '@ant-design/icons';
+import { toast } from 'react-toastify'; // Import toast để thông báo lỗi
 
 const cx = classNames.bind(styles);
 
 const Step1Info = ({ formData, setFormData, errors }) => {
     const [categories, setCategories] = useState([]);
 
-    // 1. Lấy danh sách thể loại từ API
     useEffect(() => {
         const fetchCategories = async () => {
             try {
                 const res = await categoryApi.getAll();
-                // Giả sử API trả về mảng ở res.result hoặc res.data
                 if (res && res.result) setCategories(res.result);
                 else if (res && res.data) setCategories(res.data);
             } catch (error) {
@@ -32,17 +31,48 @@ const Step1Info = ({ formData, setFormData, errors }) => {
         setFormData(prev => ({ ...prev, [name]: value }));
     };
 
+    // === PHẦN SỬA ĐỔI: VALIDATE KÍCH THƯỚC ẢNH ===
     const handleFileChange = (e, field) => {
         const file = e.target.files[0];
-        if (file) {
-            setFormData(prev => ({
-                ...prev,
-                [field]: URL.createObjectURL(file)
-            }));
-        }
-    };
+        if (!file) return;
 
-    // Cấu hình thanh công cụ Rich Text (Giống Word)
+        // Định nghĩa kích thước yêu cầu
+        const config = {
+            poster: { w: 1280, h: 720, label: 'Ảnh nền' },
+            organizerLogo: { w: 275, h: 275, label: 'Logo' }
+        };
+
+        const target = config[field];
+        const img = new Image();
+        const objectUrl = URL.createObjectURL(file);
+
+        img.src = objectUrl;
+
+        img.onload = () => {
+            // Kiểm tra kích thước chính xác
+            if (img.width === target.w && img.height === target.h) {
+                setFormData(prev => ({
+                    ...prev,
+                    [field]: objectUrl
+                }));
+            } else {
+                // Nếu sai kích thước: Thông báo, xóa input và giải phóng bộ nhớ tạm
+                toast.error(
+                    `${target.label} không đúng kích thước! Yêu cầu: ${target.w}x${target.h}px (Hiện tại: ${img.width}x${img.height}px)`
+                );
+                e.target.value = ''; // Reset input file
+                URL.revokeObjectURL(objectUrl);
+            }
+        };
+
+        img.onerror = () => {
+            toast.error('File ảnh bị lỗi hoặc không định dạng được.');
+            e.target.value = '';
+            URL.revokeObjectURL(objectUrl);
+        };
+    };
+    // ============================================
+
     const quillModules = {
         toolbar: [
             [{ header: [1, 2, 3, false] }],
@@ -128,7 +158,7 @@ const Step1Info = ({ formData, setFormData, errors }) => {
                 </div>
             </div>
 
-            {/* 3. THÔNG TIN SỰ KIỆN & ĐỊA CHỈ */}
+            {/* ... Các phần còn lại của code (Địa điểm, Thể loại, Mô tả) giữ nguyên ... */}
             <div className={cx('section')}>
                 <h3 className={cx('sectionTitle')}>Địa điểm & Thể loại</h3>
                 <div className={cx('formGrid')}>
@@ -189,7 +219,6 @@ const Step1Info = ({ formData, setFormData, errors }) => {
                         </select>
                     </div>
 
-                    {/* THỂ LOẠI SỰ KIỆN (DƯỚI PHƯỜNG XÃ) */}
                     <div className={cx('inputWrapper')}>
                         <label className={cx('label')}>Thể loại sự kiện</label>
                         <select
@@ -227,7 +256,6 @@ const Step1Info = ({ formData, setFormData, errors }) => {
                 </div>
             </div>
 
-            {/* 4. MÔ TẢ CHI TIẾT (BẢNG SOẠN THẢO) */}
             <div className={cx('section')}>
                 <h3 className={cx('sectionTitle')}>
                     Thông tin chi tiết sự kiện
