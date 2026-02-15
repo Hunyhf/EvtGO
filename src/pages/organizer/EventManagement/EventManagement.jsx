@@ -1,13 +1,22 @@
-import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import React, { useState, useEffect, useMemo } from 'react';
 import { callFetchAllEvents, callDeleteEvent } from '@apis/eventApi';
+import {
+    SearchOutlined,
+    CalendarOutlined,
+    CheckCircleOutlined,
+    ClockCircleOutlined
+} from '@ant-design/icons';
+import { useNavigate } from 'react-router-dom';
 import styles from './EventManagement.module.scss';
+import dayjs from 'dayjs';
 
 const EventManagement = () => {
     const [events, setEvents] = useState([]);
     const [loading, setLoading] = useState(false);
+    const [searchTerm, setSearchTerm] = useState('');
+    const [activeTab, setActiveTab] = useState('upcoming'); // upcoming, past, pending
+    const navigate = useNavigate();
 
-    // Chạy fetchEvents một lần khi trang vừa load
     useEffect(() => {
         fetchEvents();
     }, []);
@@ -15,112 +24,151 @@ const EventManagement = () => {
     const fetchEvents = async () => {
         setLoading(true);
         try {
-            // Thay đổi: Sử dụng callFetchAllEvents()
             const response = await callFetchAllEvents();
-
-            // Giả định backend Spring Boot trả về dữ liệu nằm trong biến 'content' của ResultPaginationDTO
-            if (response && response.data && response.data.content) {
-                setEvents(response.data.content);
-            } else if (Array.isArray(response.data)) {
-                setEvents(response.data);
-            }
+            const data = response?.data?.content || response?.data || [];
+            setEvents(data);
         } catch (error) {
             console.error('Lỗi khi lấy danh sách sự kiện:', error);
-            alert('Không thể tải danh sách sự kiện.');
         } finally {
             setLoading(false);
         }
     };
 
+    // Logic phân loại và tìm kiếm
+    const filteredEvents = useMemo(() => {
+        const now = dayjs();
+
+        return events.filter(event => {
+            const matchSearch = event.name
+                .toLowerCase()
+                .includes(searchTerm.toLowerCase());
+            if (!matchSearch) return false;
+
+            const eventDate = dayjs(event.startDate);
+
+            switch (activeTab) {
+                case 'upcoming':
+                    return event.published && eventDate.isAfter(now);
+                case 'past':
+                    return eventDate.isBefore(now);
+                case 'pending':
+                    return !event.published;
+                default:
+                    return true;
+            }
+        });
+    }, [events, searchTerm, activeTab]);
+
     const handleDelete = async id => {
         if (window.confirm('Bạn có chắc chắn muốn xóa sự kiện này?')) {
             try {
-                // Thay đổi: Sử dụng callDeleteEvent()
                 await callDeleteEvent(id);
-                alert('Xóa thành công!');
-                fetchEvents(); // Gọi lại hàm lấy danh sách để làm mới bảng
+                fetchEvents();
             } catch (error) {
-                console.error('Lỗi khi xóa:', error);
-                alert('Xóa thất bại!');
+                console.error('Xóa thất bại:', error);
             }
         }
     };
 
     return (
         <div className={styles.container}>
-            <div className={styles.header}>
-                <h2>Quản lý sự kiện</h2>
-                {/* Nút chuyển hướng sang trang tạo sự kiện */}
-                <Link
-                    to='/organizer/events/create'
-                    className={styles.createBtn}
-                >
-                    + Thêm sự kiện
-                </Link>
+            {/* Top Bar: Tìm kiếm và Phân loại */}
+            <div className={styles.topBar}>
+                <div className={styles.searchWrapper}>
+                    <SearchOutlined className={styles.searchIcon} />
+                    <input
+                        type='text'
+                        placeholder='Tìm kiếm sự kiện của bạn...'
+                        value={searchTerm}
+                        onChange={e => setSearchTerm(e.target.value)}
+                    />
+                </div>
+
+                <div className={styles.tabGroup}>
+                    <button
+                        className={
+                            activeTab === 'upcoming' ? styles.activeTab : ''
+                        }
+                        onClick={() => setActiveTab('upcoming')}
+                    >
+                        Sự kiện sắp tới
+                    </button>
+                    <button
+                        className={activeTab === 'past' ? styles.activeTab : ''}
+                        onClick={() => setActiveTab('past')}
+                    >
+                        Sự kiện đã qua
+                    </button>
+                    <button
+                        className={
+                            activeTab === 'pending' ? styles.activeTab : ''
+                        }
+                        onClick={() => setActiveTab('pending')}
+                    >
+                        Chờ duyệt
+                    </button>
+                </div>
             </div>
 
-            {loading ? (
-                <p className={styles.loading}>Đang tải dữ liệu...</p>
-            ) : (
-                <div className={styles.tableWrapper}>
-                    <table className={styles.table}>
-                        <thead>
-                            <tr>
-                                <th>ID</th>
-                                <th>Tên sự kiện</th>
-                                <th>Địa điểm</th>
-                                <th>Trạng thái</th>
-                                <th>Hành động</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {events.map(event => (
-                                <tr key={event.id}>
-                                    <td>{event.id}</td>
-                                    <td>{event.name}</td>
-                                    <td>{event.location}</td>
-                                    <td>
-                                        <span
-                                            className={
-                                                event.active
-                                                    ? styles.statusActive
-                                                    : styles.statusInactive
-                                            }
-                                        >
-                                            {event.active
-                                                ? 'Hoạt động'
-                                                : 'Tạm dừng'}
-                                        </span>
-                                    </td>
-                                    <td className={styles.actions}>
-                                        <Link
-                                            to={`/organizer/events/edit/${event.id}`}
-                                            className={styles.editBtn}
-                                        >
-                                            Sửa
-                                        </Link>
-                                        <button
-                                            onClick={() =>
-                                                handleDelete(event.id)
-                                            }
-                                            className={styles.deleteBtn}
-                                        >
-                                            Xóa
-                                        </button>
-                                    </td>
-                                </tr>
-                            ))}
-                            {events.length === 0 && (
-                                <tr>
-                                    <td colSpan='5' className={styles.empty}>
-                                        Bạn chưa có sự kiện nào.
-                                    </td>
-                                </tr>
-                            )}
-                        </tbody>
-                    </table>
+            {/* Content Area */}
+            <div className={styles.content}>
+                <div className={styles.headerTitle}>
+                    <h3>
+                        {activeTab === 'upcoming'
+                            ? 'Sắp diễn ra'
+                            : activeTab === 'past'
+                              ? 'Đã kết thúc'
+                              : 'Đang chờ hệ thống duyệt'}{' '}
+                        ({filteredEvents.length})
+                    </h3>
+                    {/* Nút tạo sự kiện đã được gỡ bỏ khỏi đây */}
                 </div>
-            )}
+
+                {loading ? (
+                    <div className={styles.loading}>Đang tải...</div>
+                ) : (
+                    <div className={styles.eventGrid}>
+                        {filteredEvents.map(event => (
+                            <div key={event.id} className={styles.eventCard}>
+                                <div className={styles.eventInfo}>
+                                    <h4>{event.name}</h4>
+                                    <p>
+                                        <CalendarOutlined />{' '}
+                                        {dayjs(event.startDate).format(
+                                            'DD/MM/YYYY HH:mm'
+                                        )}
+                                    </p>
+                                    <p className={styles.location}>
+                                        {event.location}
+                                    </p>
+                                </div>
+                                <div className={styles.eventActions}>
+                                    <button
+                                        onClick={() =>
+                                            navigate(
+                                                `/organizer/edit/${event.id}`
+                                            )
+                                        }
+                                    >
+                                        Sửa
+                                    </button>
+                                    <button
+                                        className={styles.delBtn}
+                                        onClick={() => handleDelete(event.id)}
+                                    >
+                                        Xóa
+                                    </button>
+                                </div>
+                            </div>
+                        ))}
+                        {filteredEvents.length === 0 && (
+                            <div className={styles.empty}>
+                                Không tìm thấy sự kiện nào trong mục này.
+                            </div>
+                        )}
+                    </div>
+                )}
+            </div>
         </div>
     );
 };
