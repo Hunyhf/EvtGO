@@ -8,6 +8,6 @@ export const ROLE_ID = {
 export const ROLE_REDIRECT_MAP = {
     [ROLE_ID.ADMIN]: '/admin',
     [ROLE_ID.CUSTOMER]: '/',
-    [ROLE_ID.ORGANIZER]: '/organizer',
+    [ROLE_ID.ORGANIZER]: '/organizer/events',
     [ROLE_ID.STAFF]: '/staff'
 };
