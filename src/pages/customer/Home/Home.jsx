@@ -169,6 +169,7 @@ function Home() {
                                     <Link
                                         to={`/category?name=${genreSlug}`}
                                         className={cx('viewMore')}
+                                        onClick={() => window.scrollTo(0, 0)}
                                     >
                                         Xem thêm
                                     </Link>
