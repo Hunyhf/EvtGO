@@ -11,8 +11,26 @@ import { toast } from 'react-toastify';
 
 const cx = classNames.bind(styles);
 
-const Step1Info = ({ formData, setFormData, errors }) => {
+// Thêm prop validateTrigger từ CreateEvent truyền xuống
+const Step1Info = ({ formData, setFormData, errors, validateTrigger }) => {
     const [categories, setCategories] = useState([]);
+
+    // === TRẠNG THÁI QUẢN LÝ LỖI HIỂN THỊ TẠI CHỖ ===
+    const [localErrors, setLocalErrors] = useState({});
+
+    // Xử lý việc hiển thị lỗi và tự động ẩn sau 2 giây
+    useEffect(() => {
+        // Mỗi khi có errors mới hoặc validateTrigger thay đổi (người dùng bấm nút Tiếp tục)
+        setLocalErrors(errors);
+
+        if (Object.keys(errors).length > 0) {
+            const timer = setTimeout(() => {
+                setLocalErrors({});
+            }, 2000); // Biến mất sau 2 giây
+
+            return () => clearTimeout(timer);
+        }
+    }, [errors, validateTrigger]);
 
     useEffect(() => {
         const fetchCategories = async () => {
@@ -77,7 +95,8 @@ const Step1Info = ({ formData, setFormData, errors }) => {
             <div className={cx('section')}>
                 <div
                     className={cx('coverUpload', {
-                        errorBorder: !!errors.poster
+                        // Sử dụng localErrors để điều khiển border đỏ
+                        errorBorder: !!localErrors.poster
                     })}
                 >
                     {formData.poster ? (
@@ -98,8 +117,10 @@ const Step1Info = ({ formData, setFormData, errors }) => {
                         onChange={e => handleFileChange(e, 'poster')}
                     />
                 </div>
-                {errors.poster && (
-                    <span className={cx('errorText')}>{errors.poster}</span>
+                {localErrors.poster && (
+                    <span className={cx('errorText')}>
+                        {localErrors.poster}
+                    </span>
                 )}
             </div>
 
@@ -110,7 +131,7 @@ const Step1Info = ({ formData, setFormData, errors }) => {
                     <div className={cx('logoUpload')}>
                         <div
                             className={cx('logoCircle', {
-                                errorBorder: !!errors.organizerLogo
+                                errorBorder: !!localErrors.organizerLogo
                             })}
                         >
                             {formData.organizerLogo ? (
@@ -128,10 +149,9 @@ const Step1Info = ({ formData, setFormData, errors }) => {
                         </div>
                         <span className={cx('logoLabel')}>Logo (275x275)</span>
                     </div>
-                    {/* Hiển thị lỗi Logo */}
-                    {errors.organizerLogo && (
+                    {localErrors.organizerLogo && (
                         <span className={cx('errorText', 'small')}>
-                            {errors.organizerLogo}
+                            {localErrors.organizerLogo}
                         </span>
                     )}
 
@@ -141,7 +161,8 @@ const Step1Info = ({ formData, setFormData, errors }) => {
                             name='organizerName'
                             value={formData.organizerName || ''}
                             onChange={handleInputChange}
-                            error={errors.organizerName} // Truyền lỗi vào FormGroup
+                            error={errors.organizerName} // Truyền errors gốc
+                            trigger={validateTrigger} // Truyền trigger để FormGroup tự xử lý timer
                             maxLength={80}
                             placeholder='Nhập tên ban tổ chức'
                             className={cx('inputCustom')}
@@ -160,6 +181,7 @@ const Step1Info = ({ formData, setFormData, errors }) => {
                         value={formData.name}
                         onChange={handleInputChange}
                         error={errors.name}
+                        trigger={validateTrigger}
                         maxLength={100}
                         className={cx('inputCustom')}
                     />
@@ -169,6 +191,7 @@ const Step1Info = ({ formData, setFormData, errors }) => {
                         value={formData.locationName}
                         onChange={handleInputChange}
                         error={errors.locationName}
+                        trigger={validateTrigger}
                         maxLength={80}
                         className={cx('inputCustom')}
                     />
@@ -180,7 +203,7 @@ const Step1Info = ({ formData, setFormData, errors }) => {
                         <select
                             name='province'
                             className={cx('select', {
-                                errorInput: !!errors.province
+                                errorInput: !!localErrors.province
                             })}
                             value={formData.province}
                             onChange={handleInputChange}
@@ -189,9 +212,9 @@ const Step1Info = ({ formData, setFormData, errors }) => {
                             <option value='Hồ Chí Minh'>Hồ Chí Minh</option>
                             <option value='Hà Nội'>Hà Nội</option>
                         </select>
-                        {errors.province && (
+                        {localErrors.province && (
                             <span className={cx('errorText')}>
-                                {errors.province}
+                                {localErrors.province}
                             </span>
                         )}
                     </div>
@@ -201,16 +224,16 @@ const Step1Info = ({ formData, setFormData, errors }) => {
                         <select
                             name='district'
                             className={cx('select', {
-                                errorInput: !!errors.district
+                                errorInput: !!localErrors.district
                             })}
                             value={formData.district}
                             onChange={handleInputChange}
                         >
                             <option value=''>Chọn Quận/Huyện</option>
                         </select>
-                        {errors.district && (
+                        {localErrors.district && (
                             <span className={cx('errorText')}>
-                                {errors.district}
+                                {localErrors.district}
                             </span>
                         )}
                     </div>
@@ -220,16 +243,16 @@ const Step1Info = ({ formData, setFormData, errors }) => {
                         <select
                             name='ward'
                             className={cx('select', {
-                                errorInput: !!errors.ward
+                                errorInput: !!localErrors.ward
                             })}
                             value={formData.ward}
                             onChange={handleInputChange}
                         >
                             <option value=''>Chọn Phường/Xã</option>
                         </select>
-                        {errors.ward && (
+                        {localErrors.ward && (
                             <span className={cx('errorText')}>
-                                {errors.ward}
+                                {localErrors.ward}
                             </span>
                         )}
                     </div>
@@ -239,7 +262,7 @@ const Step1Info = ({ formData, setFormData, errors }) => {
                         <select
                             name='genreId'
                             className={cx('select', {
-                                errorInput: !!errors.genreId
+                                errorInput: !!localErrors.genreId
                             })}
                             value={formData.genreId}
                             onChange={handleInputChange}
@@ -251,9 +274,9 @@ const Step1Info = ({ formData, setFormData, errors }) => {
                                 </option>
                             ))}
                         </select>
-                        {errors.genreId && (
+                        {localErrors.genreId && (
                             <span className={cx('errorText')}>
-                                {errors.genreId}
+                                {localErrors.genreId}
                             </span>
                         )}
                     </div>
@@ -265,6 +288,7 @@ const Step1Info = ({ formData, setFormData, errors }) => {
                             value={formData.addressDetail}
                             onChange={handleInputChange}
                             error={errors.addressDetail}
+                            trigger={validateTrigger}
                             placeholder='VD: 123 đường ABC'
                             className={cx('inputCustom')}
                         />
@@ -279,7 +303,7 @@ const Step1Info = ({ formData, setFormData, errors }) => {
                 </h3>
                 <div
                     className={cx('editorContainer', {
-                        errorBorder: !!errors.description
+                        errorBorder: !!localErrors.description
                     })}
                 >
                     <ReactQuill
@@ -295,9 +319,9 @@ const Step1Info = ({ formData, setFormData, errors }) => {
                         placeholder='Viết mô tả sự kiện...'
                     />
                 </div>
-                {errors.description && (
+                {localErrors.description && (
                     <span className={cx('errorText')}>
-                        {errors.description}
+                        {localErrors.description}
                     </span>
                 )}
             </div>

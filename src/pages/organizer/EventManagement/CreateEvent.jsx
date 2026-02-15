@@ -17,6 +17,9 @@ const CreateEvent = () => {
     const navigate = useNavigate();
     const [currentStep, setCurrentStep] = useState(1);
 
+    // === THÊM BIẾN TRIGGER ĐỂ KÍCH HOẠT LẠI VALIDATE ===
+    const [validateTrigger, setValidateTrigger] = useState(0);
+
     const [formData, setFormData] = useState({
         name: '',
         eventType: 'offline',
@@ -51,7 +54,6 @@ const CreateEvent = () => {
             newErrors.addressDetail = 'Vui lòng nhập địa chỉ chi tiết';
         if (!formData.genreId) newErrors.genreId = 'Vui lòng chọn thể loại';
 
-        // Kiểm tra mô tả (tránh trường hợp chỉ có thẻ HTML trống)
         const bioText = formData.description.replace(/<[^>]*>?/gm, '').trim();
         if (!bioText) newErrors.description = 'Vui lòng nhập mô tả sự kiện';
 
@@ -60,6 +62,10 @@ const CreateEvent = () => {
     };
 
     const handleNext = () => {
+        // === MỖI LẦN BẤM NÚT THÌ TĂNG TRIGGER LÊN 1 ===
+        // Việc này giúp component con nhận biết được cú click mới để hiện lại lỗi dù nội dung lỗi không đổi
+        setValidateTrigger(prev => prev + 1);
+
         if (currentStep === 1 && !validateStep1()) return;
 
         if (currentStep < 4) {
@@ -71,7 +77,6 @@ const CreateEvent = () => {
 
     return (
         <div className={cx('layout')}>
-            {/* TOP HEADER */}
             <div className={cx('header')}>
                 <div className={cx('stepper')}>
                     {STEPS.map(step => (
@@ -94,20 +99,20 @@ const CreateEvent = () => {
                 </div>
 
                 <div className={cx('headerActions')}>
-                    {/* ĐÃ LOẠI BỎ NÚT LƯU NHÁP TẠI ĐÂY */}
                     <button className={cx('btnPrimary')} onClick={handleNext}>
                         {currentStep === 4 ? 'Hoàn tất' : 'Tiếp tục'}
                     </button>
                 </div>
             </div>
 
-            {/* BODY CONTENT */}
             <div className={cx('content')}>
                 {currentStep === 1 && (
                     <Step1Info
                         formData={formData}
                         setFormData={setFormData}
                         errors={errors}
+                        // === TRUYỀN TRIGGER XUỐNG STEP1INFO ===
+                        validateTrigger={validateTrigger}
                     />
                 )}
                 {currentStep === 2 && (
@@ -118,7 +123,6 @@ const CreateEvent = () => {
                         </button>
                     </div>
                 )}
-                {/* Các bước 3, 4 tương tự... */}
             </div>
         </div>
     );
