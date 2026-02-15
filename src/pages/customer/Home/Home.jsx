@@ -1,3 +1,4 @@
+// src/pages/customer/Home/Home.jsx
 import { useRef, useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import classNames from 'classnames/bind';
@@ -37,28 +38,30 @@ function Home() {
     useEffect(() => {
         const loadHomeData = async () => {
             try {
+                // 1. Lấy danh sách thể loại thật từ API
                 const categoryRes = await categoryApi.getAll();
-                const genres = categoryRes.data || [
-                    { id: 'music', name: 'Âm nhạc' },
-                    { id: 'theater', name: 'Sân khấu' }
-                ];
+                const genres = categoryRes.result || categoryRes.data || [];
 
-                const mockEvents = Array.from({ length: 8 }, (_, i) => ({
-                    id: i + 1,
-                    title: `Sự kiện tiêu biểu ${i + 1}`,
-                    date: `2${i}/10/2024`,
-                    price: i % 2 === 0 ? 500000 : 0,
-                    url: `https://picsum.photos/400/250?random=${i + 10}`
-                }));
+                // 2. Tạo logic gắn data mock cho từng thể loại
+                const dataWithEvents = genres.map((genre, index) => {
+                    // Tạo mảng 4 sự kiện giả cho mỗi thể loại để hiển thị
+                    const mockEvents = Array.from({ length: 4 }, (_, i) => ({
+                        id: `${genre.id}-${i}`,
+                        title: `Sự kiện ${genre.name} tiêu biểu ${i + 1}`,
+                        date: `2${i}/10/2024`,
+                        price: i % 2 === 0 ? 500000 : 0,
+                        url: `https://picsum.photos/400/250?random=${index * 10 + i}`
+                    }));
 
-                const dataWithEvents = genres.map(genre => ({
-                    ...genre,
-                    events: mockEvents
-                }));
+                    return {
+                        ...genre,
+                        events: mockEvents
+                    };
+                });
 
                 setSections(dataWithEvents);
             } catch (error) {
-                console.error('Lỗi khi tải dữ liệu:', error);
+                console.error('Lỗi khi tải dữ liệu trang chủ:', error);
             }
         };
         loadHomeData();
@@ -80,8 +83,6 @@ function Home() {
             <div className={cx('wrapper')}>
                 {/* Banner Section */}
                 <section className={cx('bannerContainer')}>
-                    {' '}
-                    {/* banner-container -> bannerContainer */}
                     <Swiper {...swiperConfig}>
                         {BANNER_DATA.map(banner => (
                             <SwiperSlide key={banner.id}>
@@ -129,7 +130,7 @@ function Home() {
                     </div>
                 </section>
 
-                {/* Genre Sections */}
+                {/* Hiển thị danh sách các Genre động với "Xem thêm" */}
                 {sections.map(genre => (
                     <section key={genre.id} className={cx('genreSection')}>
                         <header className={cx('sectionHeaderGenre')}>
