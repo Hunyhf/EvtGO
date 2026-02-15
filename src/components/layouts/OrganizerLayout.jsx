@@ -13,6 +13,7 @@ function OrganizerLayout() {
     const { pathname } = useLocation();
     const navigate = useNavigate();
 
+    // Menu riêng cho Organizer với các đường dẫn đã cập nhật
     const organizerMenu = [
         {
             path: '/organizer/events',
@@ -26,6 +27,7 @@ function OrganizerLayout() {
         }
     ];
 
+    // Cập nhật logic lấy tiêu đề dựa trên đường dẫn hiện tại
     const getTitle = () => {
         if (pathname === '/organizer/events') return 'Quản lý sự kiện';
         if (pathname === '/organizer/terms') return 'Điều khoản ban tổ chức';

@@ -1,14 +1,31 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import classNames from 'classnames/bind';
+import ReactQuill from 'react-quill';
+import 'react-quill/dist/quill.snow.css'; // Theme của trình soạn thảo
 import styles from './Step1Info.module.scss';
 import FormGroup from '@components/Common/FormGroup';
+import categoryApi from '@apis/categoryApi';
 import { CameraOutlined, PictureOutlined } from '@ant-design/icons';
 
 const cx = classNames.bind(styles);
 
 const Step1Info = ({ formData, setFormData, errors }) => {
-    // Mock data cho dropdown địa chỉ
-    const PROVINCES = ['Hồ Chí Minh', 'Hà Nội', 'Đà Nẵng', 'Cần Thơ'];
+    const [categories, setCategories] = useState([]);
+
+    // 1. Lấy danh sách thể loại từ API
+    useEffect(() => {
+        const fetchCategories = async () => {
+            try {
+                const res = await categoryApi.getAll();
+                // Giả sử API trả về mảng ở res.result hoặc res.data
+                if (res && res.result) setCategories(res.result);
+                else if (res && res.data) setCategories(res.data);
+            } catch (error) {
+                console.error('Lỗi khi lấy danh mục:', error);
+            }
+        };
+        fetchCategories();
+    }, []);
 
     const handleInputChange = e => {
         const { name, value } = e.target;
@@ -20,14 +37,27 @@ const Step1Info = ({ formData, setFormData, errors }) => {
         if (file) {
             setFormData(prev => ({
                 ...prev,
-                [field]: URL.createObjectURL(file) // Lưu tạm URL để preview
+                [field]: URL.createObjectURL(file)
             }));
         }
     };
 
+    // Cấu hình thanh công cụ Rich Text (Giống Word)
+    const quillModules = {
+        toolbar: [
+            [{ header: [1, 2, 3, false] }],
+            ['bold', 'italic', 'underline', 'strike'],
+            [{ color: [] }, { background: [] }],
+            [{ list: 'ordered' }, { list: 'bullet' }],
+            [{ align: [] }],
+            ['link', 'image'],
+            ['clean']
+        ]
+    };
+
     return (
         <div className={cx('stepContent')}>
-            {/* 1. UP HÌNH ẢNH NỀN (IS COVER 1280x720) */}
+            {/* 1. UP HÌNH ẢNH NỀN */}
             <div className={cx('section')}>
                 <div
                     className={cx('coverUpload', {
@@ -92,150 +122,139 @@ const Step1Info = ({ formData, setFormData, errors }) => {
                             className={cx('inputCustom')}
                         />
                         <span className={cx('charCount')}>
-                            {formData.organizerName?.length || 0}/80 ký tự
+                            {formData.organizerName?.length || 0}/80
                         </span>
                     </div>
                 </div>
             </div>
 
-            {/* 3. THÔNG TIN SỰ KIỆN */}
+            {/* 3. THÔNG TIN SỰ KIỆN & ĐỊA CHỈ */}
             <div className={cx('section')}>
-                <h3 className={cx('sectionTitle')}>Thông tin sự kiện</h3>
+                <h3 className={cx('sectionTitle')}>Địa điểm & Thể loại</h3>
                 <div className={cx('formGrid')}>
-                    <div className={cx('inputWrapper')}>
-                        <FormGroup
-                            label='Tên sự kiện'
-                            name='name'
-                            value={formData.name}
-                            onChange={handleInputChange}
-                            maxLength={100}
-                            placeholder='Nhập tên sự kiện'
-                            className={cx('inputCustom', {
-                                errorInput: errors.name
-                            })}
-                        />
-                        <div className={cx('inputFooter')}>
-                            {errors.name && (
-                                <span className={cx('errorText')}>
-                                    {errors.name}
-                                </span>
-                            )}
-                            <span className={cx('charCount')}>
-                                {formData.name?.length || 0}/100
-                            </span>
-                        </div>
-                    </div>
-
-                    <div className={cx('inputWrapper')}>
-                        <FormGroup
-                            label='Tên địa điểm'
-                            name='locationName'
-                            value={formData.locationName}
-                            onChange={handleInputChange}
-                            maxLength={80}
-                            placeholder='VD: Nhà thi đấu Phú Thọ'
-                            className={cx('inputCustom', {
-                                errorInput: errors.locationName
-                            })}
-                        />
-                        <div className={cx('inputFooter')}>
-                            {errors.locationName && (
-                                <span className={cx('errorText')}>
-                                    {errors.locationName}
-                                </span>
-                            )}
-                            <span className={cx('charCount')}>
-                                {formData.locationName?.length || 0}/80
-                            </span>
-                        </div>
-                    </div>
+                    <FormGroup
+                        label='Tên sự kiện'
+                        name='name'
+                        value={formData.name}
+                        onChange={handleInputChange}
+                        maxLength={100}
+                        className={cx('inputCustom')}
+                    />
+                    <FormGroup
+                        label='Tên địa điểm'
+                        name='locationName'
+                        value={formData.locationName}
+                        onChange={handleInputChange}
+                        maxLength={80}
+                        className={cx('inputCustom')}
+                    />
                 </div>
-            </div>
 
-            {/* 4. ĐỊA CHÍ CHI TIẾT */}
-            <div className={cx('section')}>
-                <h3 className={cx('sectionTitle')}>Địa chỉ chi tiết</h3>
                 <div className={cx('addressGrid')}>
                     <div className={cx('inputWrapper')}>
                         <label className={cx('label')}>Tỉnh/Thành phố</label>
                         <select
                             name='province'
-                            className={cx('select', {
-                                errorInput: errors.province
-                            })}
+                            className={cx('select')}
                             value={formData.province}
                             onChange={handleInputChange}
                         >
                             <option value=''>Chọn Tỉnh/Thành</option>
-                            {PROVINCES.map(p => (
-                                <option key={p} value={p}>
-                                    {p}
-                                </option>
-                            ))}
+                            <option value='Hồ Chí Minh'>Hồ Chí Minh</option>
+                            <option value='Hà Nội'>Hà Nội</option>
                         </select>
-                        {errors.province && (
-                            <span className={cx('errorText')}>
-                                Vui lòng chọn tỉnh thành
-                            </span>
-                        )}
                     </div>
 
                     <div className={cx('inputWrapper')}>
                         <label className={cx('label')}>Quận/Huyện</label>
                         <select
                             name='district'
-                            className={cx('select', {
-                                errorInput: errors.district
-                            })}
+                            className={cx('select')}
                             value={formData.district}
                             onChange={handleInputChange}
                         >
                             <option value=''>Chọn Quận/Huyện</option>
                         </select>
-                        {errors.district && (
-                            <span className={cx('errorText')}>
-                                Vui lòng chọn quận huyện
-                            </span>
-                        )}
                     </div>
 
                     <div className={cx('inputWrapper')}>
                         <label className={cx('label')}>Phường/Xã</label>
                         <select
                             name='ward'
-                            className={cx('select', {
-                                errorInput: errors.ward
-                            })}
+                            className={cx('select')}
                             value={formData.ward}
                             onChange={handleInputChange}
                         >
                             <option value=''>Chọn Phường/Xã</option>
                         </select>
-                        {errors.ward && (
+                    </div>
+
+                    {/* THỂ LOẠI SỰ KIỆN (DƯỚI PHƯỜNG XÃ) */}
+                    <div className={cx('inputWrapper')}>
+                        <label className={cx('label')}>Thể loại sự kiện</label>
+                        <select
+                            name='genreId'
+                            className={cx('select', {
+                                errorInput: errors.genreId
+                            })}
+                            value={formData.genreId}
+                            onChange={handleInputChange}
+                        >
+                            <option value=''>Chọn thể loại</option>
+                            {categories.map(cat => (
+                                <option key={cat.id} value={cat.id}>
+                                    {cat.name}
+                                </option>
+                            ))}
+                        </select>
+                        {errors.genreId && (
                             <span className={cx('errorText')}>
-                                Vui lòng chọn phường xã
+                                Vui lòng chọn thể loại
                             </span>
                         )}
                     </div>
 
-                    <div className={cx('inputWrapper')}>
+                    <div className={cx('inputWrapper', 'fullWidth')}>
                         <FormGroup
                             label='Số nhà, đường'
                             name='addressDetail'
                             value={formData.addressDetail}
                             onChange={handleInputChange}
                             placeholder='VD: 123 đường ABC'
-                            className={cx('inputCustom', {
-                                errorInput: errors.addressDetail
-                            })}
+                            className={cx('inputCustom')}
                         />
-                        {errors.addressDetail && (
-                            <span className={cx('errorText')}>
-                                Vui lòng nhập địa chỉ
-                            </span>
-                        )}
                     </div>
                 </div>
+            </div>
+
+            {/* 4. MÔ TẢ CHI TIẾT (BẢNG SOẠN THẢO) */}
+            <div className={cx('section')}>
+                <h3 className={cx('sectionTitle')}>
+                    Thông tin chi tiết sự kiện
+                </h3>
+                <div
+                    className={cx('editorContainer', {
+                        errorBorder: errors.description
+                    })}
+                >
+                    <ReactQuill
+                        theme='snow'
+                        modules={quillModules}
+                        value={formData.description || ''}
+                        onChange={content =>
+                            setFormData(prev => ({
+                                ...prev,
+                                description: content
+                            }))
+                        }
+                        placeholder='Viết mô tả sự kiện (hỗ trợ in đậm, màu sắc, up ảnh...)'
+                    />
+                </div>
+                {errors.description && (
+                    <span className={cx('errorText')}>
+                        Vui lòng nhập thông tin sự kiện
+                    </span>
+                )}
             </div>
         </div>
     );

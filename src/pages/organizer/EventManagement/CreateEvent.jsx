@@ -27,7 +27,9 @@ const CreateEvent = () => {
         addressDetail: '',
         genreId: '',
         description: '',
-        poster: null
+        poster: null,
+        organizerName: '',
+        organizerLogo: null
     });
 
     const [errors, setErrors] = useState({});
@@ -36,6 +38,7 @@ const CreateEvent = () => {
         let newErrors = {};
         if (!formData.name.trim()) newErrors.name = 'Vui lòng nhập tên sự kiện';
         if (!formData.genreId) newErrors.genreId = 'Vui lòng chọn thể loại';
+        if (!formData.poster) newErrors.poster = true;
 
         setErrors(newErrors);
         return Object.keys(newErrors).length === 0;
@@ -49,10 +52,6 @@ const CreateEvent = () => {
         } else {
             alert('Tiến hành gọi API tạo sự kiện!');
         }
-    };
-
-    const handleSaveDraft = () => {
-        alert('Đã lưu nháp!');
     };
 
     return (
@@ -80,12 +79,7 @@ const CreateEvent = () => {
                 </div>
 
                 <div className={cx('headerActions')}>
-                    <button
-                        className={cx('btnOutline')}
-                        onClick={handleSaveDraft}
-                    >
-                        Lưu nháp
-                    </button>
+                    {/* ĐÃ LOẠI BỎ NÚT LƯU NHÁP TẠI ĐÂY */}
                     <button className={cx('btnPrimary')} onClick={handleNext}>
                         {currentStep === 4 ? 'Hoàn tất' : 'Tiếp tục'}
                     </button>
@@ -103,22 +97,13 @@ const CreateEvent = () => {
                 )}
                 {currentStep === 2 && (
                     <div className={cx('stepPlaceholder')}>
-                        <h2>Giao diện Bước 2 đang xây dựng...</h2>
+                        <h2>Thời gian & Loại vé đang phát triển...</h2>
                         <button onClick={() => setCurrentStep(1)}>
-                            Quay lại bước 1
+                            Quay lại
                         </button>
                     </div>
                 )}
-                {currentStep === 3 && (
-                    <div className={cx('stepPlaceholder')}>
-                        <h2>Giao diện Bước 3...</h2>
-                    </div>
-                )}
-                {currentStep === 4 && (
-                    <div className={cx('stepPlaceholder')}>
-                        <h2>Giao diện Bước 4...</h2>
-                    </div>
-                )}
+                {/* Các bước 3, 4 tương tự... */}
             </div>
         </div>
     );
