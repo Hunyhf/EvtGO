@@ -242,7 +242,6 @@ function AuthModal({ isOpen, onClose }) {
                         {isLoginMode && (
                             <div className={cx('organizerLink')}>
                                 {' '}
-                                {/* Sửa footer__organizer -> organizerLink */}
                                 Bạn muốn tổ chức sự kiện?{' '}
                                 <strong
                                     onClick={() => {

@@ -1,3 +1,4 @@
+// src/contexts/AuthContext.jsx
 import { createContext, useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { callFetchAccount } from '@apis/authApi.js';
@@ -5,6 +6,11 @@ import { ROLE_REDIRECT_MAP, ROLE_ID } from '@constants/roles.js';
 import Cookies from 'js-cookie';
 
 export const AuthContext = createContext({});
+
+const extractUserData = data => {
+    if (!data) return null;
+    return data.result || data.data || data.user || data;
+};
 
 const getRoleId = userData => {
     if (!userData) return null;
@@ -38,31 +44,41 @@ export const AuthProvider = ({ children }) => {
 
     const saveExtraInfoToCookies = userData => {
         const expires = 1;
-        if (userData.age) Cookies.set('u_age', userData.age, { expires });
-        if (userData.address)
+        // SỬA LỖI: Kiểm tra khác undefined để số 0 vẫn được lưu vào cookie
+        if (userData?.age !== undefined && userData?.age !== null) {
+            Cookies.set('u_age', userData.age, { expires });
+        }
+        if (userData?.address) {
             Cookies.set('u_address', userData.address, { expires });
-        if (userData.gender)
+        }
+        if (userData?.gender) {
             Cookies.set('u_gender', userData.gender, { expires });
+        }
     };
 
     const loginContext = async (userData, accessToken) => {
+        const actualUser = extractUserData(userData); // Bóc tách dữ liệu sạch
+
         if (accessToken) {
             Cookies.set('access_token', accessToken, { expires: 1, path: '/' });
         }
-        const roleId = getRoleId(userData);
+        const roleId = getRoleId(actualUser);
         if (roleId) {
             Cookies.set('backup_role_id', roleId, { expires: 1, path: '/' });
         }
-        saveExtraInfoToCookies(userData);
-        setUser({ ...userData, role_id: roleId });
+
+        saveExtraInfoToCookies(actualUser);
+        setUser({ ...actualUser, role_id: roleId });
         setIsAuthenticated(true);
         redirectByRole(roleId);
     };
 
     const updateUserContext = updatedData => {
+        const actualUser = extractUserData(updatedData); // SỬA LỖI: Tránh object lồng nhau
+
         setUser(prev => {
-            const newRoleId = getRoleId(updatedData) || prev.role_id;
-            const newUser = { ...prev, ...updatedData, role_id: newRoleId };
+            const newRoleId = getRoleId(actualUser) || prev.role_id;
+            const newUser = { ...prev, ...actualUser, role_id: newRoleId };
             saveExtraInfoToCookies(newUser);
             return newUser;
         });
@@ -77,21 +93,24 @@ export const AuthProvider = ({ children }) => {
 
         try {
             const res = await callFetchAccount();
-            if (res && res.user) {
-                const serverUser = res.user;
+            const serverUser = extractUserData(res); // Đồng bộ cách lấy dữ liệu sạch
+
+            if (serverUser) {
                 const roleId =
                     getRoleId(serverUser) || Cookies.get('backup_role_id');
 
                 setUser({
                     ...serverUser,
                     role_id: roleId,
-                    age: serverUser.age || Cookies.get('u_age') || '',
+                    // SỬA LỖI: Dùng ?? (Nullish Coalescing) để ưu tiên giá trị 0 thay vì chuỗi rỗng
+                    age: serverUser.age ?? Cookies.get('u_age') ?? '',
                     address:
                         serverUser.address || Cookies.get('u_address') || '',
                     gender:
                         serverUser.gender || Cookies.get('u_gender') || 'MALE'
                 });
                 setIsAuthenticated(true);
+
                 if (
                     window.location.pathname === '/' &&
                     roleId !== ROLE_ID.CUSTOMER
@@ -99,7 +118,6 @@ export const AuthProvider = ({ children }) => {
                     const targetPath = ROLE_REDIRECT_MAP[roleId];
                     if (targetPath && targetPath !== '/') {
                         navigate(targetPath, { replace: true });
-
                         return;
                     }
                 }
@@ -116,7 +134,15 @@ export const AuthProvider = ({ children }) => {
 
     const logoutContext = () => {
         setIsAuthenticated(false);
-        setUser({ email: '', name: '', role_id: null });
+        setUser({
+            id: '',
+            email: '',
+            name: '',
+            age: '',
+            address: '',
+            gender: '',
+            role_id: null
+        }); // Xóa sạch dữ liệu
         Cookies.remove('access_token', { path: '/' });
         Cookies.remove('backup_role_id', { path: '/' });
         Cookies.remove('u_age');
