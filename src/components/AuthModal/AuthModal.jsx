@@ -24,6 +24,19 @@ function AuthModal({ isOpen, onClose }) {
     const [confirmPassword, setConfirmPassword] = useState('');
     const [errors, setErrors] = useState({});
 
+    // Tự động xóa sạch dữ liệu mỗi khi đóng Modal
+    useEffect(() => {
+        if (!isOpen) {
+            setEmail('');
+            setPassword('');
+            setConfirmPassword('');
+            setErrors({});
+            setShowPassword(false);
+            setIsLoginMode(true);
+            setIsOrganizerMode(false);
+        }
+    }, [isOpen]);
+
     useEffect(() => {
         setErrors({});
         setConfirmPassword('');
@@ -121,7 +134,6 @@ function AuthModal({ isOpen, onClose }) {
     return (
         <div className={cx('wrapper')}>
             <div className={cx('container')} onClick={e => e.stopPropagation()}>
-                {/* Sửa close-btn -> closeBtn */}
                 <button className={cx('closeBtn')} onClick={onClose}>
                     <CloseBtnIcon />
                 </button>
@@ -140,13 +152,12 @@ function AuthModal({ isOpen, onClose }) {
                         onSubmit={handleSubmit}
                         noValidate
                     >
-                        {/* Sửa input-group -> inputGroup */}
                         <div className={cx('inputGroup')}>
                             <input
                                 type='email'
                                 placeholder='Email'
                                 className={cx('input', {
-                                    inputError: errors.email // Sửa input-error -> inputError
+                                    inputError: errors.email
                                 })}
                                 value={email}
                                 onChange={e => setEmail(e.target.value)}
@@ -159,7 +170,6 @@ function AuthModal({ isOpen, onClose }) {
                         </div>
 
                         <div className={cx('inputGroup')}>
-                            {/* Sửa password-wrapper -> passwordWrapper */}
                             <div className={cx('passwordWrapper')}>
                                 <input
                                     type={showPassword ? 'text' : 'password'}
@@ -171,7 +181,7 @@ function AuthModal({ isOpen, onClose }) {
                                     onChange={e => setPassword(e.target.value)}
                                 />
                                 <span
-                                    className={cx('toggleIcon')} // Sửa toggle-icon -> toggleIcon
+                                    className={cx('toggleIcon')}
                                     onClick={() =>
                                         setShowPassword(!showPassword)
                                     }
