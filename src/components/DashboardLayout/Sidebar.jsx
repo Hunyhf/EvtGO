@@ -13,7 +13,7 @@ const Sidebar = ({ items, collapsed, onLogoClick }) => {
         <aside className={cx('sidebar', { collapsed })}>
             <div
                 className={cx('logoArea')}
-                onClick={onLogoClick || (() => navigate('/organizer'))}
+                onClick={onLogoClick || (() => navigate('/organizer/events'))}
             >
                 <img
                     src='https://ticketbox.vn/_next/static/images/logo-for-tet.png'

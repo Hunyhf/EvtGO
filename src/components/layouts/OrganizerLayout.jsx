@@ -1,11 +1,7 @@
 import React, { useState } from 'react';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import classNames from 'classnames/bind';
-import {
-    CalendarOutlined,
-    FileProtectOutlined,
-    PlusCircleOutlined
-} from '@ant-design/icons';
+import { CalendarOutlined, FileProtectOutlined } from '@ant-design/icons';
 import Sidebar from '@components/DashboardLayout/Sidebar';
 import Header from '@components/DashboardLayout/Header';
 import styles from '@components/DashboardLayout/DashboardLayout.module.scss';
@@ -17,10 +13,9 @@ function OrganizerLayout() {
     const { pathname } = useLocation();
     const navigate = useNavigate();
 
-    // Menu riêng cho Organizer
     const organizerMenu = [
         {
-            path: '/organizer',
+            path: '/organizer/events',
             label: 'Sự kiện của tôi',
             icon: <CalendarOutlined />
         },
@@ -31,9 +26,8 @@ function OrganizerLayout() {
         }
     ];
 
-    // Map tiêu đề Header
     const getTitle = () => {
-        if (pathname === '/organizer') return 'Quản lý sự kiện';
+        if (pathname === '/organizer/events') return 'Quản lý sự kiện';
         if (pathname === '/organizer/terms') return 'Điều khoản ban tổ chức';
         if (pathname === '/organizer/events/create') return 'Tạo sự kiện mới';
         return 'Nhà tổ chức';
@@ -41,8 +35,6 @@ function OrganizerLayout() {
 
     return (
         <div className={cx('layoutContainer')}>
-            {' '}
-            {/* Đổi styles.layoutContainer -> cx('layoutContainer') */}
             <Sidebar items={organizerMenu} collapsed={collapsed} />
             <div className={cx('mainContent')}>
                 <Header
@@ -51,15 +43,13 @@ function OrganizerLayout() {
                     onToggle={() => setCollapsed(!collapsed)}
                     extraActions={
                         <button
-                            className={cx('btnCreate')} // Chuyển inline style vào class btnCreate
+                            className={cx('btnCreate')}
                             onClick={() => navigate('/organizer/events/create')}
                         >
-                            <PlusCircleOutlined />
-                            <span>Tạo sự kiện</span>
+                            Tạo sự kiện
                         </button>
                     }
                 />
-
                 <main className={cx('scrollArea')}>
                     <Outlet />
                 </main>

@@ -115,7 +115,7 @@ export const routes = createBrowserRouter([
                 ),
                 children: [
                     {
-                        index: true, // Tương đương /organizer
+                        path: 'events', // Tương đương /organizer/events
                         element: <EventManagement />
                     },
                     {
