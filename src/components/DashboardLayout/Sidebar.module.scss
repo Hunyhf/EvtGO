@@ -1,0 +1,111 @@
+@import '../../assets/styles/variables';
+
+.sidebar {
+    width: 260px;
+    background-color: $secondary-color;
+    color: $white-color;
+    transition: width 0.3s cubic-bezier(0.2, 0, 0, 1);
+    display: flex;
+    flex-direction: column;
+    z-index: 101;
+    height: 100vh;
+    box-shadow: 4px 0 10px rgba(0, 0, 0, 0.1);
+
+    &.collapsed {
+        width: 80px;
+
+        .logoText {
+            display: none;
+        }
+
+        .navMenu li {
+            justify-content: center;
+            padding: 14px 0;
+
+            .label {
+                display: none;
+            }
+
+            .icon {
+                margin: 0;
+                font-size: $icon-size-lg;
+            }
+        }
+    }
+}
+
+.logoArea {
+    height: $header-height;
+    display: flex;
+    align-items: center;
+    padding: 0 20px;
+    gap: 12px;
+    cursor: pointer;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    white-space: nowrap;
+    overflow: hidden;
+
+    .logoImg {
+        height: 32px;
+        min-width: 32px;
+        object-fit: contain;
+    }
+
+    .logoText {
+        font-weight: $font-weight-bold;
+        font-size: $font-size-lg;
+        color: $white-color;
+        letter-spacing: 1px;
+    }
+}
+
+.navMenu {
+    flex: 1;
+    padding: 20px 0;
+    list-style: none;
+    margin: 0;
+
+    li {
+        padding: 14px 24px;
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        color: $text-color;
+        white-space: nowrap;
+
+        .icon {
+            font-size: $icon-size-md;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .label {
+            font-size: $font-size-sm;
+            font-weight: $font-weight-regular;
+        }
+
+        &:hover {
+            color: $white-color;
+            background-color: rgba(255, 255, 255, 0.05);
+        }
+
+        &.active {
+            background-color: $primary-color;
+            color: $white-color;
+            font-weight: $font-weight-semi-bold;
+
+            &::before {
+                content: '';
+                position: absolute;
+                left: 0;
+                width: 4px;
+                height: 40px;
+                background-color: $white-color;
+                border-radius: 0 4px 4px 0;
+            }
+        }
+    }
+}
