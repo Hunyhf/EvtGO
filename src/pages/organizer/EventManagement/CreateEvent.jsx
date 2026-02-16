@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useOutletContext } from 'react-router-dom';
 import Step1Info from './Step1Info';
+import Step2Showtimes from './Step2Showtimes';
 import classNames from 'classnames/bind';
 import styles from './CreateEvent.module.scss';
 
@@ -76,7 +77,6 @@ const CreateEvent = () => {
 
     return (
         <div className={cx('content')}>
-            {/* TRANG NÀY CHỈ CHỨA NỘI DUNG FORM, KHÔNG CHỨA UI ĐIỀU HƯỚNG NỮA */}
             {currentStep === 1 && (
                 <Step1Info
                     formData={formData}
@@ -85,13 +85,7 @@ const CreateEvent = () => {
                     validateTrigger={validateTrigger}
                 />
             )}
-            {currentStep === 2 && (
-                <div className={cx('stepPlaceholder')}>
-                    <h2>Thời gian & Loại vé đang phát triển...</h2>
-                    <button onClick={() => setCurrentStep(1)}>Quay lại</button>
-                </div>
-            )}
-            {/* ... Các step 3, 4 tương tự ... */}
+            {currentStep === 2 && <Step2Showtimes />}
         </div>
     );
 };

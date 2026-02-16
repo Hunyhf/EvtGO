@@ -1,5 +1,6 @@
 // src/pages/organizer/EventManagement/Step1Info.jsx
 import React, { useState, useEffect } from 'react';
+import axios from 'axios'; // Sử dụng axios để gọi API bên ngoài
 import classNames from 'classnames/bind';
 import ReactQuill from 'react-quill';
 import 'react-quill/dist/quill.snow.css';
@@ -11,28 +12,36 @@ import { toast } from 'react-toastify';
 
 const cx = classNames.bind(styles);
 
-// Thêm prop validateTrigger từ CreateEvent truyền xuống
 const Step1Info = ({ formData, setFormData, errors, validateTrigger }) => {
     const [categories, setCategories] = useState([]);
 
-    // === TRẠNG THÁI QUẢN LÝ LỖI HIỂN THỊ TẠI CHỖ ===
+    // === STATE LƯU TRỮ DỮ LIỆU ĐỊA LÝ ===
+    const [provinces, setProvinces] = useState([]);
+    const [districts, setDistricts] = useState([]);
+    const [wards, setWards] = useState([]);
     const [localErrors, setLocalErrors] = useState({});
 
-    // Xử lý việc hiển thị lỗi và tự động ẩn sau 2 giây
     useEffect(() => {
-        // Mỗi khi có errors mới hoặc validateTrigger thay đổi (người dùng bấm nút Tiếp tục)
         setLocalErrors(errors);
-
         if (Object.keys(errors).length > 0) {
-            const timer = setTimeout(() => {
-                setLocalErrors({});
-            }, 2000); // Biến mất sau 2 giây
-
+            const timer = setTimeout(() => setLocalErrors({}), 2000);
             return () => clearTimeout(timer);
         }
     }, [errors, validateTrigger]);
 
+    // 1. Lấy danh sách Tỉnh/Thành khi component mount
     useEffect(() => {
+        const fetchLocationData = async () => {
+            try {
+                const res = await axios.get(
+                    'https://provinces.open-api.vn/api/p/'
+                );
+                setProvinces(res.data);
+            } catch (error) {
+                console.error('Lỗi lấy danh sách tỉnh thành:', error);
+            }
+        };
+
         const fetchCategories = async () => {
             try {
                 const res = await categoryApi.getAll();
@@ -42,6 +51,8 @@ const Step1Info = ({ formData, setFormData, errors, validateTrigger }) => {
                 console.error('Lỗi khi lấy danh mục:', error);
             }
         };
+
+        fetchLocationData();
         fetchCategories();
     }, []);
 
@@ -50,20 +61,82 @@ const Step1Info = ({ formData, setFormData, errors, validateTrigger }) => {
         setFormData(prev => ({ ...prev, [name]: value }));
     };
 
+    // === XỬ LÝ THAY ĐỔI ĐỊA LÝ BIẾN ĐỘNG ===
+
+    // Khi chọn Tỉnh -> Lấy Huyện
+    const handleProvinceChange = async e => {
+        const provinceCode = e.target.value;
+        const selectedProvince = provinces.find(p => p.code == provinceCode);
+
+        // Cập nhật tên tỉnh vào formData và reset cấp dưới
+        setFormData(prev => ({
+            ...prev,
+            province: selectedProvince ? selectedProvince.name : '',
+            district: '',
+            ward: ''
+        }));
+
+        if (provinceCode) {
+            try {
+                const res = await axios.get(
+                    `https://provinces.open-api.vn/api/p/${provinceCode}?depth=2`
+                );
+                setDistricts(res.data.districts);
+            } catch (error) {
+                console.error('Lỗi lấy quận huyện:', error);
+            }
+        } else {
+            setDistricts([]);
+        }
+        setWards([]);
+    };
+
+    // Khi chọn Huyện -> Lấy Xã
+    const handleDistrictChange = async e => {
+        const districtCode = e.target.value;
+        const selectedDistrict = districts.find(d => d.code == districtCode);
+
+        setFormData(prev => ({
+            ...prev,
+            district: selectedDistrict ? selectedDistrict.name : '',
+            ward: ''
+        }));
+
+        if (districtCode) {
+            try {
+                const res = await axios.get(
+                    `https://provinces.open-api.vn/api/d/${districtCode}?depth=2`
+                );
+                setWards(res.data.wards);
+            } catch (error) {
+                console.error('Lỗi lấy phường xã:', error);
+            }
+        } else {
+            setWards([]);
+        }
+    };
+
+    // Khi chọn Xã
+    const handleWardChange = e => {
+        const wardCode = e.target.value;
+        const selectedWard = wards.find(w => w.code == wardCode);
+        setFormData(prev => ({
+            ...prev,
+            ward: selectedWard ? selectedWard.name : ''
+        }));
+    };
+
     const handleFileChange = (e, field) => {
         const file = e.target.files[0];
         if (!file) return;
-
         const config = {
             poster: { w: 1280, h: 720, label: 'Ảnh nền' },
             organizerLogo: { w: 275, h: 275, label: 'Logo' }
         };
-
         const target = config[field];
         const img = new Image();
         const objectUrl = URL.createObjectURL(file);
         img.src = objectUrl;
-
         img.onload = () => {
             if (img.width === target.w && img.height === target.h) {
                 setFormData(prev => ({ ...prev, [field]: objectUrl }));
@@ -91,11 +164,10 @@ const Step1Info = ({ formData, setFormData, errors, validateTrigger }) => {
 
     return (
         <div className={cx('stepContent')}>
-            {/* 1. UP HÌNH ẢNH NỀN */}
+            {/* 1. UP HÌNH ẢNH NỀN (Giữ nguyên) */}
             <div className={cx('section')}>
                 <div
                     className={cx('coverUpload', {
-                        // Sử dụng localErrors để điều khiển border đỏ
                         errorBorder: !!localErrors.poster
                     })}
                 >
@@ -124,7 +196,7 @@ const Step1Info = ({ formData, setFormData, errors, validateTrigger }) => {
                 )}
             </div>
 
-            {/* 2. THÔNG TIN BAN TỔ CHỨC */}
+            {/* 2. THÔNG TIN BAN TỔ CHỨC (Giữ nguyên) */}
             <div className={cx('section')}>
                 <h3 className={cx('sectionTitle')}>Thông tin ban tổ chức</h3>
                 <div className={cx('organizerInfo')}>
@@ -161,8 +233,8 @@ const Step1Info = ({ formData, setFormData, errors, validateTrigger }) => {
                             name='organizerName'
                             value={formData.organizerName || ''}
                             onChange={handleInputChange}
-                            error={errors.organizerName} // Truyền errors gốc
-                            trigger={validateTrigger} // Truyền trigger để FormGroup tự xử lý timer
+                            error={errors.organizerName}
+                            trigger={validateTrigger}
                             maxLength={80}
                             placeholder='Nhập tên ban tổ chức'
                             className={cx('inputCustom')}
@@ -171,7 +243,7 @@ const Step1Info = ({ formData, setFormData, errors, validateTrigger }) => {
                 </div>
             </div>
 
-            {/* 3. THÔNG TIN SỰ KIỆN & ĐỊA CHỈ */}
+            {/* 3. THÔNG TIN SỰ KIỆN & ĐỊA CHỈ (ĐÃ CẬP NHẬT SELECT DƯỚI ĐÂY) */}
             <div className={cx('section')}>
                 <h3 className={cx('sectionTitle')}>Địa điểm & Thể loại</h3>
                 <div className={cx('formGrid')}>
@@ -198,6 +270,7 @@ const Step1Info = ({ formData, setFormData, errors, validateTrigger }) => {
                 </div>
 
                 <div className={cx('addressGrid')}>
+                    {/* TỈNH/THÀNH */}
                     <div className={cx('inputWrapper')}>
                         <label className={cx('label')}>Tỉnh/Thành phố</label>
                         <select
@@ -205,12 +278,14 @@ const Step1Info = ({ formData, setFormData, errors, validateTrigger }) => {
                             className={cx('select', {
                                 errorInput: !!localErrors.province
                             })}
-                            value={formData.province}
-                            onChange={handleInputChange}
+                            onChange={handleProvinceChange}
                         >
                             <option value=''>Chọn Tỉnh/Thành</option>
-                            <option value='Hồ Chí Minh'>Hồ Chí Minh</option>
-                            <option value='Hà Nội'>Hà Nội</option>
+                            {provinces.map(p => (
+                                <option key={p.code} value={p.code}>
+                                    {p.name}
+                                </option>
+                            ))}
                         </select>
                         {localErrors.province && (
                             <span className={cx('errorText')}>
@@ -219,6 +294,7 @@ const Step1Info = ({ formData, setFormData, errors, validateTrigger }) => {
                         )}
                     </div>
 
+                    {/* QUẬN/HUYỆN */}
                     <div className={cx('inputWrapper')}>
                         <label className={cx('label')}>Quận/Huyện</label>
                         <select
@@ -226,10 +302,15 @@ const Step1Info = ({ formData, setFormData, errors, validateTrigger }) => {
                             className={cx('select', {
                                 errorInput: !!localErrors.district
                             })}
-                            value={formData.district}
-                            onChange={handleInputChange}
+                            disabled={!districts.length}
+                            onChange={handleDistrictChange}
                         >
                             <option value=''>Chọn Quận/Huyện</option>
+                            {districts.map(d => (
+                                <option key={d.code} value={d.code}>
+                                    {d.name}
+                                </option>
+                            ))}
                         </select>
                         {localErrors.district && (
                             <span className={cx('errorText')}>
@@ -238,6 +319,7 @@ const Step1Info = ({ formData, setFormData, errors, validateTrigger }) => {
                         )}
                     </div>
 
+                    {/* PHƯỜNG/XÃ */}
                     <div className={cx('inputWrapper')}>
                         <label className={cx('label')}>Phường/Xã</label>
                         <select
@@ -245,10 +327,15 @@ const Step1Info = ({ formData, setFormData, errors, validateTrigger }) => {
                             className={cx('select', {
                                 errorInput: !!localErrors.ward
                             })}
-                            value={formData.ward}
-                            onChange={handleInputChange}
+                            disabled={!wards.length}
+                            onChange={handleWardChange}
                         >
                             <option value=''>Chọn Phường/Xã</option>
+                            {wards.map(w => (
+                                <option key={w.code} value={w.code}>
+                                    {w.name}
+                                </option>
+                            ))}
                         </select>
                         {localErrors.ward && (
                             <span className={cx('errorText')}>
@@ -257,6 +344,7 @@ const Step1Info = ({ formData, setFormData, errors, validateTrigger }) => {
                         )}
                     </div>
 
+                    {/* THỂ LOẠI (Giữ nguyên) */}
                     <div className={cx('inputWrapper')}>
                         <label className={cx('label')}>Thể loại sự kiện</label>
                         <select
@@ -297,7 +385,7 @@ const Step1Info = ({ formData, setFormData, errors, validateTrigger }) => {
                 </div>
             </div>
 
-            {/* 4. MÔ TẢ CHI TIẾT */}
+            {/* 4. MÔ TẢ CHI TIẾT (Giữ nguyên) */}
             <div className={cx('section')}>
                 <h3 className={cx('sectionTitle')}>
                     Thông tin chi tiết sự kiện
