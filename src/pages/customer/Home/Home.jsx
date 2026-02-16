@@ -17,8 +17,6 @@ import { BANNER_DATA, TRENDING_DATA } from './constants';
 
 const cx = classNames.bind(styles);
 
-// --- HÀM HỖ TRỢ TẠO SLUG ---
-// Chuyển "Thể thao" -> "the-thao"
 const createSlug = str => {
     if (!str) return '';
     return str
@@ -146,7 +144,6 @@ function Home() {
                     </div>
                 </section>
 
-                {/* HIỂN THỊ CÁC PHẦN THEO GENRE TỪ API */}
                 {loading ? (
                     <div style={{ textAlign: 'center', padding: '40px' }}>
                         Đang tải...
@@ -165,7 +162,6 @@ function Home() {
                                     <h3 className={cx('sectionTitle')}>
                                         {genre.name}
                                     </h3>
-                                    {/* Cập nhật đường dẫn dạng query param ?name=slug */}
                                     <Link
                                         to={`/category?name=${genreSlug}`}
                                         className={cx('viewMore')}
