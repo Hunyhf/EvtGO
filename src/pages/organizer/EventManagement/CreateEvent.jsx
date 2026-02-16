@@ -1,25 +1,16 @@
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import classNames from 'classnames/bind';
+import React, { useState, useEffect, useCallback } from 'react';
+import { useOutletContext } from 'react-router-dom';
 import Step1Info from './Step1Info';
+import classNames from 'classnames/bind';
 import styles from './CreateEvent.module.scss';
 
 const cx = classNames.bind(styles);
 
-const STEPS = [
-    { id: 1, label: 'Thông tin sự kiện' },
-    { id: 2, label: 'Thời gian & Loại vé' },
-    { id: 3, label: 'Cài đặt' },
-    { id: 4, label: 'Thông tin thanh toán' }
-];
-
 const CreateEvent = () => {
-    const navigate = useNavigate();
-    const [currentStep, setCurrentStep] = useState(1);
+    // Lấy context từ OrganizerLayout
+    const { currentStep, setCurrentStep, setOnNextAction } = useOutletContext();
 
-    // === THÊM BIẾN TRIGGER ĐỂ KÍCH HOẠT LẠI VALIDATE ===
     const [validateTrigger, setValidateTrigger] = useState(0);
-
     const [formData, setFormData] = useState({
         name: '',
         eventType: 'offline',
@@ -34,9 +25,9 @@ const CreateEvent = () => {
         organizerName: '',
         organizerLogo: null
     });
-
     const [errors, setErrors] = useState({});
 
+    // Logic kiểm tra lỗi của Bước 1
     const validateStep1 = () => {
         let newErrors = {};
         if (!formData.poster) newErrors.poster = 'Vui lòng tải ảnh nền sự kiện';
@@ -61,69 +52,46 @@ const CreateEvent = () => {
         return Object.keys(newErrors).length === 0;
     };
 
-    const handleNext = () => {
-        // === MỖI LẦN BẤM NÚT THÌ TĂNG TRIGGER LÊN 1 ===
-        // Việc này giúp component con nhận biết được cú click mới để hiện lại lỗi dù nội dung lỗi không đổi
+    // Hàm xử lý "Tiếp tục" - dùng useCallback để tránh render dư thừa
+    const handleNext = useCallback(() => {
         setValidateTrigger(prev => prev + 1);
 
-        if (currentStep === 1 && !validateStep1()) return;
+        // Chỉ thực hiện validate nếu đang ở bước 1
+        if (currentStep === 1) {
+            if (!validateStep1()) return;
+        }
 
         if (currentStep < 4) {
             setCurrentStep(prev => prev + 1);
         } else {
             alert('Tiến hành gọi API tạo sự kiện!');
         }
-    };
+    }, [currentStep, formData, setCurrentStep]);
+
+    // Gửi logic handleNext lên Stepper của Layout
+    useEffect(() => {
+        setOnNextAction(() => handleNext);
+        return () => setOnNextAction(null); // Cleanup khi thoát trang
+    }, [handleNext, setOnNextAction]);
 
     return (
-        <div className={cx('layout')}>
-            <div className={cx('header')}>
-                <div className={cx('stepper')}>
-                    {STEPS.map(step => (
-                        <div
-                            key={step.id}
-                            className={cx('step', {
-                                activeStep: currentStep === step.id,
-                                passedStep: currentStep > step.id
-                            })}
-                        >
-                            <div className={cx('stepCircle')}>{step.id}</div>
-                            <span className={cx('stepLabel')}>
-                                {step.label}
-                            </span>
-                            {step.id !== 4 && (
-                                <div className={cx('stepLine')}></div>
-                            )}
-                        </div>
-                    ))}
+        <div className={cx('content')}>
+            {/* TRANG NÀY CHỈ CHỨA NỘI DUNG FORM, KHÔNG CHỨA UI ĐIỀU HƯỚNG NỮA */}
+            {currentStep === 1 && (
+                <Step1Info
+                    formData={formData}
+                    setFormData={setFormData}
+                    errors={errors}
+                    validateTrigger={validateTrigger}
+                />
+            )}
+            {currentStep === 2 && (
+                <div className={cx('stepPlaceholder')}>
+                    <h2>Thời gian & Loại vé đang phát triển...</h2>
+                    <button onClick={() => setCurrentStep(1)}>Quay lại</button>
                 </div>
-
-                <div className={cx('headerActions')}>
-                    <button className={cx('btnPrimary')} onClick={handleNext}>
-                        {currentStep === 4 ? 'Hoàn tất' : 'Tiếp tục'}
-                    </button>
-                </div>
-            </div>
-
-            <div className={cx('content')}>
-                {currentStep === 1 && (
-                    <Step1Info
-                        formData={formData}
-                        setFormData={setFormData}
-                        errors={errors}
-                        // === TRUYỀN TRIGGER XUỐNG STEP1INFO ===
-                        validateTrigger={validateTrigger}
-                    />
-                )}
-                {currentStep === 2 && (
-                    <div className={cx('stepPlaceholder')}>
-                        <h2>Thời gian & Loại vé đang phát triển...</h2>
-                        <button onClick={() => setCurrentStep(1)}>
-                            Quay lại
-                        </button>
-                    </div>
-                )}
-            </div>
+            )}
+            {/* ... Các step 3, 4 tương tự ... */}
         </div>
     );
 };
