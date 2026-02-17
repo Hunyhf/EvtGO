@@ -1,39 +1,59 @@
 // src/components/layouts/AdminLayout.jsx
-import React, { useState } from 'react';
-import { Layout } from 'antd';
-import { Outlet } from 'react-router-dom';
-import Sidebar from '@components/AdminSidebar/index';
-import AdminHeader from '@components/AdminHeader/AdminHeader';
+import React from 'react';
+import { Outlet, useNavigate } from 'react-router-dom';
+import {
+    DashboardOutlined,
+    UsergroupAddOutlined,
+    FileProtectOutlined,
+    UserOutlined,
+    LogoutOutlined
+} from '@ant-design/icons';
+import MainDashboardLayout from './MainDashboardLayout';
 
-const { Content } = Layout;
+function AdminLayout() {
+    const navigate = useNavigate();
 
-const AdminLayout = () => {
-    const [collapsed, setCollapsed] = useState(false);
+    // 1. Định nghĩa Menu cho Admin
+    const menuItems = [
+        {
+            key: '/admin/dashboard',
+            icon: <DashboardOutlined />,
+            label: 'Thống kê',
+            onClick: () => navigate('/admin/dashboard')
+        },
+        {
+            key: '/admin/users',
+            icon: <UsergroupAddOutlined />,
+            label: 'Quản lý người dùng',
+            onClick: () => navigate('/admin/users')
+        }
+        // Thêm các menu khác của admin ở đây
+    ];
+
+    // 2. Định nghĩa User Menu cho Admin
+    const userMenuItems = [
+        {
+            key: 'logout',
+            label: 'Đăng xuất',
+            icon: <LogoutOutlined />,
+            danger: true,
+            onClick: () => {
+                navigate('/login');
+            }
+        }
+    ];
 
     return (
-        <Layout style={{ minHeight: '100vh' }}>
-            <Sidebar collapsed={collapsed} />
-
-            <Layout>
-                <AdminHeader
-                    collapsed={collapsed}
-                    onToggle={() => setCollapsed(!collapsed)}
-                />
-
-                <Content
-                    style={{
-                        margin: '24px 16px',
-                        padding: 24,
-                        background: '#fff',
-                        borderRadius: '8px',
-                        minHeight: 280
-                    }}
-                >
-                    <Outlet />
-                </Content>
-            </Layout>
-        </Layout>
+        <MainDashboardLayout
+            menuItems={menuItems}
+            userMenuItems={userMenuItems}
+            logoTitle='EvtGO Admin'
+            logoLink='/admin/dashboard'
+        >
+            {/* Admin thường không cần context phức tạp như Organizer, chỉ cần Outlet */}
+            <Outlet />
+        </MainDashboardLayout>
     );
-};
+}
 
 export default AdminLayout;

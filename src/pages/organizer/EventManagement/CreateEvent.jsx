@@ -1,7 +1,7 @@
 // src/pages/organizer/EventManagement/CreateEvent.jsx
 import React, { useState } from 'react';
 import { useOutletContext, useNavigate } from 'react-router-dom';
-import { Steps, Button, Card, Space, theme, message } from 'antd';
+import { Steps, Button, Card, Space, theme } from 'antd'; // Bỏ import { Step } cũ
 import {
     InfoCircleOutlined,
     ClockCircleOutlined,
@@ -9,11 +9,8 @@ import {
     CreditCardOutlined
 } from '@ant-design/icons';
 
-// Import các component con
 import Step1Info from './Step1Info';
 import Step2Showtimes from './Step2Showtimes';
-
-const { Step } = Steps;
 
 const CreateEvent = () => {
     const { currentStep, setCurrentStep, onNextAction, setOnNextAction } =
@@ -21,9 +18,8 @@ const CreateEvent = () => {
     const navigate = useNavigate();
     const { token } = theme.useToken();
 
-    // === QUAN TRỌNG: State chứa toàn bộ dữ liệu sự kiện ===
+    // State chứa dữ liệu toàn bộ form
     const [formData, setFormData] = useState({
-        // Dữ liệu Step 1
         name: '',
         poster: null,
         organizerLogo: null,
@@ -35,11 +31,11 @@ const CreateEvent = () => {
         ward: null,
         addressDetail: '',
         description: '',
-        // Dữ liệu Step 2
-        showTimes: [] // Danh sách suất diễn
+        showTimes: []
     });
 
-    const steps = [
+    // Định nghĩa các bước (dùng mảng objects để truyền vào prop items)
+    const stepItems = [
         {
             title: 'Thông tin sự kiện',
             icon: <InfoCircleOutlined />,
@@ -96,10 +92,9 @@ const CreateEvent = () => {
 
     const handleNext = () => {
         if (onNextAction) {
-            // Gọi hàm validate/save của step con
             onNextAction();
         } else {
-            if (currentStep < steps.length) {
+            if (currentStep < stepItems.length) {
                 setCurrentStep(currentStep + 1);
             }
         }
@@ -108,13 +103,13 @@ const CreateEvent = () => {
     const handlePrev = () => {
         if (currentStep > 1) {
             setCurrentStep(currentStep - 1);
-            // Reset action khi quay lại để tránh gọi nhầm action của step trước
             setOnNextAction(null);
         }
     };
 
     return (
         <div style={{ maxWidth: 1200, margin: '0 auto' }}>
+            {/* Stepper Area */}
             <Card
                 bordered={false}
                 style={{
@@ -123,21 +118,22 @@ const CreateEvent = () => {
                     background: '#2a2d34'
                 }}
             >
-                <Steps current={currentStep - 1}>
-                    {steps.map(item => (
-                        <Step
-                            key={item.title}
-                            title={item.title}
-                            icon={item.icon}
-                        />
-                    ))}
-                </Steps>
+                {/* SỬA LỖI: Dùng prop `items` thay vì children */}
+                <Steps
+                    current={currentStep - 1}
+                    items={stepItems.map(item => ({
+                        title: item.title,
+                        icon: item.icon
+                    }))}
+                />
             </Card>
 
+            {/* Content Area */}
             <div style={{ minHeight: '400px', marginBottom: 24 }}>
-                {steps[currentStep - 1].content}
+                {stepItems[currentStep - 1].content}
             </div>
 
+            {/* Action Bar (Sticky Bottom) */}
             <Card
                 bordered={false}
                 style={{
@@ -146,7 +142,8 @@ const CreateEvent = () => {
                     bottom: 0,
                     zIndex: 10,
                     background: '#2a2d34',
-                    borderTop: '1px solid #393f4e'
+                    borderTop: '1px solid #393f4e',
+                    boxShadow: '0 -4px 10px rgba(0,0,0,0.2)' // Thêm bóng đổ để tách biệt khi cuộn
                 }}
             >
                 <div
@@ -177,7 +174,7 @@ const CreateEvent = () => {
                             size='large'
                             style={{ minWidth: 120 }}
                         >
-                            {currentStep === steps.length
+                            {currentStep === stepItems.length
                                 ? 'Hoàn tất'
                                 : 'Tiếp tục'}
                         </Button>
