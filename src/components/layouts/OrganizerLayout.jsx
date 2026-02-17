@@ -1,90 +1,224 @@
+// src/components/layouts/OrganizerLayout.jsx
 import React, { useState } from 'react';
-import { Outlet, useLocation, useNavigate } from 'react-router-dom'; // Thêm useNavigate
-import classNames from 'classnames/bind';
-import { CalendarOutlined, FileProtectOutlined } from '@ant-design/icons';
-import Sidebar from '@components/DashboardLayout/Sidebar';
-import Header from '@components/DashboardLayout/Header';
-import Stepper from '@components/Stepper/Stepper';
-import styles from '@components/DashboardLayout/DashboardLayout.module.scss';
+import { Outlet, useLocation, useNavigate } from 'react-router-dom';
+import {
+    Layout,
+    Menu,
+    ConfigProvider,
+    theme,
+    Button,
+    Avatar,
+    Dropdown,
+    Space
+} from 'antd';
+import {
+    CalendarOutlined,
+    FileProtectOutlined,
+    MenuFoldOutlined,
+    MenuUnfoldOutlined,
+    UserOutlined,
+    PlusOutlined,
+    LogoutOutlined
+} from '@ant-design/icons';
 
-const cx = classNames.bind(styles);
+const { Header, Sider, Content } = Layout;
 
-const CREATE_EVENT_STEPS = [
-    { id: 1, label: 'Thông tin sự kiện' },
-    { id: 2, label: 'Thời gian & Loại vé' },
-    { id: 3, label: 'Cài đặt' },
-    { id: 4, label: 'Thông tin thanh toán' }
-];
+// Lấy màu từ biến scss (Hardcode để config cho Antd Theme)
+const PRIMARY_COLOR = '#2dc275';
+const SECONDARY_COLOR = '#27272a'; // Màu nền chính
+const TEXT_COLOR = '#9ca6b0';
+const WHITE_COLOR = '#ffffff';
 
 function OrganizerLayout() {
     const [collapsed, setCollapsed] = useState(false);
-    const { pathname } = useLocation();
-    const navigate = useNavigate(); // Hook để chuyển trang
+    const navigate = useNavigate();
+    const location = useLocation();
 
+    // State cho logic tạo sự kiện (giữ nguyên logic cũ)
     const [currentStep, setCurrentStep] = useState(1);
     const [onNextAction, setOnNextAction] = useState(null);
 
-    const isCreateEventPage = pathname === '/organizer/events/create';
+    // Xác định Key menu đang chọn dựa trên URL
+    const selectedKey = location.pathname;
 
-    const organizerMenu = [
+    // Menu Items
+    const menuItems = [
         {
-            path: '/organizer/events',
+            key: '/organizer/events',
+            icon: <CalendarOutlined />,
             label: 'Sự kiện của tôi',
-            icon: <CalendarOutlined />
+            onClick: () => navigate('/organizer/events')
         },
         {
-            path: '/organizer/terms',
-            label: 'Điều khoản cho nhà tổ chức',
-            icon: <FileProtectOutlined />
+            key: '/organizer/terms',
+            icon: <FileProtectOutlined />,
+            label: 'Điều khoản',
+            onClick: () => navigate('/organizer/terms')
         }
     ];
 
+    // Menu User Dropdown (Góc phải header)
+    const userMenuNew = {
+        items: [
+            {
+                key: 'profile',
+                label: 'Hồ sơ',
+                icon: <UserOutlined />
+            },
+            {
+                key: 'logout',
+                label: 'Đăng xuất',
+                icon: <LogoutOutlined />,
+                danger: true
+            }
+        ]
+    };
+
     return (
-        <div className={cx('layoutContainer')}>
-            <Sidebar items={organizerMenu} collapsed={collapsed} />
-
-            <div className={cx('mainContent')}>
-                <Header
-                    title={
-                        isCreateEventPage ? 'Tạo sự kiện mới' : 'Nhà tổ chức'
+        <ConfigProvider
+            theme={{
+                algorithm: theme.darkAlgorithm, // Kích hoạt chế độ tối mặc định của Antd
+                token: {
+                    colorPrimary: PRIMARY_COLOR,
+                    colorBgBase: SECONDARY_COLOR, // Màu nền #27272a
+                    colorTextBase: TEXT_COLOR,
+                    colorBgContainer: '#2a2d34', // Màu sub-color cho các khối content
+                    fontFamily: "'Roboto', sans-serif"
+                },
+                components: {
+                    Layout: {
+                        bodyBg: SECONDARY_COLOR,
+                        headerBg: SECONDARY_COLOR,
+                        siderBg: SECONDARY_COLOR
+                    },
+                    Menu: {
+                        itemBg: SECONDARY_COLOR,
+                        itemSelectedBg: PRIMARY_COLOR,
+                        itemSelectedColor: WHITE_COLOR
                     }
+                }
+            }}
+        >
+            <Layout style={{ minHeight: '100vh' }}>
+                <Sider
+                    trigger={null}
+                    collapsible
                     collapsed={collapsed}
-                    onToggle={() => setCollapsed(!collapsed)}
-                    // PHẦN CẬP NHẬT: Hiện nút "Tạo sự kiện" nếu KHÔNG phải trang create
-                    extraActions={
-                        !isCreateEventPage && (
-                            <button
-                                className={cx('btnCreate')}
-                                onClick={() =>
-                                    navigate('/organizer/events/create')
-                                }
-                            >
-                                Tạo sự kiện
-                            </button>
-                        )
-                    }
-                />
-
-                {/* Stepper nằm ngay dưới Header và có sẵn nút "Tiếp tục" bên trong */}
-                {isCreateEventPage && (
-                    <Stepper
-                        steps={CREATE_EVENT_STEPS}
-                        currentStep={currentStep}
-                        onNext={() => onNextAction && onNextAction()}
-                    />
-                )}
-
-                <main className={cx('scrollArea')}>
-                    <Outlet
-                        context={{
-                            currentStep,
-                            setCurrentStep,
-                            setOnNextAction
+                    width={250}
+                    style={{ borderRight: '1px solid #393f4e' }} // Border nhẹ để tách biệt
+                >
+                    {/* Logo Area */}
+                    <div
+                        style={{
+                            height: '64px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            color: PRIMARY_COLOR,
+                            fontSize: '20px',
+                            fontWeight: 'bold',
+                            borderBottom: '1px solid #393f4e'
                         }}
+                    >
+                        {collapsed ? 'GO' : 'EvtGO Organizer'}
+                    </div>
+
+                    <Menu
+                        mode='inline'
+                        selectedKeys={[selectedKey]}
+                        items={menuItems}
+                        style={{ borderRight: 0, marginTop: '10px' }}
                     />
-                </main>
-            </div>
-        </div>
+                </Sider>
+
+                <Layout>
+                    <Header
+                        style={{
+                            padding: '0 24px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'space-between',
+                            borderBottom: '1px solid #393f4e'
+                        }}
+                    >
+                        {/* Nút Toggle Sidebar */}
+                        <Button
+                            type='text'
+                            icon={
+                                collapsed ? (
+                                    <MenuUnfoldOutlined />
+                                ) : (
+                                    <MenuFoldOutlined />
+                                )
+                            }
+                            onClick={() => setCollapsed(!collapsed)}
+                            style={{
+                                fontSize: '16px',
+                                width: 64,
+                                height: 64,
+                                color: TEXT_COLOR
+                            }}
+                        />
+
+                        {/* Right Actions */}
+                        <Space size='middle'>
+                            {/* Chỉ hiện nút Tạo sự kiện nếu không phải trang create */}
+                            {location.pathname !==
+                                '/organizer/events/create' && (
+                                <Button
+                                    type='primary'
+                                    icon={<PlusOutlined />}
+                                    onClick={() =>
+                                        navigate('/organizer/events/create')
+                                    }
+                                >
+                                    Tạo sự kiện
+                                </Button>
+                            )}
+
+                            <Dropdown menu={userMenuNew} trigger={['click']}>
+                                <Space
+                                    style={{
+                                        cursor: 'pointer',
+                                        color: TEXT_COLOR
+                                    }}
+                                >
+                                    <Avatar
+                                        icon={<UserOutlined />}
+                                        style={{
+                                            backgroundColor: PRIMARY_COLOR
+                                        }}
+                                    />
+                                    <span>Organizer Name</span>
+                                </Space>
+                            </Dropdown>
+                        </Space>
+                    </Header>
+
+                    <Content
+                        style={{
+                            margin: '24px 16px',
+                            padding: 24,
+                            minHeight: 280,
+                            // Phần nội dung con sẽ nằm ở đây
+                            overflowY: 'auto'
+                        }}
+                    >
+                        {/* Truyền context xuống dưới để các trang con (CreateEvent) 
+                            có thể điều khiển Step hoặc state chung 
+                        */}
+                        <Outlet
+                            context={{
+                                currentStep,
+                                setCurrentStep,
+                                onNextAction,
+                                setOnNextAction
+                            }}
+                        />
+                    </Content>
+                </Layout>
+            </Layout>
+        </ConfigProvider>
     );
 }
 

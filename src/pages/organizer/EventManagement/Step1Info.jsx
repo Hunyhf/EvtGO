@@ -1,420 +1,578 @@
 // src/pages/organizer/EventManagement/Step1Info.jsx
 import React, { useState, useEffect } from 'react';
-import axios from 'axios'; // Sử dụng axios để gọi API bên ngoài
-import classNames from 'classnames/bind';
+import axios from 'axios';
 import ReactQuill from 'react-quill';
 import 'react-quill/dist/quill.snow.css';
-import styles from './Step1Info.module.scss';
-import FormGroup from '@components/Common/FormGroup';
+import {
+    Form,
+    Input,
+    Select,
+    Upload,
+    Row,
+    Col,
+    message,
+    Card,
+    Typography
+} from 'antd';
+import {
+    InboxOutlined,
+    CameraOutlined,
+    LoadingOutlined,
+    PlusOutlined
+} from '@ant-design/icons';
 import categoryApi from '@apis/categoryApi';
-import { CameraOutlined, PictureOutlined } from '@ant-design/icons';
-import { toast } from 'react-toastify';
 
-const cx = classNames.bind(styles);
+// Cấu hình upload (chỉ giả lập, bạn có thể chỉnh API thật sau)
+const getBase64 = (img, callback) => {
+    const reader = new FileReader();
+    reader.addEventListener('load', () => callback(reader.result));
+    reader.readAsDataURL(img);
+};
 
-const Step1Info = ({ formData, setFormData, errors, validateTrigger }) => {
+const { Title } = Typography;
+const { Option } = Select;
+const { Dragger } = Upload;
+
+const Step1Info = ({
+    setOnNextAction,
+    formData: parentFormData,
+    setFormData: setParentFormData
+}) => {
+    const [form] = Form.useForm();
+
+    // State dữ liệu danh mục & địa lý
     const [categories, setCategories] = useState([]);
-
-    // === STATE LƯU TRỮ DỮ LIỆU ĐỊA LÝ ===
     const [provinces, setProvinces] = useState([]);
     const [districts, setDistricts] = useState([]);
     const [wards, setWards] = useState([]);
-    const [localErrors, setLocalErrors] = useState({});
 
+    // State hiển thị ảnh preview
+    const [posterUrl, setPosterUrl] = useState(parentFormData?.poster || null);
+    const [logoUrl, setLogoUrl] = useState(
+        parentFormData?.organizerLogo || null
+    );
+
+    // 1. Đăng ký hành động Submit cho nút "Tiếp tục" ở component cha
     useEffect(() => {
-        setLocalErrors(errors);
-        if (Object.keys(errors).length > 0) {
-            const timer = setTimeout(() => setLocalErrors({}), 2000);
-            return () => clearTimeout(timer);
+        setOnNextAction(() => () => {
+            form.validateFields()
+                .then(values => {
+                    // Nếu validate thành công -> Đã tự update vào parent qua onValuesChange
+                    // Có thể return true hoặc gọi API save draft ở đây
+                    console.log('Step 1 Validated:', values);
+                })
+                .catch(info => {
+                    message.error('Vui lòng kiểm tra lại thông tin còn thiếu!');
+                    console.log('Validate Failed:', info);
+                    // Ném lỗi để chặn chuyển bước (nếu cần xử lý sâu hơn ở cha)
+                    throw new Error('Validation failed');
+                });
+        });
+    }, [form, setOnNextAction]);
+
+    // 2. Load dữ liệu ban đầu
+    useEffect(() => {
+        // Load Categories
+        categoryApi
+            .getAll()
+            .then(res => {
+                const list = res.result || res.data || [];
+                setCategories(list);
+            })
+            .catch(err => console.error(err));
+
+        // Load Provinces
+        axios
+            .get('https://provinces.open-api.vn/api/p/')
+            .then(res => setProvinces(res.data))
+            .catch(err => console.error(err));
+
+        // Fill dữ liệu cũ nếu có (khi quay lại từ bước 2)
+        if (parentFormData) {
+            form.setFieldsValue(parentFormData);
+
+            // Trigger load huyện/xã nếu đã có tỉnh
+            if (parentFormData.province)
+                handleProvinceChange(parentFormData.province, false);
+            if (parentFormData.district)
+                handleDistrictChange(parentFormData.district, false);
         }
-    }, [errors, validateTrigger]);
-
-    // 1. Lấy danh sách Tỉnh/Thành khi component mount
-    useEffect(() => {
-        const fetchLocationData = async () => {
-            try {
-                const res = await axios.get(
-                    'https://provinces.open-api.vn/api/p/'
-                );
-                setProvinces(res.data);
-            } catch (error) {
-                console.error('Lỗi lấy danh sách tỉnh thành:', error);
-            }
-        };
-
-        const fetchCategories = async () => {
-            try {
-                const res = await categoryApi.getAll();
-                if (res && res.result) setCategories(res.result);
-                else if (res && res.data) setCategories(res.data);
-            } catch (error) {
-                console.error('Lỗi khi lấy danh mục:', error);
-            }
-        };
-
-        fetchLocationData();
-        fetchCategories();
     }, []);
 
-    const handleInputChange = e => {
-        const { name, value } = e.target;
-        setFormData(prev => ({ ...prev, [name]: value }));
-    };
-
-    // === XỬ LÝ THAY ĐỔI ĐỊA LÝ BIẾN ĐỘNG ===
-
-    // Khi chọn Tỉnh -> Lấy Huyện
-    const handleProvinceChange = async e => {
-        const provinceCode = e.target.value;
-        const selectedProvince = provinces.find(p => p.code == provinceCode);
-
-        // Cập nhật tên tỉnh vào formData và reset cấp dưới
-        setFormData(prev => ({
-            ...prev,
-            province: selectedProvince ? selectedProvince.name : '',
-            district: '',
-            ward: ''
-        }));
-
-        if (provinceCode) {
-            try {
-                const res = await axios.get(
-                    `https://provinces.open-api.vn/api/p/${provinceCode}?depth=2`
-                );
-                setDistricts(res.data.districts);
-            } catch (error) {
-                console.error('Lỗi lấy quận huyện:', error);
-            }
-        } else {
+    // 3. Xử lý logic địa lý
+    const handleProvinceChange = async (value, resetChildren = true) => {
+        if (resetChildren) {
+            form.setFieldsValue({ district: undefined, ward: undefined });
             setDistricts([]);
-        }
-        setWards([]);
-    };
-
-    // Khi chọn Huyện -> Lấy Xã
-    const handleDistrictChange = async e => {
-        const districtCode = e.target.value;
-        const selectedDistrict = districts.find(d => d.code == districtCode);
-
-        setFormData(prev => ({
-            ...prev,
-            district: selectedDistrict ? selectedDistrict.name : '',
-            ward: ''
-        }));
-
-        if (districtCode) {
-            try {
-                const res = await axios.get(
-                    `https://provinces.open-api.vn/api/d/${districtCode}?depth=2`
-                );
-                setWards(res.data.wards);
-            } catch (error) {
-                console.error('Lỗi lấy phường xã:', error);
-            }
-        } else {
             setWards([]);
         }
+        try {
+            const res = await axios.get(
+                `https://provinces.open-api.vn/api/p/${value}?depth=2`
+            );
+            setDistricts(res.data.districts);
+
+            // Tìm tên tỉnh để lưu (nếu cần lưu tên thay vì code)
+            const pName = res.data.name;
+            setParentFormData(prev => ({ ...prev, provinceName: pName }));
+        } catch (error) {
+            console.error(error);
+        }
     };
 
-    // Khi chọn Xã
-    const handleWardChange = e => {
-        const wardCode = e.target.value;
-        const selectedWard = wards.find(w => w.code == wardCode);
-        setFormData(prev => ({
-            ...prev,
-            ward: selectedWard ? selectedWard.name : ''
-        }));
+    const handleDistrictChange = async (value, resetChildren = true) => {
+        if (resetChildren) {
+            form.setFieldsValue({ ward: undefined });
+            setWards([]);
+        }
+        try {
+            const res = await axios.get(
+                `https://provinces.open-api.vn/api/d/${value}?depth=2`
+            );
+            setWards(res.data.wards);
+        } catch (error) {
+            console.error(error);
+        }
     };
 
-    const handleFileChange = (e, field) => {
-        const file = e.target.files[0];
-        if (!file) return;
-        const config = {
-            poster: { w: 1280, h: 720, label: 'Ảnh nền' },
-            organizerLogo: { w: 275, h: 275, label: 'Logo' }
-        };
-        const target = config[field];
-        const img = new Image();
-        const objectUrl = URL.createObjectURL(file);
-        img.src = objectUrl;
-        img.onload = () => {
-            if (img.width === target.w && img.height === target.h) {
-                setFormData(prev => ({ ...prev, [field]: objectUrl }));
+    // 4. Xử lý Upload Ảnh (Check kích thước & Preview)
+    const handleUpload = (file, type) => {
+        const isImage = file.type.startsWith('image/');
+        if (!isImage) {
+            message.error('Bạn chỉ được upload file ảnh!');
+            return Upload.LIST_IGNORE;
+        }
+
+        // Tạo object URL để preview ngay
+        getBase64(file, url => {
+            if (type === 'poster') {
+                setPosterUrl(url);
+                setParentFormData(prev => ({ ...prev, poster: url }));
+                form.setFieldsValue({ poster: url }); // Cập nhật vào form để validate
             } else {
-                toast.error(
-                    `${target.label} sai kích thước (${target.w}x${target.h}px)`
-                );
-                e.target.value = '';
-                URL.revokeObjectURL(objectUrl);
+                setLogoUrl(url);
+                setParentFormData(prev => ({ ...prev, organizerLogo: url }));
+                form.setFieldsValue({ organizerLogo: url });
             }
-        };
+        });
+
+        return false; // Prevent auto upload (chúng ta xử lý thủ công)
     };
 
+    // 5. Đồng bộ dữ liệu Form lên Parent khi nhập liệu
+    const handleFormChange = (changedValues, allValues) => {
+        setParentFormData(prev => ({ ...prev, ...allValues }));
+    };
+
+    // React Quill Config
     const quillModules = {
         toolbar: [
-            [{ header: [1, 2, 3, false] }],
+            [{ header: [1, 2, false] }],
             ['bold', 'italic', 'underline', 'strike'],
-            [{ color: [] }, { background: [] }],
             [{ list: 'ordered' }, { list: 'bullet' }],
-            [{ align: [] }],
-            ['link', 'image'],
-            ['clean']
+            ['link', 'clean']
         ]
     };
 
     return (
-        <div className={cx('stepContent')}>
-            {/* 1. UP HÌNH ẢNH NỀN (Giữ nguyên) */}
-            <div className={cx('section')}>
-                <div
-                    className={cx('coverUpload', {
-                        errorBorder: !!localErrors.poster
-                    })}
+        <Form
+            form={form}
+            layout='vertical'
+            onValuesChange={handleFormChange}
+            initialValues={parentFormData}
+        >
+            {/* 1. ẢNH NỀN (POSTER) */}
+            <Card
+                style={{
+                    marginBottom: 24,
+                    background: '#2a2d34',
+                    borderColor: '#393f4e'
+                }}
+            >
+                <Form.Item
+                    name='poster'
+                    rules={[
+                        {
+                            required: true,
+                            message: 'Vui lòng tải lên ảnh nền sự kiện'
+                        }
+                    ]}
+                    style={{ marginBottom: 0 }}
                 >
-                    {formData.poster ? (
-                        <img
-                            src={formData.poster}
-                            alt='Cover'
-                            className={cx('previewCover')}
-                        />
-                    ) : (
-                        <div className={cx('uploadPlaceholder')}>
-                            <PictureOutlined />
-                            <span>Tải ảnh nền sự kiện (1280x720)</span>
-                        </div>
-                    )}
-                    <input
-                        type='file'
-                        accept='image/*'
-                        onChange={e => handleFileChange(e, 'poster')}
-                    />
-                </div>
-                {localErrors.poster && (
-                    <span className={cx('errorText')}>
-                        {localErrors.poster}
-                    </span>
-                )}
-            </div>
-
-            {/* 2. THÔNG TIN BAN TỔ CHỨC (Giữ nguyên) */}
-            <div className={cx('section')}>
-                <h3 className={cx('sectionTitle')}>Thông tin ban tổ chức</h3>
-                <div className={cx('organizerInfo')}>
-                    <div className={cx('logoUpload')}>
-                        <div
-                            className={cx('logoCircle', {
-                                errorBorder: !!localErrors.organizerLogo
-                            })}
-                        >
-                            {formData.organizerLogo ? (
-                                <img src={formData.organizerLogo} alt='Logo' />
-                            ) : (
-                                <CameraOutlined />
-                            )}
-                            <input
-                                type='file'
-                                accept='image/*'
-                                onChange={e =>
-                                    handleFileChange(e, 'organizerLogo')
-                                }
+                    <Dragger
+                        name='file'
+                        multiple={false}
+                        showUploadList={false}
+                        beforeUpload={file => handleUpload(file, 'poster')}
+                        style={{
+                            background: 'rgba(255,255,255,0.02)',
+                            border: '1px dashed #393f4e'
+                        }}
+                    >
+                        {posterUrl ? (
+                            <img
+                                src={posterUrl}
+                                alt='Poster'
+                                style={{
+                                    maxHeight: 300,
+                                    width: '100%',
+                                    objectFit: 'cover',
+                                    borderRadius: 8
+                                }}
                             />
+                        ) : (
+                            <div
+                                style={{ padding: '40px 0', color: '#9ca6b0' }}
+                            >
+                                <p className='ant-upload-drag-icon'>
+                                    <InboxOutlined
+                                        style={{
+                                            color: '#2dc275',
+                                            fontSize: 48
+                                        }}
+                                    />
+                                </p>
+                                <p className='ant-upload-text'>
+                                    Nhấp hoặc kéo thả ảnh vào đây để tải lên
+                                </p>
+                                <p className='ant-upload-hint'>
+                                    Kích thước khuyến nghị: 1280x720 (16:9)
+                                </p>
+                            </div>
+                        )}
+                    </Dragger>
+                </Form.Item>
+            </Card>
+
+            {/* 2. THÔNG TIN CƠ BẢN */}
+            <Row gutter={24}>
+                <Col span={24} lg={8}>
+                    <Card
+                        style={{
+                            height: '100%',
+                            background: '#2a2d34',
+                            borderColor: '#393f4e'
+                        }}
+                    >
+                        <Title
+                            level={5}
+                            style={{ color: '#fff', marginBottom: 20 }}
+                        >
+                            Ban tổ chức
+                        </Title>
+
+                        <div
+                            style={{
+                                display: 'flex',
+                                flexDirection: 'column',
+                                alignItems: 'center',
+                                marginBottom: 20
+                            }}
+                        >
+                            <Form.Item name='organizerLogo' noStyle>
+                                <Upload
+                                    name='avatar'
+                                    listType='picture-circle'
+                                    className='avatar-uploader'
+                                    showUploadList={false}
+                                    beforeUpload={file =>
+                                        handleUpload(file, 'logo')
+                                    }
+                                >
+                                    {logoUrl ? (
+                                        <img
+                                            src={logoUrl}
+                                            alt='avatar'
+                                            style={{
+                                                width: '100%',
+                                                height: '100%',
+                                                objectFit: 'cover',
+                                                borderRadius: '50%'
+                                            }}
+                                        />
+                                    ) : (
+                                        <div>
+                                            <PlusOutlined />
+                                            <div style={{ marginTop: 8 }}>
+                                                Upload
+                                            </div>
+                                        </div>
+                                    )}
+                                </Upload>
+                            </Form.Item>
                         </div>
-                        <span className={cx('logoLabel')}>Logo (275x275)</span>
-                    </div>
-                    {localErrors.organizerLogo && (
-                        <span className={cx('errorText', 'small')}>
-                            {localErrors.organizerLogo}
-                        </span>
-                    )}
 
-                    <div className={cx('organizerName')}>
-                        <FormGroup
-                            label='Tên ban tổ chức'
+                        <Form.Item
                             name='organizerName'
-                            value={formData.organizerName || ''}
-                            onChange={handleInputChange}
-                            error={errors.organizerName}
-                            trigger={validateTrigger}
-                            maxLength={80}
-                            placeholder='Nhập tên ban tổ chức'
-                            className={cx('inputCustom')}
-                        />
-                    </div>
-                </div>
-            </div>
-
-            {/* 3. THÔNG TIN SỰ KIỆN & ĐỊA CHỈ (ĐÃ CẬP NHẬT SELECT DƯỚI ĐÂY) */}
-            <div className={cx('section')}>
-                <h3 className={cx('sectionTitle')}>Địa điểm & Thể loại</h3>
-                <div className={cx('formGrid')}>
-                    <FormGroup
-                        label='Tên sự kiện'
-                        name='name'
-                        value={formData.name}
-                        onChange={handleInputChange}
-                        error={errors.name}
-                        trigger={validateTrigger}
-                        maxLength={100}
-                        className={cx('inputCustom')}
-                    />
-                    <FormGroup
-                        label='Tên địa điểm'
-                        name='locationName'
-                        value={formData.locationName}
-                        onChange={handleInputChange}
-                        error={errors.locationName}
-                        trigger={validateTrigger}
-                        maxLength={80}
-                        className={cx('inputCustom')}
-                    />
-                </div>
-
-                <div className={cx('addressGrid')}>
-                    {/* TỈNH/THÀNH */}
-                    <div className={cx('inputWrapper')}>
-                        <label className={cx('label')}>Tỉnh/Thành phố</label>
-                        <select
-                            name='province'
-                            className={cx('select', {
-                                errorInput: !!localErrors.province
-                            })}
-                            onChange={handleProvinceChange}
+                            label={
+                                <span style={{ color: '#fff' }}>
+                                    Tên ban tổ chức
+                                </span>
+                            }
+                            rules={[
+                                { required: true, message: 'Nhập tên BTC' }
+                            ]}
                         >
-                            <option value=''>Chọn Tỉnh/Thành</option>
-                            {provinces.map(p => (
-                                <option key={p.code} value={p.code}>
-                                    {p.name}
-                                </option>
-                            ))}
-                        </select>
-                        {localErrors.province && (
-                            <span className={cx('errorText')}>
-                                {localErrors.province}
-                            </span>
-                        )}
-                    </div>
+                            <Input placeholder='VD: Công ty XYZ' size='large' />
+                        </Form.Item>
+                    </Card>
+                </Col>
 
-                    {/* QUẬN/HUYỆN */}
-                    <div className={cx('inputWrapper')}>
-                        <label className={cx('label')}>Quận/Huyện</label>
-                        <select
-                            name='district'
-                            className={cx('select', {
-                                errorInput: !!localErrors.district
-                            })}
-                            disabled={!districts.length}
-                            onChange={handleDistrictChange}
+                <Col span={24} lg={16}>
+                    <Card
+                        style={{
+                            height: '100%',
+                            background: '#2a2d34',
+                            borderColor: '#393f4e'
+                        }}
+                    >
+                        <Title
+                            level={5}
+                            style={{ color: '#fff', marginBottom: 20 }}
                         >
-                            <option value=''>Chọn Quận/Huyện</option>
-                            {districts.map(d => (
-                                <option key={d.code} value={d.code}>
-                                    {d.name}
-                                </option>
-                            ))}
-                        </select>
-                        {localErrors.district && (
-                            <span className={cx('errorText')}>
-                                {localErrors.district}
-                            </span>
-                        )}
-                    </div>
+                            Thông tin sự kiện
+                        </Title>
 
-                    {/* PHƯỜNG/XÃ */}
-                    <div className={cx('inputWrapper')}>
-                        <label className={cx('label')}>Phường/Xã</label>
-                        <select
-                            name='ward'
-                            className={cx('select', {
-                                errorInput: !!localErrors.ward
-                            })}
-                            disabled={!wards.length}
-                            onChange={handleWardChange}
+                        <Form.Item
+                            name='name'
+                            label={
+                                <span style={{ color: '#fff' }}>
+                                    Tên sự kiện
+                                </span>
+                            }
+                            rules={[
+                                {
+                                    required: true,
+                                    message: 'Vui lòng nhập tên sự kiện'
+                                }
+                            ]}
                         >
-                            <option value=''>Chọn Phường/Xã</option>
-                            {wards.map(w => (
-                                <option key={w.code} value={w.code}>
-                                    {w.name}
-                                </option>
-                            ))}
-                        </select>
-                        {localErrors.ward && (
-                            <span className={cx('errorText')}>
-                                {localErrors.ward}
-                            </span>
-                        )}
-                    </div>
+                            <Input
+                                placeholder='VD: Đại nhạc hội Mùa Hè'
+                                size='large'
+                            />
+                        </Form.Item>
 
-                    {/* THỂ LOẠI (Giữ nguyên) */}
-                    <div className={cx('inputWrapper')}>
-                        <label className={cx('label')}>Thể loại sự kiện</label>
-                        <select
-                            name='genreId'
-                            className={cx('select', {
-                                errorInput: !!localErrors.genreId
-                            })}
-                            value={formData.genreId}
-                            onChange={handleInputChange}
-                        >
-                            <option value=''>Chọn thể loại</option>
-                            {categories.map(cat => (
-                                <option key={cat.id} value={cat.id}>
-                                    {cat.name}
-                                </option>
-                            ))}
-                        </select>
-                        {localErrors.genreId && (
-                            <span className={cx('errorText')}>
-                                {localErrors.genreId}
-                            </span>
-                        )}
-                    </div>
+                        <Row gutter={16}>
+                            <Col span={12}>
+                                <Form.Item
+                                    name='genreId'
+                                    label={
+                                        <span style={{ color: '#fff' }}>
+                                            Thể loại
+                                        </span>
+                                    }
+                                    rules={[
+                                        {
+                                            required: true,
+                                            message: 'Chọn thể loại'
+                                        }
+                                    ]}
+                                >
+                                    <Select
+                                        placeholder='Chọn thể loại'
+                                        size='large'
+                                        allowClear
+                                    >
+                                        {categories.map(c => (
+                                            <Option key={c.id} value={c.id}>
+                                                {c.name}
+                                            </Option>
+                                        ))}
+                                    </Select>
+                                </Form.Item>
+                            </Col>
+                            <Col span={12}>
+                                <Form.Item
+                                    name='locationName'
+                                    label={
+                                        <span style={{ color: '#fff' }}>
+                                            Tên địa điểm
+                                        </span>
+                                    }
+                                    rules={[
+                                        {
+                                            required: true,
+                                            message: 'Nhập tên địa điểm'
+                                        }
+                                    ]}
+                                >
+                                    <Input
+                                        placeholder='VD: Sân vận động Mỹ Đình'
+                                        size='large'
+                                    />
+                                </Form.Item>
+                            </Col>
+                        </Row>
 
-                    <div className={cx('inputWrapper', 'fullWidth')}>
-                        <FormGroup
-                            label='Số nhà, đường'
+                        <Row gutter={16}>
+                            <Col span={8}>
+                                <Form.Item
+                                    name='province'
+                                    label={
+                                        <span style={{ color: '#fff' }}>
+                                            Tỉnh/Thành
+                                        </span>
+                                    }
+                                    rules={[
+                                        {
+                                            required: true,
+                                            message: 'Chọn Tỉnh/Thành'
+                                        }
+                                    ]}
+                                >
+                                    <Select
+                                        placeholder='Tỉnh/Thành'
+                                        size='large'
+                                        onChange={val =>
+                                            handleProvinceChange(val)
+                                        }
+                                        showSearch
+                                        filterOption={(input, option) =>
+                                            option.children
+                                                .toLowerCase()
+                                                .indexOf(input.toLowerCase()) >=
+                                            0
+                                        }
+                                    >
+                                        {provinces.map(p => (
+                                            <Option key={p.code} value={p.code}>
+                                                {p.name}
+                                            </Option>
+                                        ))}
+                                    </Select>
+                                </Form.Item>
+                            </Col>
+                            <Col span={8}>
+                                <Form.Item
+                                    name='district'
+                                    label={
+                                        <span style={{ color: '#fff' }}>
+                                            Quận/Huyện
+                                        </span>
+                                    }
+                                    rules={[
+                                        {
+                                            required: true,
+                                            message: 'Chọn Quận/Huyện'
+                                        }
+                                    ]}
+                                >
+                                    <Select
+                                        placeholder='Quận/Huyện'
+                                        size='large'
+                                        onChange={val =>
+                                            handleDistrictChange(val)
+                                        }
+                                        disabled={!districts.length}
+                                        showSearch
+                                        filterOption={(input, option) =>
+                                            option.children
+                                                .toLowerCase()
+                                                .indexOf(input.toLowerCase()) >=
+                                            0
+                                        }
+                                    >
+                                        {districts.map(d => (
+                                            <Option key={d.code} value={d.code}>
+                                                {d.name}
+                                            </Option>
+                                        ))}
+                                    </Select>
+                                </Form.Item>
+                            </Col>
+                            <Col span={8}>
+                                <Form.Item
+                                    name='ward'
+                                    label={
+                                        <span style={{ color: '#fff' }}>
+                                            Phường/Xã
+                                        </span>
+                                    }
+                                    rules={[
+                                        {
+                                            required: true,
+                                            message: 'Chọn Phường/Xã'
+                                        }
+                                    ]}
+                                >
+                                    <Select
+                                        placeholder='Phường/Xã'
+                                        size='large'
+                                        disabled={!wards.length}
+                                        showSearch
+                                        filterOption={(input, option) =>
+                                            option.children
+                                                .toLowerCase()
+                                                .indexOf(input.toLowerCase()) >=
+                                            0
+                                        }
+                                    >
+                                        {wards.map(w => (
+                                            <Option key={w.code} value={w.code}>
+                                                {w.name}
+                                            </Option>
+                                        ))}
+                                    </Select>
+                                </Form.Item>
+                            </Col>
+                        </Row>
+
+                        <Form.Item
                             name='addressDetail'
-                            value={formData.addressDetail}
-                            onChange={handleInputChange}
-                            error={errors.addressDetail}
-                            trigger={validateTrigger}
-                            placeholder='VD: 123 đường ABC'
-                            maxLength={80}
-                            className={cx('inputCustom')}
-                        />
-                    </div>
-                </div>
-            </div>
+                            label={
+                                <span style={{ color: '#fff' }}>
+                                    Địa chỉ chi tiết
+                                </span>
+                            }
+                            rules={[
+                                {
+                                    required: true,
+                                    message: 'Nhập số nhà, tên đường'
+                                }
+                            ]}
+                        >
+                            <Input
+                                placeholder='VD: Số 123, Đường Nguyễn Huệ'
+                                size='large'
+                            />
+                        </Form.Item>
+                    </Card>
+                </Col>
+            </Row>
 
-            {/* 4. MÔ TẢ CHI TIẾT (Giữ nguyên) */}
-            <div className={cx('section')}>
-                <h3 className={cx('sectionTitle')}>
-                    Thông tin chi tiết sự kiện
-                </h3>
-                <div
-                    className={cx('editorContainer', {
-                        errorBorder: !!localErrors.description
-                    })}
+            {/* 3. MÔ TẢ */}
+            <Card
+                style={{
+                    marginTop: 24,
+                    background: '#2a2d34',
+                    borderColor: '#393f4e'
+                }}
+            >
+                <Title level={5} style={{ color: '#fff', marginBottom: 20 }}>
+                    Mô tả sự kiện
+                </Title>
+                <Form.Item
+                    name='description'
+                    rules={[
+                        {
+                            required: true,
+                            message: 'Vui lòng nhập mô tả sự kiện'
+                        }
+                    ]}
                 >
                     <ReactQuill
                         theme='snow'
                         modules={quillModules}
-                        value={formData.description || ''}
-                        onChange={content =>
-                            setFormData(prev => ({
-                                ...prev,
-                                description: content
-                            }))
-                        }
-                        placeholder='Viết mô tả sự kiện...'
+                        style={{
+                            background: '#fff',
+                            borderRadius: 8,
+                            color: '#000'
+                        }}
                     />
-                </div>
-                {localErrors.description && (
-                    <span className={cx('errorText')}>
-                        {localErrors.description}
-                    </span>
-                )}
-            </div>
-        </div>
+                </Form.Item>
+            </Card>
+        </Form>
     );
 };
 
