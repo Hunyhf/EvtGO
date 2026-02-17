@@ -1,16 +1,19 @@
 // src/pages/organizer/EventManagement/CreateEvent.jsx
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useOutletContext, useNavigate } from 'react-router-dom';
-import { Steps, Button, Card, Space, theme } from 'antd'; // Bỏ import { Step } cũ
+import { Steps, Button, Card, Space, theme, Modal } from 'antd';
 import {
     InfoCircleOutlined,
     ClockCircleOutlined,
     SettingOutlined,
-    CreditCardOutlined
+    CreditCardOutlined,
+    ExclamationCircleOutlined
 } from '@ant-design/icons';
 
 import Step1Info from './Step1Info';
 import Step2Showtimes from './Step2Showtimes';
+
+const { confirm } = Modal;
 
 const CreateEvent = () => {
     const { currentStep, setCurrentStep, onNextAction, setOnNextAction } =
@@ -18,37 +21,41 @@ const CreateEvent = () => {
     const navigate = useNavigate();
     const { token } = theme.useToken();
 
-    // State chứa dữ liệu toàn bộ form
-    const [formData, setFormData] = useState({
-        name: '',
-        poster: null,
-        organizerLogo: null,
-        organizerName: '',
-        genreId: null,
-        locationName: '',
-        province: null,
-        district: null,
-        ward: null,
-        addressDetail: '',
-        description: '',
-        showTimes: []
+    // Khởi tạo state từ LocalStorage (nếu có) để tránh mất dữ liệu khi refresh
+    const [formData, setFormData] = useState(() => {
+        const savedData = localStorage.getItem('evtgo_create_event_draft');
+        return savedData
+            ? JSON.parse(savedData)
+            : {
+                  name: '',
+                  poster: null,
+                  // ... các trường khác
+                  showTimes: []
+              };
     });
 
-    // Định nghĩa các bước (dùng mảng objects để truyền vào prop items)
+    // Lưu Draft mỗi khi formData thay đổi (Debounce nếu cần)
+    useEffect(() => {
+        localStorage.setItem(
+            'evtgo_create_event_draft',
+            JSON.stringify(formData)
+        );
+    }, [formData]);
+
     const stepItems = [
         {
-            title: 'Thông tin sự kiện',
+            title: 'Thông tin cơ bản',
             icon: <InfoCircleOutlined />,
             content: (
                 <Step1Info
                     setOnNextAction={setOnNextAction}
                     formData={formData}
-                    setFormData={setFormData}
+                    setFormData={setFormData} // Chỉ cập nhật khi bấm Next
                 />
             )
         },
         {
-            title: 'Thời gian & Loại vé',
+            title: 'Thời gian & Vé',
             icon: <ClockCircleOutlined />,
             content: (
                 <Step2Showtimes
@@ -69,7 +76,7 @@ const CreateEvent = () => {
                         color: token.colorTextSecondary
                     }}
                 >
-                    Tính năng cài đặt đang được phát triển
+                    Cài đặt nâng cao (Coming soon)
                 </div>
             )
         },
@@ -84,7 +91,7 @@ const CreateEvent = () => {
                         color: token.colorTextSecondary
                     }}
                 >
-                    Tính năng thanh toán đang được phát triển
+                    Cấu hình thanh toán (Coming soon)
                 </div>
             )
         }
@@ -92,33 +99,49 @@ const CreateEvent = () => {
 
     const handleNext = () => {
         if (onNextAction) {
+            // Trigger hàm validate/submit bên trong component con
             onNextAction();
-        } else {
-            if (currentStep < stepItems.length) {
-                setCurrentStep(currentStep + 1);
-            }
+            // Lưu ý: Logic chuyển trang (setCurrentStep) nên được component con gọi
+            // hoặc component con trả về Promise resolve thì cha mới chuyển.
+            // Ở code hiện tại của bạn, logic chuyển trang đang nằm ở Layout/Cha
+            // nên cần đảm bảo onNextAction throw error nếu validate fail.
         }
     };
 
     const handlePrev = () => {
         if (currentStep > 1) {
             setCurrentStep(currentStep - 1);
-            setOnNextAction(null);
+            setOnNextAction(null); // Reset action
         }
     };
 
+    const handleCancel = () => {
+        confirm({
+            title: 'Hủy tạo sự kiện?',
+            icon: <ExclamationCircleOutlined />,
+            content: 'Dữ liệu bạn đã nhập sẽ bị mất.',
+            okText: 'Đồng ý',
+            cancelText: 'Không',
+            onOk() {
+                localStorage.removeItem('evtgo_create_event_draft'); // Xóa draft
+                navigate('/organizer/events');
+            }
+        });
+    };
+
+    // Callback function để chuyển bước (truyền xuống cho con dùng nếu cần)
+    const nextStep = () => setCurrentStep(prev => prev + 1);
+
     return (
         <div style={{ maxWidth: 1200, margin: '0 auto' }}>
-            {/* Stepper Area */}
             <Card
                 bordered={false}
                 style={{
                     marginBottom: 24,
                     borderRadius: 8,
-                    background: '#2a2d34'
+                    background: token.colorBgContainer
                 }}
             >
-                {/* SỬA LỖI: Dùng prop `items` thay vì children */}
                 <Steps
                     current={currentStep - 1}
                     items={stepItems.map(item => ({
@@ -128,12 +151,13 @@ const CreateEvent = () => {
                 />
             </Card>
 
-            {/* Content Area */}
             <div style={{ minHeight: '400px', marginBottom: 24 }}>
-                {stepItems[currentStep - 1].content}
+                {/* Clone element để truyền thêm props nextStep nếu cần */}
+                {React.cloneElement(stepItems[currentStep - 1].content, {
+                    nextStep
+                })}
             </div>
 
-            {/* Action Bar (Sticky Bottom) */}
             <Card
                 bordered={false}
                 style={{
@@ -141,9 +165,9 @@ const CreateEvent = () => {
                     position: 'sticky',
                     bottom: 0,
                     zIndex: 10,
-                    background: '#2a2d34',
+                    background: token.colorBgContainer,
                     borderTop: '1px solid #393f4e',
-                    boxShadow: '0 -4px 10px rgba(0,0,0,0.2)' // Thêm bóng đổ để tách biệt khi cuộn
+                    boxShadow: '0 -4px 10px rgba(0,0,0,0.2)'
                 }}
             >
                 <div
@@ -160,12 +184,8 @@ const CreateEvent = () => {
                     >
                         Quay lại
                     </Button>
-
                     <Space>
-                        <Button
-                            onClick={() => navigate('/organizer/events')}
-                            size='large'
-                        >
+                        <Button onClick={handleCancel} size='large'>
                             Hủy bỏ
                         </Button>
                         <Button

@@ -14,15 +14,10 @@ import {
     Card,
     Typography
 } from 'antd';
-import {
-    InboxOutlined,
-    CameraOutlined,
-    LoadingOutlined,
-    PlusOutlined
-} from '@ant-design/icons';
+import { InboxOutlined, PlusOutlined } from '@ant-design/icons';
 import categoryApi from '@apis/categoryApi';
 
-// Cấu hình upload (chỉ giả lập, bạn có thể chỉnh API thật sau)
+// Cấu hình upload (giả lập)
 const getBase64 = (img, callback) => {
     const reader = new FileReader();
     reader.addEventListener('load', () => callback(reader.result));
@@ -33,10 +28,12 @@ const { Title } = Typography;
 const { Option } = Select;
 const { Dragger } = Upload;
 
+// 1. THÊM nextStep VÀO PROPS
 const Step1Info = ({
     setOnNextAction,
     formData: parentFormData,
-    setFormData: setParentFormData
+    setFormData: setParentFormData,
+    nextStep
 }) => {
     const [form] = Form.useForm();
 
@@ -52,27 +49,34 @@ const Step1Info = ({
         parentFormData?.organizerLogo || null
     );
 
-    // 1. Đăng ký hành động Submit cho nút "Tiếp tục" ở component cha
+    // 2. SỬA LẠI LOGIC KHI BẤM NEXT
     useEffect(() => {
         setOnNextAction(() => () => {
             form.validateFields()
                 .then(values => {
-                    // Nếu validate thành công -> Đã tự update vào parent qua onValuesChange
-                    // Có thể return true hoặc gọi API save draft ở đây
                     console.log('Step 1 Validated:', values);
+
+                    // A. Lưu dữ liệu vào State cha (Kết hợp dữ liệu cũ + mới)
+                    setParentFormData(prev => ({ ...prev, ...values }));
+
+                    // B. Gọi hàm chuyển bước (quan trọng)
+                    if (nextStep) {
+                        nextStep();
+                    } else {
+                        console.error('Thiếu prop nextStep từ component cha');
+                    }
                 })
                 .catch(info => {
                     message.error('Vui lòng kiểm tra lại thông tin còn thiếu!');
-                    console.log('Validate Failed:', info);
-                    // Ném lỗi để chặn chuyển bước (nếu cần xử lý sâu hơn ở cha)
-                    throw new Error('Validation failed');
+                    console.error('Validate Failed:', info);
                 });
         });
-    }, [form, setOnNextAction]);
+    }, [form, setOnNextAction, setParentFormData, nextStep]);
 
-    // 2. Load dữ liệu ban đầu
+    // ... (Giữ nguyên các useEffect load data và handle logic bên dưới) ...
+
+    // Load dữ liệu ban đầu
     useEffect(() => {
-        // Load Categories
         categoryApi
             .getAll()
             .then(res => {
@@ -81,17 +85,13 @@ const Step1Info = ({
             })
             .catch(err => console.error(err));
 
-        // Load Provinces
         axios
             .get('https://provinces.open-api.vn/api/p/')
             .then(res => setProvinces(res.data))
             .catch(err => console.error(err));
 
-        // Fill dữ liệu cũ nếu có (khi quay lại từ bước 2)
         if (parentFormData) {
             form.setFieldsValue(parentFormData);
-
-            // Trigger load huyện/xã nếu đã có tỉnh
             if (parentFormData.province)
                 handleProvinceChange(parentFormData.province, false);
             if (parentFormData.district)
@@ -99,7 +99,7 @@ const Step1Info = ({
         }
     }, []);
 
-    // 3. Xử lý logic địa lý
+    // Logic địa lý
     const handleProvinceChange = async (value, resetChildren = true) => {
         if (resetChildren) {
             form.setFieldsValue({ district: undefined, ward: undefined });
@@ -111,9 +111,8 @@ const Step1Info = ({
                 `https://provinces.open-api.vn/api/p/${value}?depth=2`
             );
             setDistricts(res.data.districts);
-
-            // Tìm tên tỉnh để lưu (nếu cần lưu tên thay vì code)
             const pName = res.data.name;
+            // Lưu tạm tên tỉnh nếu cần
             setParentFormData(prev => ({ ...prev, provinceName: pName }));
         } catch (error) {
             console.error(error);
@@ -135,33 +134,24 @@ const Step1Info = ({
         }
     };
 
-    // 4. Xử lý Upload Ảnh (Check kích thước & Preview)
+    // Logic Upload
     const handleUpload = (file, type) => {
         const isImage = file.type.startsWith('image/');
         if (!isImage) {
             message.error('Bạn chỉ được upload file ảnh!');
             return Upload.LIST_IGNORE;
         }
-
-        // Tạo object URL để preview ngay
         getBase64(file, url => {
             if (type === 'poster') {
                 setPosterUrl(url);
-                setParentFormData(prev => ({ ...prev, poster: url }));
-                form.setFieldsValue({ poster: url }); // Cập nhật vào form để validate
+                // Cập nhật form để validate field required
+                form.setFieldsValue({ poster: url });
             } else {
                 setLogoUrl(url);
-                setParentFormData(prev => ({ ...prev, organizerLogo: url }));
                 form.setFieldsValue({ organizerLogo: url });
             }
         });
-
-        return false; // Prevent auto upload (chúng ta xử lý thủ công)
-    };
-
-    // 5. Đồng bộ dữ liệu Form lên Parent khi nhập liệu
-    const handleFormChange = (changedValues, allValues) => {
-        setParentFormData(prev => ({ ...prev, ...allValues }));
+        return false;
     };
 
     // React Quill Config
@@ -178,7 +168,7 @@ const Step1Info = ({
         <Form
             form={form}
             layout='vertical'
-            onValuesChange={handleFormChange}
+            // BỎ onValuesChange để tối ưu performance (chỉ lưu khi bấm Next)
             initialValues={parentFormData}
         >
             {/* 1. ẢNH NỀN (POSTER) */}
@@ -260,7 +250,6 @@ const Step1Info = ({
                         >
                             Ban tổ chức
                         </Title>
-
                         <div
                             style={{
                                 display: 'flex',
@@ -301,7 +290,6 @@ const Step1Info = ({
                                 </Upload>
                             </Form.Item>
                         </div>
-
                         <Form.Item
                             name='organizerName'
                             label={
@@ -332,7 +320,6 @@ const Step1Info = ({
                         >
                             Thông tin sự kiện
                         </Title>
-
                         <Form.Item
                             name='name'
                             label={
@@ -352,7 +339,6 @@ const Step1Info = ({
                                 size='large'
                             />
                         </Form.Item>
-
                         <Row gutter={16}>
                             <Col span={12}>
                                 <Form.Item
@@ -404,7 +390,6 @@ const Step1Info = ({
                                 </Form.Item>
                             </Col>
                         </Row>
-
                         <Row gutter={16}>
                             <Col span={8}>
                                 <Form.Item
@@ -517,7 +502,6 @@ const Step1Info = ({
                                 </Form.Item>
                             </Col>
                         </Row>
-
                         <Form.Item
                             name='addressDetail'
                             label={
