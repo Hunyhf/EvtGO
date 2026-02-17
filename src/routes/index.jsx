@@ -2,16 +2,17 @@
 import { createBrowserRouter, Outlet } from 'react-router-dom';
 
 // Import các Layout
-import AdminLayout from '@components/Layouts/AdminLayout.jsx';
-import CustomerLayout from '@components/Layouts/CustomerLayout.jsx';
-import OrganizerLayout from '@components/Layouts/OrganizerLayout.jsx';
-import StaffLayout from '@components/Layouts/StaffLayout.jsx';
+import AdminLayout from '@components/layouts/AdminLayout.jsx';
+import CustomerLayout from '@components/layouts/CustomerLayout.jsx';
+import OrganizerLayout from '@components/layouts/OrganizerLayout.jsx';
+import StaffLayout from '@components/layouts/StaffLayout.jsx';
 
 // Import Pages
 import Staff from '@pages/staff/Staff.jsx';
 // CUSTOMER
 import Home from '@pages/customer/Home/Home.jsx';
-import Category from '@pages/customer/Category/Category';
+// --- SỬA TẠI ĐÂY: Đổi Category thành Genre ---
+import Genre from '@pages/customer/Genre/Genre';
 import Profile from '@pages/customer/Profile/Profile.jsx';
 import Ticket from '@pages/customer/Ticket/Ticket.jsx';
 import NotFound from '@pages/customer/NotFound/NotFound.jsx';
@@ -50,7 +51,10 @@ export const routes = createBrowserRouter([
                 element: <CustomerLayout />,
                 children: [
                     { index: true, element: <Home /> },
-                    { path: 'category', element: <Category /> },
+
+                    // --- SỬA TẠI ĐÂY: path='genre' và element=<Genre /> ---
+                    { path: 'genre', element: <Genre /> },
+
                     {
                         path: 'my-tickets',
                         element: (
