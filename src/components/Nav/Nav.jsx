@@ -2,7 +2,8 @@ import { useState, useEffect, useContext } from 'react';
 import { NavLink } from 'react-router-dom';
 import classNames from 'classnames/bind';
 import styles from './Nav.module.scss';
-import categoryApi from '@apis/categoryApi';
+// Đảm bảo genresApi được export đúng trong file @apis/genresApi
+import { genresApi } from '@apis/genresApi';
 import { AuthContext } from '@contexts/AuthContext';
 import Cookies from 'js-cookie';
 
@@ -35,8 +36,9 @@ function Nav() {
 
     useEffect(() => {
         const fetchGenres = async () => {
-            if (isLoading) return;
-
+            // Nếu API lấy danh mục là Public (ai cũng xem được), bạn nên bỏ đoạn check token này
+            // để khách vãng lai cũng thấy được menu động từ database.
+            // Nếu API yêu cầu đăng nhập mới được xem danh mục thì giữ nguyên.
             const token = Cookies.get('access_token');
             if (!token) {
                 setGenres(DEFAULT_GENRES);
@@ -44,36 +46,37 @@ function Nav() {
             }
 
             try {
-                const res = await categoryApi.getAll();
+                // --- SỬA LỖI TẠI ĐÂY ---
+                // Dùng genresApi thay vì categoryApi
+                const res = await genresApi.getAll();
 
-                if (res && (res.result || Array.isArray(res))) {
-                    setGenres(res.result || res);
+                // Kiểm tra response trả về (tùy cấu trúc backend trả về result hay data)
+                if (res && res.result) {
+                    setGenres(res.result);
+                } else if (res && Array.isArray(res)) {
+                    setGenres(res);
                 }
             } catch (error) {
                 console.warn(
                     '>>> [Nav] Không thể lấy danh mục từ API, sử dụng fallback.'
                 );
+                // Fallback về danh sách mặc định nếu lỗi
                 setGenres(DEFAULT_GENRES);
             }
         };
 
         fetchGenres();
-    }, [isAuthenticated, isLoading]);
+    }, [isAuthenticated, isLoading]); // Dependency array
 
     return (
         <nav className={cx('wrapper')}>
             <ul className={cx('navList')}>
-                {' '}
-                {/* Đổi từ nav-list */}
                 {genres.map(item => (
                     <li key={item.id} className={cx('navItem')}>
-                        {' '}
-                        {/* Đổi từ nav-item */}
                         <NavLink
                             to={`/category?name=${slugify(item.name)}`}
-                            className={
-                                ({ isActive }) =>
-                                    cx('navLink', { active: isActive }) // Đổi từ nav-link
+                            className={({ isActive }) =>
+                                cx('navLink', { active: isActive })
                             }
                         >
                             {item.name}

@@ -15,9 +15,9 @@ import {
     Typography
 } from 'antd';
 import { InboxOutlined, PlusOutlined } from '@ant-design/icons';
-import categoryApi from '@apis/categoryApi';
+import { categoryApi } from '@apis/categoryApi';
 
-// Cấu hình upload (giả lập)
+// Cấu hình upload (giả lập preview)
 const getBase64 = (img, callback) => {
     const reader = new FileReader();
     reader.addEventListener('load', () => callback(reader.result));
@@ -28,7 +28,6 @@ const { Title } = Typography;
 const { Option } = Select;
 const { Dragger } = Upload;
 
-// 1. THÊM nextStep VÀO PROPS
 const Step1Info = ({
     setOnNextAction,
     formData: parentFormData,
@@ -49,7 +48,9 @@ const Step1Info = ({
         parentFormData?.organizerLogo || null
     );
 
-    // 2. SỬA LẠI LOGIC KHI BẤM NEXT
+    // ----------------------------------------------------------------------
+    // LOGIC QUAN TRỌNG: XỬ LÝ KHI BẤM NEXT
+    // ----------------------------------------------------------------------
     useEffect(() => {
         setOnNextAction(() => () => {
             return form
@@ -57,43 +58,87 @@ const Step1Info = ({
                 .then(values => {
                     console.log('Step 1 Validated:', values);
 
-                    // A. Lưu dữ liệu vào State cha (Kết hợp dữ liệu cũ + mới)
-                    setParentFormData(prev => ({ ...prev, ...values }));
+                    // 1. Lấy file thực tế từ parentFormData (đã lưu ở handleUpload)
+                    const currentPosterFile = parentFormData.posterFile;
+                    const currentLogoFile = parentFormData.logoFile;
 
-                    // B. Gọi hàm chuyển bước (quan trọng)
+                    // 2. Validate thủ công: Bắt buộc phải có file ảnh nếu form đã có URL
+                    // (Antd Form chỉ check required của field input, k check file object)
+                    if (!currentPosterFile && !parentFormData.poster) {
+                        message.error('Vui lòng tải lên ảnh nền sự kiện!');
+                        throw new Error('Missing poster file');
+                    }
+
+                    // 3. TẠO MẢNG IMAGES THEO ĐÚNG THỨ TỰ YÊU CẦU
+                    // Index 0: Poster (Sẽ là Cover)
+                    // Index 1: Logo (Ảnh phụ/BTC)
+                    const imagesArr = [];
+
+                    if (currentPosterFile) {
+                        imagesArr.push(currentPosterFile);
+                    } else if (
+                        parentFormData.images &&
+                        parentFormData.images[0]
+                    ) {
+                        // Trường hợp edit hoặc back lại, giữ file cũ
+                        imagesArr.push(parentFormData.images[0]);
+                    }
+
+                    if (currentLogoFile) {
+                        imagesArr.push(currentLogoFile);
+                    } else if (
+                        parentFormData.images &&
+                        parentFormData.images[1]
+                    ) {
+                        imagesArr.push(parentFormData.images[1]);
+                    }
+
+                    // 4. Cập nhật vào State cha
+                    setParentFormData(prev => ({
+                        ...prev,
+                        ...values, // Dữ liệu text (tên, mô tả, địa chỉ...)
+                        images: imagesArr // Mảng file chuẩn bị upload: [Poster, Logo]
+                    }));
+
+                    // 5. Chuyển bước
                     if (nextStep) {
                         nextStep();
-                    } else {
-                        console.error('Thiếu prop nextStep từ component cha');
                     }
                     return true;
                 })
                 .catch(info => {
-                    message.error('Vui lòng kiểm tra lại thông tin còn thiếu!');
                     console.error('Validate Failed:', info);
-                    // Ném lỗi để chặn chuyển bước (nếu cần xử lý sâu hơn ở cha)
-                    throw new Error('Validation failed');
+                    // message.error đã được gọi ở trên hoặc mặc định của antd
                 });
         });
-    }, [form, setOnNextAction, setParentFormData, nextStep]);
-
-    // ... (Giữ nguyên các useEffect load data và handle logic bên dưới) ...
+    }, [
+        form,
+        setOnNextAction,
+        setParentFormData,
+        nextStep,
+        parentFormData.posterFile,
+        parentFormData.logoFile
+    ]);
 
     // Load dữ liệu ban đầu
     useEffect(() => {
+        // Load Categories
         categoryApi
             .getAll()
             .then(res => {
+                // Tùy cấu trúc response api của bạn
                 const list = res.result || res.data || [];
                 setCategories(list);
             })
             .catch(err => console.error(err));
 
+        // Load Tỉnh/Thành (Open API)
         axios
             .get('https://provinces.open-api.vn/api/p/')
             .then(res => setProvinces(res.data))
             .catch(err => console.error(err));
 
+        // Fill dữ liệu cũ nếu quay lại bước này
         if (parentFormData) {
             form.setFieldsValue(parentFormData);
             if (parentFormData.province)
@@ -103,7 +148,7 @@ const Step1Info = ({
         }
     }, []);
 
-    // Logic địa lý
+    // Logic địa lý (Provinces/Districts/Wards)
     const handleProvinceChange = async (value, resetChildren = true) => {
         if (resetChildren) {
             form.setFieldsValue({ district: undefined, ward: undefined });
@@ -115,9 +160,10 @@ const Step1Info = ({
                 `https://provinces.open-api.vn/api/p/${value}?depth=2`
             );
             setDistricts(res.data.districts);
-            const pName = res.data.name;
-            // Lưu tạm tên tỉnh nếu cần
-            setParentFormData(prev => ({ ...prev, provinceName: pName }));
+            setParentFormData(prev => ({
+                ...prev,
+                provinceName: res.data.name
+            }));
         } catch (error) {
             console.error(error);
         }
@@ -138,31 +184,44 @@ const Step1Info = ({
         }
     };
 
-    // Logic Upload
+    // ----------------------------------------------------------------------
+    // LOGIC UPLOAD: LƯU FILE RAW VÀO PARENT FORM DATA NGAY LẬP TỨC
+    // ----------------------------------------------------------------------
     const handleUpload = (file, type) => {
         const isImage = file.type.startsWith('image/');
         if (!isImage) {
             message.error('Bạn chỉ được upload file ảnh!');
             return Upload.LIST_IGNORE;
         }
+
         getBase64(file, url => {
             if (type === 'poster') {
+                // 1. Set Preview
                 setPosterUrl(url);
-                // Cập nhật form để validate field required
-                form.setFieldsValue({ poster: url });
-                // Lưu file gốc vào formData cha (quan trọng để gửi API)
-                setParentFormData(prev => ({ ...prev, posterFile: file }));
+                form.setFieldsValue({ poster: url }); // Để pass validate 'required'
+
+                // 2. Lưu file gốc vào state cha (để dùng ở useEffect Next)
+                setParentFormData(prev => ({
+                    ...prev,
+                    posterFile: file,
+                    poster: url
+                }));
             } else {
+                // 1. Set Preview
                 setLogoUrl(url);
                 form.setFieldsValue({ organizerLogo: url });
-                // Lưu file gốc vào formData cha
-                setParentFormData(prev => ({ ...prev, logoFile: file }));
+
+                // 2. Lưu file gốc
+                setParentFormData(prev => ({
+                    ...prev,
+                    logoFile: file,
+                    organizerLogo: url
+                }));
             }
         });
-        return false;
+        return false; // Chặn auto upload của antd
     };
 
-    // React Quill Config
     const quillModules = {
         toolbar: [
             [{ header: [1, 2, false] }],
@@ -173,13 +232,8 @@ const Step1Info = ({
     };
 
     return (
-        <Form
-            form={form}
-            layout='vertical'
-            // BỎ onValuesChange để tối ưu performance (chỉ lưu khi bấm Next)
-            initialValues={parentFormData}
-        >
-            {/* 1. ẢNH NỀN (POSTER) */}
+        <Form form={form} layout='vertical' initialValues={parentFormData}>
+            {/* --- 1. ẢNH BÌA (POSTER - Index 0) --- */}
             <Card
                 style={{
                     marginBottom: 24,
@@ -192,7 +246,7 @@ const Step1Info = ({
                     rules={[
                         {
                             required: true,
-                            message: 'Vui lòng tải lên ảnh nền sự kiện'
+                            message: 'Vui lòng tải lên ảnh nền sự kiện (Cover)'
                         }
                     ]}
                     style={{ marginBottom: 0 }}
@@ -231,10 +285,11 @@ const Step1Info = ({
                                     />
                                 </p>
                                 <p className='ant-upload-text'>
-                                    Nhấp hoặc kéo thả ảnh vào đây để tải lên
+                                    Kéo thả hoặc chọn Ảnh Bìa (Cover)
                                 </p>
                                 <p className='ant-upload-hint'>
-                                    Kích thước khuyến nghị: 1280x720 (16:9)
+                                    Kích thước: 1280x720 (Sẽ được đặt làm ảnh
+                                    đại diện sự kiện)
                                 </p>
                             </div>
                         )}
@@ -242,7 +297,7 @@ const Step1Info = ({
                 </Form.Item>
             </Card>
 
-            {/* 2. THÔNG TIN CƠ BẢN */}
+            {/* --- 2. THÔNG TIN & LOGO (Index 1) --- */}
             <Row gutter={24}>
                 <Col span={24} lg={8}>
                     <Card
@@ -291,7 +346,7 @@ const Step1Info = ({
                                         <div>
                                             <PlusOutlined />
                                             <div style={{ marginTop: 8 }}>
-                                                Upload
+                                                Upload Logo
                                             </div>
                                         </div>
                                     )}
@@ -299,7 +354,7 @@ const Step1Info = ({
                             </Form.Item>
                         </div>
                         <Form.Item
-                            name='organizerName'
+                            name='organizerName' // Lưu ý: Backend có thể cần field này trong description hoặc xử lý riêng
                             label={
                                 <span style={{ color: '#fff' }}>
                                     Tên ban tổ chức
@@ -347,6 +402,7 @@ const Step1Info = ({
                                 size='large'
                             />
                         </Form.Item>
+
                         <Row gutter={16}>
                             <Col span={12}>
                                 <Form.Item
@@ -378,7 +434,7 @@ const Step1Info = ({
                             </Col>
                             <Col span={12}>
                                 <Form.Item
-                                    name='locationName'
+                                    name='location' // Lưu ý: Backend đang map trường này là 'location'
                                     label={
                                         <span style={{ color: '#fff' }}>
                                             Tên địa điểm
@@ -398,6 +454,8 @@ const Step1Info = ({
                                 </Form.Item>
                             </Col>
                         </Row>
+
+                        {/* Địa lý */}
                         <Row gutter={16}>
                             <Col span={8}>
                                 <Form.Item
@@ -510,8 +568,9 @@ const Step1Info = ({
                                 </Form.Item>
                             </Col>
                         </Row>
+
                         <Form.Item
-                            name='addressDetail'
+                            name='addressDetail' // Field này FE dùng để ghép chuỗi location
                             label={
                                 <span style={{ color: '#fff' }}>
                                     Địa chỉ chi tiết
@@ -533,7 +592,7 @@ const Step1Info = ({
                 </Col>
             </Row>
 
-            {/* 3. MÔ TẢ */}
+            {/* --- 3. MÔ TẢ --- */}
             <Card
                 style={{
                     marginTop: 24,

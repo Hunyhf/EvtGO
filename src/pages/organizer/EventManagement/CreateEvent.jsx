@@ -8,11 +8,18 @@ import {
     CreditCardOutlined,
     ExclamationCircleOutlined
 } from '@ant-design/icons';
+import { toast } from 'react-toastify'; // Import Toast để thông báo
+import dayjs from 'dayjs'; // Import Dayjs để format ngày giờ
+
+// Import APIs
+import { eventApi } from '@apis/eventApi';
+import { eventImageApi } from '@apis/eventImageApi';
 
 import Step1Info from './Step1Info';
 import Step2Showtimes from './Step2Showtimes';
 import Step3Settings from './Step3Settings';
 import Step4Payment from './Step4Payment';
+
 const { confirm } = Modal;
 
 // Key để lưu vào LocalStorage
@@ -24,56 +31,152 @@ const CreateEvent = () => {
         useOutletContext();
     const navigate = useNavigate();
     const { token } = theme.useToken();
+    const [loading, setLoading] = useState(false); // Thêm state loading khi gọi API
 
     // 1. KHỞI TẠO STATE TỪ LOCALSTORAGE
-    // Lấy step từ storage, nếu không có thì mặc định là 1
     const [localCurrentStep, setLocalCurrentStep] = useState(() => {
         const savedStep = localStorage.getItem(STORAGE_KEY_STEP);
         return savedStep ? Number(savedStep) : 1;
     });
 
-    // Lấy formData từ storage, nếu không có thì dùng object rỗng
     const [formData, setFormData] = useState(() => {
         const savedData = localStorage.getItem(STORAGE_KEY_DATA);
         return savedData
             ? JSON.parse(savedData)
             : {
                   name: '',
-                  poster: null,
-                  organizerLogo: null,
+                  description: '',
+                  permitNumber: '',
+                  permitIssuedAt: null,
+                  permitIssuedBy: '',
+                  location: '',
+                  genreId: null, // Quan trọng: ID thể loại
+                  startDate: null,
+                  startTime: null,
+                  endDate: null,
+                  endTime: null,
+                  images: [] // Mảng chứa file ảnh
                   // ... các trường khác
-                  showTimes: []
               };
     });
 
-    // Đồng bộ localCurrentStep lên Layout Context để hiển thị đúng trên Sidebar/Header nếu cần
-    // Nhưng vì Layout quản lý currentStep của chính nó, ta cần cập nhật nó ngay khi mount
-    const { currentStep: layoutStep } = useOutletContext(); // Lấy step từ layout (nếu có)
-
-    // Effect: Khi mount, báo cho Layout biết đang ở step nào (để đồng bộ UI)
+    // Effect: Đồng bộ bước hiện tại
     useEffect(() => {
         setCurrentStep(localCurrentStep);
     }, []);
 
-    // Effect: Khi formData hoặc step thay đổi -> Lưu vào LocalStorage
+    // Effect: Lưu LocalStorage
     useEffect(() => {
         localStorage.setItem(STORAGE_KEY_DATA, JSON.stringify(formData));
         localStorage.setItem(STORAGE_KEY_STEP, localCurrentStep);
-        // Đồng bộ ngược lên layout để thanh header (nếu có) hiển thị đúng
         setCurrentStep(localCurrentStep);
     }, [formData, localCurrentStep, setCurrentStep]);
 
     // Hàm chuyển bước an toàn
     const nextStep = () => {
         setLocalCurrentStep(prev => prev + 1);
+        window.scrollTo(0, 0); // Cuộn lên đầu trang
     };
 
+    // --- LOGIC XỬ LÝ HOÀN TẤT (GỌI API) ---
+    const handleFinish = async () => {
+        setLoading(true);
+        try {
+            // 1. Chuẩn bị Payload cho API Create Event (JSON)
+            // Backend yêu cầu Date dạng String 'YYYY-MM-DD' và Time dạng 'HH:mm'
+            const eventPayload = {
+                name: formData.name,
+                description: formData.description,
+                permitNumber: formData.permitNumber,
+                permitIssuedBy: formData.permitIssuedBy,
+                location: formData.location,
+                genreId: formData.genreId, // Đảm bảo Step1 đã lưu genreId
+
+                // Format ngày
+                permitIssuedAt: formData.permitIssuedAt
+                    ? dayjs(formData.permitIssuedAt).format('YYYY-MM-DD')
+                    : '',
+                startDate: formData.startDate
+                    ? dayjs(formData.startDate).format('YYYY-MM-DD')
+                    : '',
+                endDate: formData.endDate
+                    ? dayjs(formData.endDate).format('YYYY-MM-DD')
+                    : '',
+
+                // Format giờ
+                startTime: formData.startTime
+                    ? dayjs(formData.startTime).format('HH:mm')
+                    : '',
+                endTime: formData.endTime
+                    ? dayjs(formData.endTime).format('HH:mm')
+                    : ''
+            };
+
+            console.log('Payload gửi đi:', eventPayload);
+
+            // 2. Gọi API tạo sự kiện
+            const createRes = await eventApi.createEvent(eventPayload);
+
+            if (!createRes || !createRes.id) {
+                throw new Error('Không nhận được ID sự kiện từ hệ thống.');
+            }
+
+            const newEventId = createRes.id;
+            console.log('Tạo sự kiện thành công, ID:', newEventId);
+
+            // 3. Gọi API Upload ảnh (Nếu có ảnh)
+            // Lưu ý: formData.images ở đây phải chứa File Object thực sự (từ Step3)
+            if (formData.images && formData.images.length > 0) {
+                const imageFormData = new FormData();
+
+                formData.images.forEach(file => {
+                    // Ant Design Upload trả về file bọc trong originFileObj
+                    // Nếu là file thường thì lấy trực tiếp
+                    const fileToUpload = file.originFileObj || file;
+                    imageFormData.append('files', fileToUpload);
+                });
+
+                // Mặc định ảnh đầu tiên là cover (index 0)
+                imageFormData.append('coverIndex', 0);
+
+                await eventImageApi.uploadEventImages(
+                    newEventId,
+                    imageFormData
+                );
+                console.log('Upload ảnh thành công');
+            }
+
+            // 4. Thành công -> Dọn dẹp và chuyển hướng
+            toast.success('Tạo sự kiện thành công!');
+            localStorage.removeItem(STORAGE_KEY_DATA);
+            localStorage.removeItem(STORAGE_KEY_STEP);
+            navigate('/organizer/events');
+        } catch (error) {
+            console.error('Lỗi tạo sự kiện:', error);
+            const msg =
+                error.response?.data?.message ||
+                error.message ||
+                'Có lỗi xảy ra';
+            toast.error(`Lỗi: ${msg}`);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    // Hàm xử lý nút Tiếp tục / Hoàn tất
     const handleNext = () => {
+        // Nếu đang ở bước cuối cùng thì gọi hàm Finish
+        if (localCurrentStep === stepItems.length) {
+            handleFinish();
+            return;
+        }
+
+        // Các bước khác: Validate ở component con trước
         if (onNextAction) {
-            // Trigger hàm validate/submit bên trong component con
+            // Component con (Step1, Step2...) sẽ validate và gọi nextStep nếu ok
             onNextAction();
         } else {
-            // Fallback
+            // Fallback nếu không có validate
             nextStep();
         }
     };
@@ -81,7 +184,7 @@ const CreateEvent = () => {
     const handlePrev = () => {
         if (localCurrentStep > 1) {
             setLocalCurrentStep(localCurrentStep - 1);
-            setOnNextAction(null);
+            setOnNextAction(null); // Reset action
         }
     };
 
@@ -93,7 +196,6 @@ const CreateEvent = () => {
             okText: 'Đồng ý',
             cancelText: 'Không',
             onOk() {
-                // Xóa dữ liệu trong storage khi hủy
                 localStorage.removeItem(STORAGE_KEY_DATA);
                 localStorage.removeItem(STORAGE_KEY_STEP);
                 navigate('/organizer/events');
@@ -128,9 +230,8 @@ const CreateEvent = () => {
             )
         },
         {
-            title: 'Cài đặt',
+            title: 'Hình ảnh & Cài đặt',
             icon: <SettingOutlined />,
-            // 2. Thay thế div placeholder bằng Component thật
             content: (
                 <Step3Settings
                     setOnNextAction={setOnNextAction}
@@ -141,9 +242,8 @@ const CreateEvent = () => {
             )
         },
         {
-            title: 'Thanh toán',
+            title: 'Xác nhận',
             icon: <CreditCardOutlined />,
-            // Thay thế placeholder bằng Component thật
             content: (
                 <Step4Payment
                     setOnNextAction={setOnNextAction}
@@ -176,7 +276,6 @@ const CreateEvent = () => {
 
             {/* Content Area */}
             <div style={{ minHeight: '400px', marginBottom: 24 }}>
-                {/* Render nội dung của step hiện tại */}
                 {stepItems[localCurrentStep - 1]?.content}
             </div>
 
@@ -201,7 +300,7 @@ const CreateEvent = () => {
                     }}
                 >
                     <Button
-                        disabled={localCurrentStep === 1}
+                        disabled={localCurrentStep === 1 || loading}
                         onClick={handlePrev}
                         size='large'
                     >
@@ -209,13 +308,18 @@ const CreateEvent = () => {
                     </Button>
 
                     <Space>
-                        <Button onClick={handleCancel} size='large'>
+                        <Button
+                            onClick={handleCancel}
+                            size='large'
+                            disabled={loading}
+                        >
                             Hủy bỏ
                         </Button>
                         <Button
                             type='primary'
                             onClick={handleNext}
                             size='large'
+                            loading={loading}
                             style={{ minWidth: 120 }}
                         >
                             {localCurrentStep === stepItems.length
