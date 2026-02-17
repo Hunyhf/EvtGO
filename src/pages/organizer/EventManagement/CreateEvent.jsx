@@ -12,7 +12,7 @@ import {
 import Step1Info from './Step1Info';
 import Step2Showtimes from './Step2Showtimes';
 import Step3Settings from './Step3Settings';
-
+import Step4Payment from './Step4Payment';
 const { confirm } = Modal;
 
 // Key để lưu vào LocalStorage
@@ -143,16 +143,13 @@ const CreateEvent = () => {
         {
             title: 'Thanh toán',
             icon: <CreditCardOutlined />,
+            // Thay thế placeholder bằng Component thật
             content: (
-                <div
-                    style={{
-                        padding: 50,
-                        textAlign: 'center',
-                        color: token.colorTextSecondary
-                    }}
-                >
-                    Tính năng thanh toán đang được phát triển
-                </div>
+                <Step4Payment
+                    setOnNextAction={setOnNextAction}
+                    formData={formData}
+                    setFormData={setFormData}
+                />
             )
         }
     ];
