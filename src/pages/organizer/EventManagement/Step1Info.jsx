@@ -15,7 +15,8 @@ import {
     Typography
 } from 'antd';
 import { InboxOutlined, PlusOutlined } from '@ant-design/icons';
-import genresApi from '@apis/genresApi';
+
+import { genresApi } from '@apis/genresApi';
 
 // Cấu hình upload (giả lập preview)
 const getBase64 = (img, callback) => {
@@ -38,6 +39,7 @@ const Step1Info = ({
 
     // State dữ liệu danh mục & địa lý
     const [categories, setCategories] = useState([]);
+    const [loadingCategories, setLoadingCategories] = useState(false); // ADD: Loading state
     const [provinces, setProvinces] = useState([]);
     const [districts, setDistricts] = useState([]);
     const [wards, setWards] = useState([]);
@@ -58,85 +60,78 @@ const Step1Info = ({
                 .then(values => {
                     console.log('Step 1 Validated:', values);
 
-                    // 1. Lấy file thực tế từ parentFormData (đã lưu ở handleUpload)
+                    // 1. Lấy file thực tế từ parentFormData
                     const currentPosterFile = parentFormData.posterFile;
                     const currentLogoFile = parentFormData.logoFile;
 
-                    // 2. Validate thủ công: Bắt buộc phải có file ảnh nếu form đã có URL
-                    // (Antd Form chỉ check required của field input, k check file object)
+                    // 2. Validate thủ công: Bắt buộc phải có file ảnh
                     if (!currentPosterFile && !parentFormData.poster) {
                         message.error('Vui lòng tải lên ảnh nền sự kiện!');
                         throw new Error('Missing poster file');
                     }
 
                     // 3. TẠO MẢNG IMAGES THEO ĐÚNG THỨ TỰ YÊU CẦU
-                    // Index 0: Poster (Sẽ là Cover)
-                    // Index 1: Logo (Ảnh phụ/BTC)
+                    // Index 0: Poster, Index 1: Logo
                     const imagesArr = [];
 
                     if (currentPosterFile) {
                         imagesArr.push(currentPosterFile);
-                    } else if (
-                        parentFormData.images &&
-                        parentFormData.images[0]
-                    ) {
-                        // Trường hợp edit hoặc back lại, giữ file cũ
+                    } else if (parentFormData.images?.[0]) {
                         imagesArr.push(parentFormData.images[0]);
                     }
 
                     if (currentLogoFile) {
                         imagesArr.push(currentLogoFile);
-                    } else if (
-                        parentFormData.images &&
-                        parentFormData.images[1]
-                    ) {
+                    } else if (parentFormData.images?.[1]) {
                         imagesArr.push(parentFormData.images[1]);
                     }
 
                     // 4. Cập nhật vào State cha
                     setParentFormData(prev => ({
                         ...prev,
-                        ...values, // Dữ liệu text (tên, mô tả, địa chỉ...)
-                        images: imagesArr // Mảng file chuẩn bị upload: [Poster, Logo]
+                        ...values,
+                        images: imagesArr
                     }));
 
                     // 5. Chuyển bước
-                    if (nextStep) {
-                        nextStep();
-                    }
+                    if (nextStep) nextStep();
                     return true;
                 })
                 .catch(info => {
                     console.error('Validate Failed:', info);
-                    // message.error đã được gọi ở trên hoặc mặc định của antd
                 });
         });
-    }, [
-        form,
-        setOnNextAction,
-        setParentFormData,
-        nextStep,
-        parentFormData.posterFile,
-        parentFormData.logoFile
-    ]);
+    }, [form, setOnNextAction, setParentFormData, nextStep, parentFormData]);
 
     // Load dữ liệu ban đầu
     useEffect(() => {
-        // Load Genres
-        genresApi
-            .getAll()
-            .then(res => {
-                // Tùy cấu trúc response api của bạn
-                const list = res.result || res.data || [];
+        const fetchInitialData = async () => {
+            // 1. Load Genres (Có try/catch và loading)
+            try {
+                setLoadingCategories(true);
+                const res = await genresApi.getAll(); // Gọi qua object genresApi
+                const list =
+                    res?.result || res?.data || (Array.isArray(res) ? res : []);
                 setCategories(list);
-            })
-            .catch(err => console.error(err));
+            } catch (err) {
+                console.error('Lỗi tải danh mục:', err);
+                message.error('Không thể tải danh sách thể loại');
+            } finally {
+                setLoadingCategories(false);
+            }
 
-        // Load Tỉnh/Thành (Open API)
-        axios
-            .get('https://provinces.open-api.vn/api/p/')
-            .then(res => setProvinces(res.data))
-            .catch(err => console.error(err));
+            // 2. Load Tỉnh/Thành
+            try {
+                const res = await axios.get(
+                    'https://provinces.open-api.vn/api/p/'
+                );
+                setProvinces(res.data);
+            } catch (err) {
+                console.error('Lỗi tải tỉnh thành:', err);
+            }
+        };
+
+        fetchInitialData();
 
         // Fill dữ liệu cũ nếu quay lại bước này
         if (parentFormData) {
@@ -148,7 +143,7 @@ const Step1Info = ({
         }
     }, []);
 
-    // Logic địa lý (Provinces/Districts/Wards)
+    // Logic địa lý
     const handleProvinceChange = async (value, resetChildren = true) => {
         if (resetChildren) {
             form.setFieldsValue({ district: undefined, ward: undefined });
@@ -160,10 +155,15 @@ const Step1Info = ({
                 `https://provinces.open-api.vn/api/p/${value}?depth=2`
             );
             setDistricts(res.data.districts);
-            setParentFormData(prev => ({
-                ...prev,
-                provinceName: res.data.name
-            }));
+
+            // Lưu tên tỉnh để hiển thị nếu cần
+            if (resetChildren) {
+                const province = provinces.find(p => p.code === value);
+                setParentFormData(prev => ({
+                    ...prev,
+                    provinceName: province?.name
+                }));
+            }
         } catch (error) {
             console.error(error);
         }
@@ -184,9 +184,7 @@ const Step1Info = ({
         }
     };
 
-    // ----------------------------------------------------------------------
-    // LOGIC UPLOAD: LƯU FILE RAW VÀO PARENT FORM DATA NGAY LẬP TỨC
-    // ----------------------------------------------------------------------
+    // Logic Upload
     const handleUpload = (file, type) => {
         const isImage = file.type.startsWith('image/');
         if (!isImage) {
@@ -194,24 +192,25 @@ const Step1Info = ({
             return Upload.LIST_IGNORE;
         }
 
+        // ADD: Validate kích thước ảnh (VD: < 5MB)
+        const isLt5M = file.size / 1024 / 1024 < 5;
+        if (!isLt5M) {
+            message.error('Ảnh phải nhỏ hơn 5MB!');
+            return Upload.LIST_IGNORE;
+        }
+
         getBase64(file, url => {
             if (type === 'poster') {
-                // 1. Set Preview
                 setPosterUrl(url);
-                form.setFieldsValue({ poster: url }); // Để pass validate 'required'
-
-                // 2. Lưu file gốc vào state cha (để dùng ở useEffect Next)
+                form.setFieldsValue({ poster: url });
                 setParentFormData(prev => ({
                     ...prev,
                     posterFile: file,
                     poster: url
                 }));
             } else {
-                // 1. Set Preview
                 setLogoUrl(url);
                 form.setFieldsValue({ organizerLogo: url });
-
-                // 2. Lưu file gốc
                 setParentFormData(prev => ({
                     ...prev,
                     logoFile: file,
@@ -219,7 +218,7 @@ const Step1Info = ({
                 }));
             }
         });
-        return false; // Chặn auto upload của antd
+        return false;
     };
 
     const quillModules = {
@@ -233,7 +232,7 @@ const Step1Info = ({
 
     return (
         <Form form={form} layout='vertical' initialValues={parentFormData}>
-            {/* --- 1. ẢNH BÌA (POSTER - Index 0) --- */}
+            {/* --- 1. ẢNH BÌA --- */}
             <Card
                 style={{
                     marginBottom: 24,
@@ -297,7 +296,7 @@ const Step1Info = ({
                 </Form.Item>
             </Card>
 
-            {/* --- 2. THÔNG TIN & LOGO (Index 1) --- */}
+            {/* --- 2. THÔNG TIN & LOGO --- */}
             <Row gutter={24}>
                 <Col span={24} lg={8}>
                     <Card
@@ -354,7 +353,7 @@ const Step1Info = ({
                             </Form.Item>
                         </div>
                         <Form.Item
-                            name='organizerName' // Lưu ý: Backend có thể cần field này trong description hoặc xử lý riêng
+                            name='organizerName'
                             label={
                                 <span style={{ color: '#fff' }}>
                                     Tên ban tổ chức
@@ -423,6 +422,7 @@ const Step1Info = ({
                                         placeholder='Chọn thể loại'
                                         size='large'
                                         allowClear
+                                        loading={loadingCategories} // ADD: Loading state
                                     >
                                         {categories.map(c => (
                                             <Option key={c.id} value={c.id}>
@@ -434,7 +434,7 @@ const Step1Info = ({
                             </Col>
                             <Col span={12}>
                                 <Form.Item
-                                    name='location' // Lưu ý: Backend đang map trường này là 'location'
+                                    name='location'
                                     label={
                                         <span style={{ color: '#fff' }}>
                                             Tên địa điểm
@@ -570,7 +570,7 @@ const Step1Info = ({
                         </Row>
 
                         <Form.Item
-                            name='addressDetail' // Field này FE dùng để ghép chuỗi location
+                            name='addressDetail'
                             label={
                                 <span style={{ color: '#fff' }}>
                                     Địa chỉ chi tiết

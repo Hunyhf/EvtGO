@@ -25,10 +25,66 @@ import {
 } from '@ant-design/icons';
 import dayjs from 'dayjs';
 
-// Import API
-import { callFetchAllEvents } from '@apis/eventApi';
+// FIX: Import object eventApi thay vì function lẻ
+import { eventApi } from '@apis/eventApi';
 
 const { Title, Text } = Typography;
+
+// PERFORMANCE: Đưa styles tĩnh ra ngoài component để tránh re-create khi render
+const styles = {
+    container: {
+        minHeight: '100vh',
+        background:
+            'linear-gradient(135deg, #0f0c29 0%, #302b63 50%, #0f2e1f 100%)',
+        padding: '24px 40px',
+        borderRadius: '12px'
+    },
+    searchContainer: {
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: '32px',
+        flexWrap: 'wrap',
+        gap: '16px'
+    },
+    pillTab: isActive => ({
+        padding: '8px 24px',
+        borderRadius: '50px',
+        cursor: 'pointer',
+        fontWeight: 600,
+        fontSize: '14px',
+        transition: 'all 0.3s',
+        background: isActive ? '#2dc275' : 'rgba(255,255,255,0.1)',
+        color: isActive ? '#fff' : '#9ca6b0',
+        border: isActive ? 'none' : '1px solid #393f4e',
+        display: 'inline-block'
+    }),
+    card: {
+        background: '#1f1f1f',
+        borderRadius: '12px',
+        overflow: 'hidden',
+        boxShadow: '0 4px 20px rgba(0,0,0,0.3)',
+        border: '1px solid #2a2a2a',
+        transition: 'transform 0.2s, box-shadow 0.2s',
+        height: '100%',
+        display: 'flex',
+        flexDirection: 'column'
+    },
+    actionButton: {
+        color: '#9ca6b0',
+        fontSize: '13px',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        gap: '4px',
+        cursor: 'pointer',
+        background: 'transparent',
+        border: 'none',
+        padding: '8px 4px',
+        flex: 1,
+        transition: 'color 0.3s'
+    }
+};
 
 const EventManagement = () => {
     const navigate = useNavigate();
@@ -37,7 +93,7 @@ const EventManagement = () => {
     const [events, setEvents] = useState([]);
     const [loading, setLoading] = useState(false);
     const [searchText, setSearchText] = useState('');
-    const [activeTab, setActiveTab] = useState('pending');
+    const [activeTab, setActiveTab] = useState('pending'); // Mặc định tab Pending
     const [currentPage, setCurrentPage] = useState(1);
     const pageSize = 6;
 
@@ -45,12 +101,16 @@ const EventManagement = () => {
     const fetchEvents = useCallback(async () => {
         setLoading(true);
         try {
-            const response = await callFetchAllEvents();
+            // FIX: Gọi qua object eventApi
+            const response = await eventApi.getAll();
+
+            // Safety check: handle nhiều cấu trúc trả về khác nhau
             const data =
-                response?.content || response?.result || response || [];
+                response?.content || response?.result || response?.data || [];
+
             setEvents(Array.isArray(data) ? data : []);
         } catch (error) {
-            console.error('Lỗi tải danh sách:', error);
+            console.error('>>> [EventManagement] Lỗi tải danh sách:', error);
         } finally {
             setLoading(false);
         }
@@ -60,7 +120,8 @@ const EventManagement = () => {
         fetchEvents();
     }, [fetchEvents]);
 
-    // --- FILTER LOGIC ---
+    // --- FILTER LOGIC (Client-side) ---
+    // Note: Nếu dữ liệu lớn, nên chuyển logic search/filter này xuống Backend
     const filteredEvents = useMemo(() => {
         const now = dayjs();
         let result = events;
@@ -76,16 +137,16 @@ const EventManagement = () => {
             );
         }
 
-        // 2. Filter theo Tab (Đã xóa case 'draft')
+        // 2. Filter theo Tab
         switch (activeTab) {
-            case 'upcoming': // Sắp tới
+            case 'upcoming': // Sắp tới: Đã publish & ngày > hiện tại
                 result = result.filter(
                     e =>
                         e.status === 'PUBLISHED' &&
                         dayjs(e.startDate).isAfter(now)
                 );
                 break;
-            case 'past': // Đã qua
+            case 'past': // Đã qua: Ngày < hiện tại
                 result = result.filter(e =>
                     dayjs(e.endDate || e.startDate).isBefore(now)
                 );
@@ -107,62 +168,6 @@ const EventManagement = () => {
         const start = (currentPage - 1) * pageSize;
         return filteredEvents.slice(start, start + pageSize);
     }, [filteredEvents, currentPage]);
-
-    // --- STYLES ---
-    const styles = {
-        container: {
-            minHeight: '100vh',
-            background:
-                'linear-gradient(135deg, #0f0c29 0%, #302b63 50%, #0f2e1f 100%)',
-            padding: '24px 40px',
-            borderRadius: '12px'
-        },
-        searchContainer: {
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            marginBottom: '32px',
-            flexWrap: 'wrap',
-            gap: '16px'
-        },
-        pillTab: isActive => ({
-            padding: '8px 24px',
-            borderRadius: '50px',
-            cursor: 'pointer',
-            fontWeight: 600,
-            fontSize: '14px',
-            transition: 'all 0.3s',
-            background: isActive ? '#2dc275' : 'rgba(255,255,255,0.1)',
-            color: isActive ? '#fff' : '#9ca6b0',
-            border: isActive ? 'none' : '1px solid #393f4e',
-            display: 'inline-block'
-        }),
-        card: {
-            background: '#1f1f1f',
-            borderRadius: '12px',
-            overflow: 'hidden',
-            boxShadow: '0 4px 20px rgba(0,0,0,0.3)',
-            border: '1px solid #2a2a2a',
-            transition: 'transform 0.2s, box-shadow 0.2s',
-            height: '100%',
-            display: 'flex',
-            flexDirection: 'column'
-        },
-        actionButton: {
-            color: '#9ca6b0',
-            fontSize: '13px',
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            gap: '4px',
-            cursor: 'pointer',
-            background: 'transparent',
-            border: 'none',
-            padding: '8px 4px',
-            flex: 1,
-            transition: 'color 0.3s'
-        }
-    };
 
     return (
         <div style={styles.container}>
@@ -198,12 +203,13 @@ const EventManagement = () => {
                             borderColor: '#2dc275',
                             fontWeight: 600
                         }}
+                        onClick={fetchEvents} // Thêm nút reload thủ công
                     >
-                        Tìm kiếm
+                        Làm mới
                     </Button>
                 </div>
 
-                {/* STATUS TABS (Đã xóa Nháp) */}
+                {/* STATUS TABS */}
                 <Space size={12} wrap>
                     {[
                         { key: 'upcoming', label: 'Sắp tới' },
@@ -228,7 +234,7 @@ const EventManagement = () => {
             {activeTab === 'pending' && (
                 <Alert
                     message='Sự kiện đang chờ duyệt'
-                    description='Các sự kiện dưới đây đang được Admin kiểm duyệt. Bạn sẽ nhận được thông báo qua email khi trạng thái thay đổi. Vui lòng không chỉnh sửa trong quá trình này.'
+                    description='Các sự kiện dưới đây đang được Admin kiểm duyệt. Bạn sẽ nhận được thông báo qua email khi trạng thái thay đổi.'
                     type='warning'
                     showIcon
                     icon={<ExclamationCircleOutlined />}
@@ -244,8 +250,15 @@ const EventManagement = () => {
             {/* 3. EVENT CARDS LIST */}
             <Row gutter={[24, 24]}>
                 {loading ? (
-                    <div style={{ color: '#fff', padding: 20 }}>
-                        Đang tải...
+                    <div
+                        style={{
+                            color: '#fff',
+                            padding: 20,
+                            width: '100%',
+                            textAlign: 'center'
+                        }}
+                    >
+                        Đang tải dữ liệu...
                     </div>
                 ) : currentData.length === 0 ? (
                     <div
@@ -256,7 +269,7 @@ const EventManagement = () => {
                             textAlign: 'center'
                         }}
                     >
-                        Không tìm thấy sự kiện nào.
+                        Không tìm thấy sự kiện nào trong mục này.
                     </div>
                 ) : (
                     currentData.map(event => (
@@ -287,6 +300,7 @@ const EventManagement = () => {
                                                 height: '100%',
                                                 objectFit: 'cover'
                                             }}
+                                            loading='lazy'
                                         />
                                         <div
                                             style={{
@@ -302,7 +316,7 @@ const EventManagement = () => {
                                                 backdropFilter: 'blur(4px)'
                                             }}
                                         >
-                                            {event.genreName || 'Music'}
+                                            {event.genreName || 'Event'}
                                         </div>
                                     </div>
 
@@ -365,21 +379,10 @@ const EventManagement = () => {
                                                     {event.locationName ||
                                                         'Chưa cập nhật'}
                                                 </div>
-                                                <Text
-                                                    ellipsis
-                                                    style={{
-                                                        color: '#666',
-                                                        fontSize: '12px',
-                                                        paddingLeft: '22px'
-                                                    }}
-                                                >
-                                                    {event.addressDetail ||
-                                                        '...'}
-                                                </Text>
                                             </Space>
                                         </div>
 
-                                        {/* Status Badge (Đã xóa Draft tag) */}
+                                        {/* Status Badge */}
                                         <div
                                             style={{
                                                 alignSelf: 'flex-start',
@@ -442,22 +445,15 @@ const EventManagement = () => {
                                         <span>Đơn hàng</span>
                                     </button>
                                     <button
-                                        style={styles.actionButton}
-                                        className='action-btn'
-                                    >
-                                        <AppstoreOutlined
-                                            style={{ fontSize: '18px' }}
-                                        />
-                                        <span>Sơ đồ ghế</span>
-                                    </button>
-                                    <button
                                         style={{
                                             ...styles.actionButton,
                                             color: '#2dc275'
                                         }}
                                         className='action-btn'
                                         onClick={() =>
-                                            navigate(`/organizer/events/create`)
+                                            navigate(
+                                                `/organizer/events/edit/${event.id}`
+                                            )
                                         }
                                     >
                                         <EditOutlined

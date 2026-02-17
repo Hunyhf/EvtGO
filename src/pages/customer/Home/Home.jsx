@@ -10,24 +10,26 @@ import 'swiper/css/navigation';
 import 'swiper/css/pagination';
 
 import styles from './Home.module.scss';
-import Nav from '@components/Nav/Nav.jsx';
+import Nav from '@components/Nav/Nav.jsx'; // Nếu Nav export default thì giữ nguyên
 import EventCard from '@components/EventCard/EventCard.jsx';
-import genresApi from '@apis/genresApi';
+// FIX: Dùng Named Import vì genresApi.js không export default
+import { genresApi } from '@apis/genresApi';
 import { BANNER_DATA, TRENDING_DATA } from './constants';
 
 const cx = classNames.bind(styles);
 
+// NOTE: Nên tách hàm này ra file utils/stringUtils.js để dùng chung với Nav.jsx (DRY)
 const createSlug = str => {
     if (!str) return '';
     return str
         .toLowerCase()
-        .normalize('NFD') // Tách các dấu ra khỏi chữ cái
-        .replace(/[\u0300-\u036f]/g, '') // Xóa các dấu vừa tách
-        .replace(/[đĐ]/g, 'd') // Xử lý riêng chữ đ
-        .replace(/([^0-9a-z-\s])/g, '') // Xóa ký tự đặc biệt
-        .replace(/(\s+)/g, '-') // Thay khoảng trắng bằng dấu -
-        .replace(/-+/g, '-') // Xử lý trường hợp nhiều dấu - liên tiếp
-        .replace(/^-+|-+$/g, ''); // Xóa dấu - ở đầu và cuối
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/[đĐ]/g, 'd')
+        .replace(/([^0-9a-z-\s])/g, '')
+        .replace(/(\s+)/g, '-')
+        .replace(/-+/g, '-')
+        .replace(/^-+|-+$/g, '');
 };
 
 const swiperConfig = {
@@ -53,9 +55,13 @@ function Home() {
         const loadHomeData = async () => {
             try {
                 setLoading(true);
-                const genresRes = await genresApi.getAll();
-                const genres = genresRes.result || genresRes.data || [];
+                // Gọi API lấy danh sách thể loại
+                const res = await genresApi.getAll(); // Đã fix import nên gọi được
 
+                // Safety check: Đảm bảo luôn là mảng
+                const genres = Array.isArray(res) ? res : res?.result || [];
+
+                // Map dữ liệu fake event (Giữ nguyên logic cũ của bạn)
                 const dataWithEvents = genres.map((genre, index) => {
                     const mockEvents = Array.from({ length: 4 }, (_, i) => ({
                         id: `mock-${genre.id}-${i}`,
@@ -73,20 +79,29 @@ function Home() {
 
                 setSections(dataWithEvents);
             } catch (error) {
-                console.error('Lỗi khi tải dữ liệu genres:', error);
+                console.error('>>> [Home] Lỗi tải dữ liệu:', error);
             } finally {
                 setLoading(false);
             }
         };
+
         loadHomeData();
     }, []);
 
     const handleScroll = direction => {
         const { current } = trendingRef;
         if (current) {
-            const scrollAmount = current.clientWidth;
-            current.scrollLeft +=
-                direction === 'left' ? -scrollAmount : scrollAmount;
+            const scrollAmount = current.clientWidth * 0.8; // Scroll 80% chiều rộng để UX tốt hơn
+            const leftPos =
+                direction === 'left'
+                    ? current.scrollLeft - scrollAmount
+                    : current.scrollLeft + scrollAmount;
+
+            // UX: Scroll mượt
+            current.scrollTo({
+                left: leftPos,
+                behavior: 'smooth'
+            });
         }
     };
 
@@ -101,7 +116,11 @@ function Home() {
                         {BANNER_DATA.map(banner => (
                             <SwiperSlide key={banner.id}>
                                 <div className={cx('bannerItem')}>
-                                    <img src={banner.url} alt='Banner' />
+                                    <img
+                                        src={banner.url}
+                                        alt='Banner'
+                                        loading='lazy'
+                                    />
                                 </div>
                             </SwiperSlide>
                         ))}
@@ -119,6 +138,7 @@ function Home() {
                         <button
                             className={cx('controlBtn', 'prev')}
                             onClick={() => handleScroll('left')}
+                            aria-label='Previous slide'
                         >
                             ❮
                         </button>
@@ -131,26 +151,34 @@ function Home() {
                                     key={item.id}
                                     className={cx('trendingImgWrapper')}
                                 >
-                                    <img src={item.url} alt={item.title} />
+                                    <img
+                                        src={item.url}
+                                        alt={item.title}
+                                        loading='lazy'
+                                    />
                                 </div>
                             ))}
                         </div>
                         <button
                             className={cx('controlBtn', 'next')}
                             onClick={() => handleScroll('right')}
+                            aria-label='Next slide'
                         >
                             ❯
                         </button>
                     </div>
                 </section>
 
+                {/* Genres Sections */}
                 {loading ? (
-                    <div style={{ textAlign: 'center', padding: '40px' }}>
-                        Đang tải...
+                    <div
+                        className={cx('loadingState')}
+                        style={{ textAlign: 'center', padding: '40px' }}
+                    >
+                        Đang tải dữ liệu...
                     </div>
                 ) : (
                     sections.map(genre => {
-                        // Tạo slug từ tên thể loại để đưa vào URL
                         const genreSlug = createSlug(genre.name);
 
                         return (
@@ -163,7 +191,8 @@ function Home() {
                                         {genre.name}
                                     </h3>
                                     <Link
-                                        to={`/category?name=${genreSlug}`}
+                                        // FIX: Đồng bộ URL với Nav.jsx (/genre?id=...)
+                                        to={`/genre?id=${genre.id}&name=${genreSlug}`}
                                         className={cx('viewMore')}
                                         onClick={() => window.scrollTo(0, 0)}
                                     >

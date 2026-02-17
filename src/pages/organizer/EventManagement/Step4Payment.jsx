@@ -10,11 +10,11 @@ import {
     Row,
     Col,
     Divider,
-    Button,
-    App // Import App
+    App // Import App của Antd để dùng message context
 } from 'antd';
 import { BankOutlined, AuditOutlined } from '@ant-design/icons';
-import { callCreateEvent } from '@apis/eventApi';
+
+import { eventApi } from '@apis/eventApi';
 
 const { Title, Text } = Typography;
 const { Option } = Select;
@@ -24,9 +24,10 @@ const Step4Payment = ({ setOnNextAction, formData, setFormData }) => {
     const navigate = useNavigate();
     const [loading, setLoading] = useState(false);
 
+    // Hook message từ App component để tránh lỗi context
     const { message: messageApi } = App.useApp();
 
-    // ... (Giữ nguyên phần useEffect Init Data) ...
+    // 1. Init Data
     useEffect(() => {
         if (formData) {
             form.setFieldsValue({
@@ -42,90 +43,101 @@ const Step4Payment = ({ setOnNextAction, formData, setFormData }) => {
         }
     }, [formData, form]);
 
-    // 2. SỬA LOGIC GỬI JSON
+    // 2. XỬ LÝ KHI BẤM NÚT "HOÀN TẤT" (NEXT)
     useEffect(() => {
         setOnNextAction(() => async () => {
             try {
+                // Validate form thanh toán hiện tại
                 const paymentValues = await form.validateFields();
+
+                // Merge dữ liệu form hiện tại vào formData tổng
                 const finalData = { ...formData, ...paymentValues };
                 setFormData(finalData);
 
-                // --- CHUẨN BỊ DỮ LIỆU JSON ĐỂ GỬI BE ---
-                // Backend yêu cầu ReqEventDTO, ta phải map đúng tên trường
-
-                // Xử lý thời gian (Lấy suất diễn đầu tiên vì BE hiện tại chỉ lưu 1 mốc thời gian)
+                // --- PREPARE PAYLOAD ---
+                // Logic: Lấy thời gian từ showTimes[0] (do BE hiện tại xử lý đơn giản 1 khung giờ)
                 let startTime = null;
                 let endTime = null;
-                if (finalData.showTimes && finalData.showTimes.length > 0) {
-                    startTime = finalData.showTimes[0].startTime;
+
+                if (
+                    Array.isArray(finalData.showTimes) &&
+                    finalData.showTimes.length > 0
+                ) {
+                    startTime = finalData.showTimes[0].startTime; // Dạng ISOString hoặc string từ DatePicker
                     endTime = finalData.showTimes[0].endTime;
                 }
 
-                // Xử lý địa chỉ
-                const locationStr =
-                    (finalData.locationName || '') +
-                    (finalData.addressDetail
-                        ? ', ' + finalData.addressDetail
-                        : '');
+                // Logic: Ghép địa chỉ
+                const locationStr = [
+                    finalData.locationName,
+                    finalData.addressDetail
+                ]
+                    .filter(Boolean)
+                    .join(', '); // Lọc bỏ giá trị null/undefined/empty
 
-                // Tạo Object JSON khớp với ReqEventDTO trong Java
+                // Tạo JSON khớp với DTO Backend
                 const payload = {
                     name: finalData.name,
                     description: finalData.description || '',
                     location: locationStr,
                     province: finalData.province,
                     genreId: finalData.genreId,
-                    startTime: startTime, // format ISO string từ step 2
-                    endTime: endTime, // format ISO string từ step 2
-                    // Các trường bắt buộc khác của BE (nếu có validation @NotNull)
-                    startDate: startTime ? startTime.split('T')[0] : null, // BE có trường startDate riêng
-                    endDate: endTime ? endTime.split('T')[0] : null // BE có trường endDate riêng
+                    startTime: startTime,
+                    endTime: endTime,
+                    // Map thêm các trường nếu BE yêu cầu tách riêng ngày
+                    startDate: startTime ? startTime.split('T')[0] : null,
+                    endDate: endTime ? endTime.split('T')[0] : null
+
+                    // Thông tin thanh toán (Nếu BE có lưu)
+                    // ...paymentValues
                 };
 
-                console.log('Payload sending to BE:', payload);
+                console.log('>>> [Step4] Payload:', payload);
 
-                // --- GỌI API ---
+                // --- CALL API ---
                 setLoading(true);
                 messageApi.loading({
-                    content: 'Đang tạo sự kiện...',
-                    key: 'create'
+                    content: 'Đang khởi tạo sự kiện...',
+                    key: 'create_process'
                 });
 
-                await callCreateEvent(payload);
+                // FIX: Gọi qua eventApi.create
+                const res = await eventApi.create(payload);
 
                 messageApi.success({
-                    content:
-                        'Tạo sự kiện thành công! (Lưu ý: Ảnh và Vé chưa được lưu do hạn chế BE)',
-                    key: 'create',
-                    duration: 3
+                    content: 'Tạo sự kiện thành công!',
+                    key: 'create_process',
+                    duration: 2
                 });
 
-                // Cleanup & Redirect
+                // Cleanup LocalStorage
                 localStorage.removeItem('evtgo_create_event_data');
                 localStorage.removeItem('evtgo_create_event_step');
 
+                // Redirect sau 1.5s
                 setTimeout(() => {
                     navigate('/organizer/events');
-                }, 1000);
+                }, 1500);
             } catch (error) {
-                console.error('Create Event Error:', error);
+                console.error('>>> [Step4] Create Error:', error);
+
                 const errorMsg =
                     error.response?.data?.message ||
                     error.message ||
-                    'Lỗi không xác định';
+                    'Có lỗi xảy ra!';
                 messageApi.error({
-                    content: 'Lỗi: ' + errorMsg,
-                    key: 'create'
+                    content: `Tạo thất bại: ${errorMsg}`,
+                    key: 'create_process'
                 });
-                // Không throw error để tránh lỗi uncaught promise, chỉ dừng loading
+
+                // Không throw tiếp để giữ user ở lại trang này sửa lỗi
             } finally {
                 setLoading(false);
             }
         });
     }, [form, setOnNextAction, formData, setFormData, navigate, messageApi]);
 
-    // ... (Phần Style và Return giữ nguyên như cũ) ...
-    // ... (Copy lại phần giao diện Return từ code cũ của bạn) ...
+    // --- STYLES ---
     const cardStyle = {
         borderRadius: '16px',
         background: 'linear-gradient(135deg, #141414 0%, #0f2e1f 100%)',
@@ -133,6 +145,7 @@ const Step4Payment = ({ setOnNextAction, formData, setFormData }) => {
         boxShadow: '0 8px 32px rgba(0, 0, 0, 0.4)',
         padding: '24px'
     };
+
     const inputStyle = {
         backgroundColor: '#fff',
         color: '#1f1f1f',
@@ -143,12 +156,14 @@ const Step4Payment = ({ setOnNextAction, formData, setFormData }) => {
         boxShadow: '0 2px 6px rgba(0,0,0,0.05)',
         marginTop: '8px'
     };
+
     const labelStyle = { color: '#fff', fontSize: '15px', fontWeight: 500 };
 
     return (
         <div style={{ maxWidth: 900, margin: '0 auto' }}>
             <Card bordered={false} style={cardStyle}>
                 <Form form={form} layout='vertical'>
+                    {/* Phần 1: Thông tin Ngân hàng */}
                     <div style={{ marginBottom: 32 }}>
                         <div
                             style={{
@@ -182,6 +197,7 @@ const Step4Payment = ({ setOnNextAction, formData, setFormData }) => {
                             Doanh thu bán vé sẽ được đối soát và chuyển khoản
                             vào tài khoản này sau khi sự kiện kết thúc.
                         </Text>
+
                         <Row gutter={[24, 16]}>
                             <Col span={24}>
                                 <Form.Item
@@ -273,7 +289,10 @@ const Step4Payment = ({ setOnNextAction, formData, setFormData }) => {
                             </Col>
                         </Row>
                     </div>
+
                     <Divider style={{ borderColor: '#393f4e' }} />
+
+                    {/* Phần 2: Hoá đơn đỏ */}
                     <div style={{ marginTop: 32 }}>
                         <div
                             style={{

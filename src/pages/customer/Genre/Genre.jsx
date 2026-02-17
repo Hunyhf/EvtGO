@@ -1,5 +1,6 @@
-import React, { useState, useEffect, useMemo } from 'react';
-import { useLocation, useSearchParams } from 'react-router-dom';
+// src/pages/customer/Genre/Genre.jsx
+import React, { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import classNames from 'classnames/bind';
 import styles from './Genre.module.scss';
 import EventCard from '@components/EventCard/EventCard';
@@ -16,50 +17,47 @@ const LOCATIONS = [
     'Đà Nẵng',
     'Khác'
 ];
-const ITEMS_PER_PAGE = 12; // Số lượng item mỗi trang
+const ITEMS_PER_PAGE = 12;
 
 function Genre() {
     const [searchParams, setSearchParams] = useSearchParams();
 
-    // Lấy params từ URL (nếu có)
+    // Lấy params khởi tạo từ URL
     const urlGenreId = searchParams.get('id');
     const urlSearchQuery = searchParams.get('q') || '';
 
     // State dữ liệu
     const [events, setEvents] = useState([]);
-    const [genresList, setGenresList] = useState([]); // Danh sách thể loại từ API
+    const [genresList, setGenresList] = useState([]);
     const [loading, setLoading] = useState(false);
 
     // State phân trang
     const [currentPage, setCurrentPage] = useState(1);
     const [totalPages, setTotalPages] = useState(0);
-    const [totalElements, setTotalElements] = useState(0);
 
-    // State bộ lọc (Temp là giá trị đang chọn chưa bấm Áp dụng)
+    // State bộ lọc
     const [tempFilters, setTempFilters] = useState({
         location: 'Toàn quốc',
-        isFree: false,
-        genreId: urlGenreId || '', // Dùng genreId thay vì tên category
+        genreId: urlGenreId || '',
         date: ''
     });
 
-    // State bộ lọc (Applied là giá trị đã bấm Áp dụng để gọi API)
     const [appliedFilters, setAppliedFilters] = useState({
         location: 'Toàn quốc',
-        isFree: false,
         genreId: urlGenreId || '',
         date: '',
         search: urlSearchQuery
     });
 
-    // 1. Fetch danh sách Thể loại (Genres) khi mount
+    // 1. Load danh sách thể loại ban đầu
     useEffect(() => {
         const fetchGenres = async () => {
             try {
                 const res = await genresApi.getAll();
-                if (res && res.result) {
-                    setGenresList(res.result);
-                }
+                // Map dữ liệu linh hoạt theo cấu trúc RestResponse
+                const list =
+                    res?.result || res?.data || (Array.isArray(res) ? res : []);
+                setGenresList(list);
             } catch (error) {
                 console.error('Lỗi lấy danh sách thể loại:', error);
             }
@@ -67,62 +65,56 @@ function Genre() {
         fetchGenres();
     }, []);
 
-    // 2. Đồng bộ URL search params vào filters khi URL thay đổi
+    // 2. Đồng bộ khi URL thay đổi (VD: User bấm từ trang Home)
     useEffect(() => {
         setAppliedFilters(prev => ({
             ...prev,
             genreId: urlGenreId || prev.genreId,
             search: urlSearchQuery || prev.search
         }));
-
-        // Cập nhật luôn temp filters để UI đồng bộ
         setTempFilters(prev => ({
             ...prev,
             genreId: urlGenreId || prev.genreId
         }));
     }, [urlGenreId, urlSearchQuery]);
 
-    // 3. Fetch Events khi filters hoặc page thay đổi
+    // 3. Fetch Events (FIX BUG 500 TẠI ĐÂY)
     useEffect(() => {
         const fetchEvents = async () => {
             setLoading(true);
             try {
-                // Chuẩn bị params gọi API
                 const params = {
-                    page: currentPage, // Backend thường là page index (0 hoặc 1 tùy cấu hình, giả sử Spring Boot mặc định là 1 trong code custom của bạn hoặc bạn cần -1 nếu là JPA Pageable)
+                    page: currentPage,
                     size: ITEMS_PER_PAGE,
                     search: appliedFilters.search,
-                    sort: 'startDate,asc' // Sắp xếp theo ngày
+                    // FIX: Đổi 'startDate' -> 'startTime' khớp với Entity Event trong Java
+                    sort: 'startTime,asc'
                 };
 
-                // Thêm các filter nếu có giá trị
-                if (appliedFilters.genreId) {
+                if (appliedFilters.genreId)
                     params.genreId = appliedFilters.genreId;
-                }
-
                 if (
                     appliedFilters.location &&
                     appliedFilters.location !== 'Toàn quốc'
                 ) {
                     params.location = appliedFilters.location;
                 }
+                if (appliedFilters.date) params.startDate = appliedFilters.date;
 
-                if (appliedFilters.date) {
-                    // Format date theo yêu cầu backend (VD: YYYY-MM-DD)
-                    params.startDate = appliedFilters.date;
-                }
-
-                // Gọi API
                 const res = await eventApi.getAll(params);
 
-                if (res && res.result) {
-                    // Xử lý dữ liệu trả về từ ResultPaginationDTO
-                    setEvents(res.result.content || res.result); // content nếu là Page, hoặc array trực tiếp
+                // Tối ưu cách đọc ResultPaginationDTO từ Backend
+                const data = res?.result || res?.data || res;
 
-                    // Cập nhật phân trang
-                    const meta = res.result.meta || {};
-                    setTotalPages(meta.pages || 1);
-                    setTotalElements(meta.total || 0);
+                if (data) {
+                    // Nếu BE trả về Page object (có trường content)
+                    setEvents(
+                        data.content || (Array.isArray(data) ? data : [])
+                    );
+
+                    // Cập nhật phân trang từ meta hoặc trực tiếp từ Page object
+                    const meta = data.meta || {};
+                    setTotalPages(meta.pages || data.totalPages || 0);
                 } else {
                     setEvents([]);
                 }
@@ -138,29 +130,15 @@ function Genre() {
     }, [appliedFilters, currentPage]);
 
     // --- HANDLERS ---
-
     const handleApplyFilter = () => {
-        setAppliedFilters(prev => ({
-            ...prev,
-            ...tempFilters
-        }));
-        setCurrentPage(1); // Reset về trang 1 khi filter
+        setAppliedFilters(prev => ({ ...prev, ...tempFilters }));
+        setCurrentPage(1);
     };
 
     const handleResetFilter = () => {
-        const defaultFilters = {
-            location: 'Toàn quốc',
-            isFree: false,
-            genreId: '',
-            date: ''
-        };
-        setTempFilters(defaultFilters);
-        setAppliedFilters(prev => ({
-            ...prev,
-            ...defaultFilters,
-            search: '' // Reset cả search text
-        }));
-        // Xóa params trên URL
+        const defaults = { location: 'Toàn quốc', genreId: '', date: '' };
+        setTempFilters(defaults);
+        setAppliedFilters(prev => ({ ...prev, ...defaults, search: '' }));
         setSearchParams({});
         setCurrentPage(1);
     };
@@ -174,10 +152,7 @@ function Genre() {
 
     return (
         <div className={cx('genre-container')}>
-            {/* Đổi class từ categoryContainer sang genre-container cho đúng file scss mới */}
-
             <aside className={cx('sidebar')}>
-                {/* --- LOCATION FILTER --- */}
                 <div className={cx('filterGroup')}>
                     <h3 className={cx('filterTitle')}>Vị trí</h3>
                     <ul className={cx('filterList')}>
@@ -202,24 +177,6 @@ function Genre() {
                     </ul>
                 </div>
 
-                {/* --- PRICE FILTER (Nếu backend hỗ trợ lọc theo giá) --- */}
-                {/* Tạm ẩn nếu chưa có API filter giá, hoặc giữ để làm UI */}
-                {/* <div className={cx('filterGroup')}>
-                    <h3 className={cx('filterTitle')}>Giá vé</h3>
-                    <label className={cx('filterItem')}>
-                        <input
-                            type='checkbox'
-                            checked={tempFilters.isFree}
-                            onChange={e =>
-                                setTempFilters({ ...tempFilters, isFree: e.target.checked })
-                            }
-                        />
-                        <span>Sự kiện Miễn phí</span>
-                    </label>
-                </div> 
-                */}
-
-                {/* --- GENRE FILTER (Đã tích hợp API) --- */}
                 <div className={cx('filterGroup')}>
                     <h3 className={cx('filterTitle')}>Thể loại</h3>
                     <select
@@ -241,7 +198,6 @@ function Genre() {
                     </select>
                 </div>
 
-                {/* --- DATE FILTER --- */}
                 <div className={cx('filterGroup')}>
                     <h3 className={cx('filterTitle')}>Chọn ngày</h3>
                     <input
@@ -257,7 +213,6 @@ function Genre() {
                     />
                 </div>
 
-                {/* --- ACTIONS --- */}
                 <div className={cx('filterActions')}>
                     <button
                         className={cx('btnReset')}
@@ -297,7 +252,6 @@ function Genre() {
                             )}
                         </div>
 
-                        {/* --- PAGINATION --- */}
                         {totalPages > 1 && (
                             <div className={cx('pagination')}>
                                 <button
@@ -309,7 +263,6 @@ function Genre() {
                                 >
                                     &lt;
                                 </button>
-
                                 {Array.from({ length: totalPages }).map(
                                     (_, idx) => (
                                         <button
@@ -325,7 +278,6 @@ function Genre() {
                                         </button>
                                     )
                                 )}
-
                                 <button
                                     className={cx('pageBtn')}
                                     disabled={currentPage === totalPages}
