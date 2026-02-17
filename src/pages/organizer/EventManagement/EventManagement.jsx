@@ -2,55 +2,55 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-    Table,
     Input,
     Button,
-    Tabs,
     Tag,
     Space,
-    Popconfirm,
-    message,
-    Card,
     Typography,
-    Tooltip
+    Row,
+    Col,
+    Pagination,
+    Alert
 } from 'antd';
 import {
     SearchOutlined,
     EditOutlined,
-    DeleteOutlined,
-    PlusOutlined,
-    EyeOutlined,
     CalendarOutlined,
-    EnvironmentOutlined
+    EnvironmentOutlined,
+    DashboardOutlined,
+    TeamOutlined,
+    FileTextOutlined,
+    AppstoreOutlined,
+    ExclamationCircleOutlined
 } from '@ant-design/icons';
 import dayjs from 'dayjs';
 
 // Import API
-import { callFetchAllEvents, callDeleteEvent } from '@apis/eventApi';
+import { callFetchAllEvents } from '@apis/eventApi';
 
-const { Title } = Typography;
+const { Title, Text } = Typography;
 
 const EventManagement = () => {
     const navigate = useNavigate();
 
-    // State
+    // --- STATE ---
     const [events, setEvents] = useState([]);
     const [loading, setLoading] = useState(false);
     const [searchText, setSearchText] = useState('');
-    const [activeTab, setActiveTab] = useState('upcoming'); // Tab mặc định
+    const [activeTab, setActiveTab] = useState('pending');
+    const [currentPage, setCurrentPage] = useState(1);
+    const pageSize = 6;
 
-    // 1. Logic Fetch API (Giữ nguyên logic tối ưu của bạn)
+    // --- FETCH DATA ---
     const fetchEvents = useCallback(async () => {
         setLoading(true);
         try {
             const response = await callFetchAllEvents();
-            // Xử lý response tùy theo cấu trúc trả về
             const data =
                 response?.content || response?.result || response || [];
             setEvents(Array.isArray(data) ? data : []);
         } catch (error) {
-            console.error('Lỗi khi lấy danh sách sự kiện:', error);
-            message.error('Không thể tải danh sách sự kiện');
+            console.error('Lỗi tải danh sách:', error);
         } finally {
             setLoading(false);
         }
@@ -60,224 +60,482 @@ const EventManagement = () => {
         fetchEvents();
     }, [fetchEvents]);
 
-    // 2. Logic Filter (Giữ nguyên logic của bạn, chuyển đổi sang dùng cho Table)
+    // --- FILTER LOGIC ---
     const filteredEvents = useMemo(() => {
         const now = dayjs();
+        let result = events;
 
-        return events.filter(event => {
-            // Filter theo Search
-            const name = event?.name?.toLowerCase() || '';
-            const location = event?.location?.toLowerCase() || ''; // Thêm tìm theo địa điểm
-            const matchSearch =
-                name.includes(searchText.toLowerCase()) ||
-                location.includes(searchText.toLowerCase());
+        // 1. Filter theo Search
+        if (searchText) {
+            const lowerSearch = searchText.toLowerCase();
+            result = result.filter(
+                e =>
+                    (e.name && e.name.toLowerCase().includes(lowerSearch)) ||
+                    (e.locationName &&
+                        e.locationName.toLowerCase().includes(lowerSearch))
+            );
+        }
 
-            if (!matchSearch) return false;
+        // 2. Filter theo Tab (Đã xóa case 'draft')
+        switch (activeTab) {
+            case 'upcoming': // Sắp tới
+                result = result.filter(
+                    e =>
+                        e.status === 'PUBLISHED' &&
+                        dayjs(e.startDate).isAfter(now)
+                );
+                break;
+            case 'past': // Đã qua
+                result = result.filter(e =>
+                    dayjs(e.endDate || e.startDate).isBefore(now)
+                );
+                break;
+            case 'pending': // Chờ duyệt
+                result = result.filter(
+                    e => e.status === 'PENDING' || !e.status
+                );
+                break;
+            default:
+                break;
+        }
 
-            const eventDate = dayjs(event?.startDate);
-
-            // Filter theo Tab
-            switch (activeTab) {
-                case 'upcoming':
-                    // Đã duyệt và chưa diễn ra (hoặc đang diễn ra)
-                    return (
-                        event?.published &&
-                        (eventDate.isAfter(now) || eventDate.isSame(now, 'day'))
-                    );
-                case 'past':
-                    // Đã diễn ra
-                    return eventDate.isBefore(now);
-                case 'pending':
-                    // Chưa được duyệt (Bản nháp hoặc chờ duyệt)
-                    return !event?.published;
-                default:
-                    return true;
-            }
-        });
+        return result;
     }, [events, searchText, activeTab]);
 
-    // 3. Xử lý Xóa (Dùng Antd Message)
-    const handleDelete = async id => {
-        try {
-            await callDeleteEvent(id);
-            message.success('Xóa sự kiện thành công!');
-            fetchEvents(); // Reload lại list
-        } catch (error) {
-            console.error('Xóa thất bại:', error);
-            message.error('Xóa thất bại, vui lòng thử lại.');
+    // --- PAGINATION DATA ---
+    const currentData = useMemo(() => {
+        const start = (currentPage - 1) * pageSize;
+        return filteredEvents.slice(start, start + pageSize);
+    }, [filteredEvents, currentPage]);
+
+    // --- STYLES ---
+    const styles = {
+        container: {
+            minHeight: '100vh',
+            background:
+                'linear-gradient(135deg, #0f0c29 0%, #302b63 50%, #0f2e1f 100%)',
+            padding: '24px 40px',
+            borderRadius: '12px'
+        },
+        searchContainer: {
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            marginBottom: '32px',
+            flexWrap: 'wrap',
+            gap: '16px'
+        },
+        pillTab: isActive => ({
+            padding: '8px 24px',
+            borderRadius: '50px',
+            cursor: 'pointer',
+            fontWeight: 600,
+            fontSize: '14px',
+            transition: 'all 0.3s',
+            background: isActive ? '#2dc275' : 'rgba(255,255,255,0.1)',
+            color: isActive ? '#fff' : '#9ca6b0',
+            border: isActive ? 'none' : '1px solid #393f4e',
+            display: 'inline-block'
+        }),
+        card: {
+            background: '#1f1f1f',
+            borderRadius: '12px',
+            overflow: 'hidden',
+            boxShadow: '0 4px 20px rgba(0,0,0,0.3)',
+            border: '1px solid #2a2a2a',
+            transition: 'transform 0.2s, box-shadow 0.2s',
+            height: '100%',
+            display: 'flex',
+            flexDirection: 'column'
+        },
+        actionButton: {
+            color: '#9ca6b0',
+            fontSize: '13px',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            gap: '4px',
+            cursor: 'pointer',
+            background: 'transparent',
+            border: 'none',
+            padding: '8px 4px',
+            flex: 1,
+            transition: 'color 0.3s'
         }
     };
 
-    // 4. Cấu hình Cột cho Table Ant Design
-    const columns = [
-        {
-            title: 'Hình ảnh',
-            dataIndex: 'poster',
-            key: 'poster',
-            width: 100,
-            render: url => (
-                <img
-                    src={url || 'https://via.placeholder.com/150'}
-                    alt='Event'
-                    style={{
-                        width: '80px',
-                        height: '45px',
-                        objectFit: 'cover',
-                        borderRadius: 4
-                    }}
-                />
-            )
-        },
-        {
-            title: 'Tên sự kiện',
-            dataIndex: 'name',
-            key: 'name',
-            render: text => (
-                <span style={{ fontWeight: 600, color: '#fff' }}>{text}</span>
-            )
-        },
-        {
-            title: 'Thời gian & Địa điểm',
-            key: 'info',
-            render: (_, record) => (
-                <Space direction='vertical' size={0}>
-                    <span style={{ fontSize: 13, color: '#2dc275' }}>
-                        <CalendarOutlined />{' '}
-                        {dayjs(record.startDate).format('HH:mm DD/MM/YYYY')}
-                    </span>
-                    <span style={{ fontSize: 13, color: '#9ca6b0' }}>
-                        <EnvironmentOutlined />{' '}
-                        {record.location || 'Chưa cập nhật'}
-                    </span>
-                </Space>
-            )
-        },
-        {
-            title: 'Trạng thái',
-            key: 'status',
-            render: (_, record) => {
-                let color = record.published ? 'green' : 'orange';
-                let label = record.published ? 'Đang bán' : 'Chờ duyệt / Nháp';
-
-                // Logic hiển thị status dựa trên Tab hiện tại để rõ nghĩa hơn
-                if (activeTab === 'past') {
-                    color = 'gray';
-                    label = 'Đã kết thúc';
-                }
-
-                return <Tag color={color}>{label}</Tag>;
-            }
-        },
-        {
-            title: 'Hành động',
-            key: 'action',
-            width: 150,
-            render: (_, record) => (
-                <Space size='small'>
-                    <Tooltip title='Xem chi tiết'>
-                        <Button
-                            type='text'
-                            icon={<EyeOutlined style={{ color: '#2dc275' }} />}
-                            onClick={() =>
-                                navigate(`/organizer/events/${record.id}`)
-                            }
-                        />
-                    </Tooltip>
-                    <Tooltip title='Chỉnh sửa'>
-                        <Button
-                            type='text'
-                            icon={<EditOutlined style={{ color: '#1890ff' }} />}
-                            onClick={() =>
-                                navigate(`/organizer/events/edit/${record.id}`)
-                            }
-                        />
-                    </Tooltip>
-                    <Tooltip title='Xóa'>
-                        <Popconfirm
-                            title='Xóa sự kiện?'
-                            description='Hành động này không thể hoàn tác.'
-                            onConfirm={() => handleDelete(record.id)}
-                            okText='Xóa'
-                            cancelText='Hủy'
-                        >
-                            <Button
-                                type='text'
-                                danger
-                                icon={<DeleteOutlined />}
-                            />
-                        </Popconfirm>
-                    </Tooltip>
-                </Space>
-            )
-        }
-    ];
-
-    // Cấu hình Tabs
-    const tabItems = [
-        { key: 'upcoming', label: `Sắp diễn ra` },
-        { key: 'pending', label: `Chờ duyệt` },
-        { key: 'past', label: `Đã kết thúc` }
-    ];
-
     return (
-        <div style={{ maxWidth: 1400, margin: '0 auto' }}>
-            {/* Header Area */}
-            <div
-                style={{
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center',
-                    marginBottom: 24
-                }}
-            >
-                <Title level={3} style={{ color: '#fff', margin: 0 }}>
-                    Quản lý sự kiện
-                </Title>
+        <div style={styles.container}>
+            {/* 1. TOP BAR */}
+            <div style={styles.searchContainer}>
+                <div
+                    style={{
+                        display: 'flex',
+                        gap: '12px',
+                        flex: 1,
+                        minWidth: '300px'
+                    }}
+                >
+                    <Input
+                        placeholder='Tìm kiếm sự kiện...'
+                        prefix={<SearchOutlined style={{ color: '#2dc275' }} />}
+                        style={{
+                            borderRadius: '50px',
+                            background: '#fff',
+                            border: 'none',
+                            padding: '10px 20px',
+                            boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+                            maxWidth: '400px'
+                        }}
+                        onChange={e => setSearchText(e.target.value)}
+                    />
+                    <Button
+                        type='primary'
+                        shape='round'
+                        size='large'
+                        style={{
+                            background: '#2dc275',
+                            borderColor: '#2dc275',
+                            fontWeight: 600
+                        }}
+                    >
+                        Tìm kiếm
+                    </Button>
+                </div>
+
+                {/* STATUS TABS (Đã xóa Nháp) */}
+                <Space size={12} wrap>
+                    {[
+                        { key: 'upcoming', label: 'Sắp tới' },
+                        { key: 'past', label: 'Đã qua' },
+                        { key: 'pending', label: 'Chờ duyệt' }
+                    ].map(tab => (
+                        <div
+                            key={tab.key}
+                            style={styles.pillTab(activeTab === tab.key)}
+                            onClick={() => {
+                                setActiveTab(tab.key);
+                                setCurrentPage(1);
+                            }}
+                        >
+                            {tab.label}
+                        </div>
+                    ))}
+                </Space>
             </div>
 
-            <Card
-                bordered={false}
-                style={{
-                    borderRadius: 8,
-                    background: '#2a2d34',
-                    minHeight: '80vh'
-                }}
-                bodyStyle={{ padding: '0 24px 24px 24px' }}
-            >
-                {/* Tabs & Search Area */}
-                <Tabs
-                    activeKey={activeTab}
-                    onChange={setActiveTab}
-                    items={tabItems}
-                    tabBarStyle={{
-                        borderBottom: '1px solid #393f4e',
-                        marginBottom: 24
+            {/* 2. ALERT BANNER */}
+            {activeTab === 'pending' && (
+                <Alert
+                    message='Sự kiện đang chờ duyệt'
+                    description='Các sự kiện dưới đây đang được Admin kiểm duyệt. Bạn sẽ nhận được thông báo qua email khi trạng thái thay đổi. Vui lòng không chỉnh sửa trong quá trình này.'
+                    type='warning'
+                    showIcon
+                    icon={<ExclamationCircleOutlined />}
+                    style={{
+                        marginBottom: '32px',
+                        borderRadius: '8px',
+                        background: '#fffbe6',
+                        border: '1px solid #ffe58f'
                     }}
-                    tabBarExtraContent={
-                        <Input
-                            placeholder='Tìm kiếm sự kiện...'
-                            prefix={
-                                <SearchOutlined style={{ color: '#bfbfbf' }} />
-                            }
-                            onChange={e => setSearchText(e.target.value)}
-                            style={{ width: 300 }}
-                            allowClear
-                        />
-                    }
                 />
+            )}
 
-                {/* Data Table */}
-                <Table
-                    columns={columns}
-                    dataSource={filteredEvents}
-                    rowKey='id'
-                    loading={loading}
-                    pagination={{ pageSize: 8, showSizeChanger: false }}
-                    locale={{
-                        emptyText: 'Không tìm thấy sự kiện nào trong mục này'
+            {/* 3. EVENT CARDS LIST */}
+            <Row gutter={[24, 24]}>
+                {loading ? (
+                    <div style={{ color: '#fff', padding: 20 }}>
+                        Đang tải...
+                    </div>
+                ) : currentData.length === 0 ? (
+                    <div
+                        style={{
+                            color: '#9ca6b0',
+                            padding: 20,
+                            width: '100%',
+                            textAlign: 'center'
+                        }}
+                    >
+                        Không tìm thấy sự kiện nào.
+                    </div>
+                ) : (
+                    currentData.map(event => (
+                        <Col xs={24} lg={12} key={event.id}>
+                            <div
+                                className='event-card-hover'
+                                style={styles.card}
+                            >
+                                <div
+                                    style={{ display: 'flex', height: '180px' }}
+                                >
+                                    {/* Left: Thumbnail */}
+                                    <div
+                                        style={{
+                                            width: '180px',
+                                            flexShrink: 0,
+                                            position: 'relative'
+                                        }}
+                                    >
+                                        <img
+                                            src={
+                                                event.poster ||
+                                                'https://via.placeholder.com/300x400?text=EvtGO'
+                                            }
+                                            alt={event.name}
+                                            style={{
+                                                width: '100%',
+                                                height: '100%',
+                                                objectFit: 'cover'
+                                            }}
+                                        />
+                                        <div
+                                            style={{
+                                                position: 'absolute',
+                                                top: 10,
+                                                left: 10,
+                                                background: 'rgba(0,0,0,0.6)',
+                                                color: '#fff',
+                                                padding: '4px 8px',
+                                                borderRadius: '4px',
+                                                fontSize: '12px',
+                                                fontWeight: 'bold',
+                                                backdropFilter: 'blur(4px)'
+                                            }}
+                                        >
+                                            {event.genreName || 'Music'}
+                                        </div>
+                                    </div>
+
+                                    {/* Right: Info */}
+                                    <div
+                                        style={{
+                                            padding: '16px',
+                                            flex: 1,
+                                            display: 'flex',
+                                            flexDirection: 'column',
+                                            justifyContent: 'space-between'
+                                        }}
+                                    >
+                                        <div>
+                                            <Title
+                                                level={4}
+                                                style={{
+                                                    color: '#fff',
+                                                    margin: '0 0 8px 0',
+                                                    fontSize: '18px'
+                                                }}
+                                                ellipsis={{ rows: 2 }}
+                                            >
+                                                {event.name}
+                                            </Title>
+                                            <Space
+                                                direction='vertical'
+                                                size={4}
+                                                style={{ width: '100%' }}
+                                            >
+                                                <div
+                                                    style={{
+                                                        color: '#2dc275',
+                                                        fontSize: '14px',
+                                                        fontWeight: 500
+                                                    }}
+                                                >
+                                                    <CalendarOutlined
+                                                        style={{
+                                                            marginRight: 8
+                                                        }}
+                                                    />
+                                                    {dayjs(
+                                                        event.startDate
+                                                    ).format(
+                                                        'HH:mm - DD/MM/YYYY'
+                                                    )}
+                                                </div>
+                                                <div
+                                                    style={{
+                                                        color: '#9ca6b0',
+                                                        fontSize: '13px'
+                                                    }}
+                                                >
+                                                    <EnvironmentOutlined
+                                                        style={{
+                                                            marginRight: 8
+                                                        }}
+                                                    />
+                                                    {event.locationName ||
+                                                        'Chưa cập nhật'}
+                                                </div>
+                                                <Text
+                                                    ellipsis
+                                                    style={{
+                                                        color: '#666',
+                                                        fontSize: '12px',
+                                                        paddingLeft: '22px'
+                                                    }}
+                                                >
+                                                    {event.addressDetail ||
+                                                        '...'}
+                                                </Text>
+                                            </Space>
+                                        </div>
+
+                                        {/* Status Badge (Đã xóa Draft tag) */}
+                                        <div
+                                            style={{
+                                                alignSelf: 'flex-start',
+                                                marginTop: '8px'
+                                            }}
+                                        >
+                                            {event.status === 'PUBLISHED' && (
+                                                <Tag color='success'>
+                                                    Đang bán
+                                                </Tag>
+                                            )}
+                                            {event.status === 'PENDING' && (
+                                                <Tag color='warning'>
+                                                    Chờ duyệt
+                                                </Tag>
+                                            )}
+                                            {event.status === 'REJECTED' && (
+                                                <Tag color='error'>
+                                                    Bị từ chối
+                                                </Tag>
+                                            )}
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* 4. BOTTOM ACTION BAR */}
+                                <div
+                                    style={{
+                                        display: 'flex',
+                                        borderTop: '1px solid #2a2a2a',
+                                        background: '#1a1a1a',
+                                        padding: '8px 0'
+                                    }}
+                                >
+                                    <button
+                                        style={styles.actionButton}
+                                        className='action-btn'
+                                    >
+                                        <DashboardOutlined
+                                            style={{ fontSize: '18px' }}
+                                        />
+                                        <span>Tổng quan</span>
+                                    </button>
+                                    <button
+                                        style={styles.actionButton}
+                                        className='action-btn'
+                                    >
+                                        <TeamOutlined
+                                            style={{ fontSize: '18px' }}
+                                        />
+                                        <span>Thành viên</span>
+                                    </button>
+                                    <button
+                                        style={styles.actionButton}
+                                        className='action-btn'
+                                    >
+                                        <FileTextOutlined
+                                            style={{ fontSize: '18px' }}
+                                        />
+                                        <span>Đơn hàng</span>
+                                    </button>
+                                    <button
+                                        style={styles.actionButton}
+                                        className='action-btn'
+                                    >
+                                        <AppstoreOutlined
+                                            style={{ fontSize: '18px' }}
+                                        />
+                                        <span>Sơ đồ ghế</span>
+                                    </button>
+                                    <button
+                                        style={{
+                                            ...styles.actionButton,
+                                            color: '#2dc275'
+                                        }}
+                                        className='action-btn'
+                                        onClick={() =>
+                                            navigate(`/organizer/events/create`)
+                                        }
+                                    >
+                                        <EditOutlined
+                                            style={{ fontSize: '18px' }}
+                                        />
+                                        <span>Chỉnh sửa</span>
+                                    </button>
+                                </div>
+                            </div>
+                        </Col>
+                    ))
+                )}
+            </Row>
+
+            {/* 5. PAGINATION */}
+            <div style={{ marginTop: '40px', textAlign: 'right' }}>
+                <Pagination
+                    current={currentPage}
+                    onChange={setCurrentPage}
+                    total={filteredEvents.length}
+                    pageSize={pageSize}
+                    showSizeChanger={false}
+                    itemRender={(page, type, element) => {
+                        if (type === 'page') {
+                            return (
+                                <a
+                                    style={{
+                                        color:
+                                            page === currentPage
+                                                ? '#2dc275'
+                                                : '#9ca6b0',
+                                        fontWeight:
+                                            page === currentPage
+                                                ? 'bold'
+                                                : 'normal',
+                                        background:
+                                            page === currentPage
+                                                ? 'rgba(45, 194, 117, 0.1)'
+                                                : 'transparent',
+                                        border:
+                                            page === currentPage
+                                                ? '1px solid #2dc275'
+                                                : '1px solid #393f4e',
+                                        borderRadius: '4px'
+                                    }}
+                                >
+                                    {page}
+                                </a>
+                            );
+                        }
+                        return element;
                     }}
                 />
-            </Card>
+            </div>
+
+            <style>{`
+                .event-card-hover:hover {
+                    box-shadow: 0 0 20px rgba(45, 194, 117, 0.3) !important;
+                    border-color: #2dc275 !important;
+                    transform: translateY(-5px);
+                }
+                .action-btn:hover {
+                    color: #fff !important;
+                    background: rgba(255,255,255,0.05) !important;
+                }
+                .ant-pagination-item-active {
+                    border-color: #2dc275;
+                }
+                .ant-pagination-item-active a {
+                    color: #2dc275;
+                }
+                .ant-pagination-prev .ant-pagination-item-link,
+                .ant-pagination-next .ant-pagination-item-link {
+                    color: #fff !important;
+                    background: transparent !important;
+                    border-color: #393f4e !important;
+                }
+            `}</style>
         </div>
     );
 };

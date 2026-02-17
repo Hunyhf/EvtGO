@@ -52,7 +52,8 @@ const Step1Info = ({
     // 2. SỬA LẠI LOGIC KHI BẤM NEXT
     useEffect(() => {
         setOnNextAction(() => () => {
-            form.validateFields()
+            return form
+                .validateFields()
                 .then(values => {
                     console.log('Step 1 Validated:', values);
 
@@ -65,10 +66,13 @@ const Step1Info = ({
                     } else {
                         console.error('Thiếu prop nextStep từ component cha');
                     }
+                    return true;
                 })
                 .catch(info => {
                     message.error('Vui lòng kiểm tra lại thông tin còn thiếu!');
                     console.error('Validate Failed:', info);
+                    // Ném lỗi để chặn chuyển bước (nếu cần xử lý sâu hơn ở cha)
+                    throw new Error('Validation failed');
                 });
         });
     }, [form, setOnNextAction, setParentFormData, nextStep]);
@@ -146,9 +150,13 @@ const Step1Info = ({
                 setPosterUrl(url);
                 // Cập nhật form để validate field required
                 form.setFieldsValue({ poster: url });
+                // Lưu file gốc vào formData cha (quan trọng để gửi API)
+                setParentFormData(prev => ({ ...prev, posterFile: file }));
             } else {
                 setLogoUrl(url);
                 form.setFieldsValue({ organizerLogo: url });
+                // Lưu file gốc vào formData cha
+                setParentFormData(prev => ({ ...prev, logoFile: file }));
             }
         });
         return false;

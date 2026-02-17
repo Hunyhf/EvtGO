@@ -1,7 +1,11 @@
 import axios from './axiosClient';
 
-export const callCreateEvent = eventData => {
-    return axios.post('/api/v1/events', eventData);
+export const callCreateEvent = formData => {
+    return axiosClient.post('/api/v1/events', formData, {
+        headers: {
+            'Content-Type': 'multipart/form-data'
+        }
+    });
 };
 
 export const callUpdateEvent = (id, eventData) => {
