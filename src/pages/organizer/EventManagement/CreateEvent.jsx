@@ -29,7 +29,6 @@ const CreateEvent = () => {
             : {
                   name: '',
                   poster: null,
-                  // ... các trường khác
                   showTimes: []
               };
     });

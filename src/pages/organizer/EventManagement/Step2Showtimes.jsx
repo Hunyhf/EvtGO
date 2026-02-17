@@ -564,6 +564,7 @@ const Step2Showtimes = ({
                                     >
                                         <InputNumber
                                             style={{
+                                                width: '150px',
                                                 flex: 1,
                                                 background: '#141414',
                                                 borderColor: '#393f4e',
