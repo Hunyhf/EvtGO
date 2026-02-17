@@ -10,12 +10,10 @@ import {
     Row,
     Col,
     Divider,
-    message,
-    Button
+    Button,
+    App // Import App
 } from 'antd';
 import { BankOutlined, AuditOutlined } from '@ant-design/icons';
-
-// Import API thật
 import { callCreateEvent } from '@apis/eventApi';
 
 const { Title, Text } = Typography;
@@ -26,7 +24,9 @@ const Step4Payment = ({ setOnNextAction, formData, setFormData }) => {
     const navigate = useNavigate();
     const [loading, setLoading] = useState(false);
 
-    // 1. Init Data
+    const { message: messageApi } = App.useApp();
+
+    // ... (Giữ nguyên phần useEffect Init Data) ...
     useEffect(() => {
         if (formData) {
             form.setFieldsValue({
@@ -42,87 +42,60 @@ const Step4Payment = ({ setOnNextAction, formData, setFormData }) => {
         }
     }, [formData, form]);
 
-    // 2. Logic xử lý Hoàn tất và gửi API
+    // 2. SỬA LOGIC GỬI JSON
     useEffect(() => {
         setOnNextAction(() => async () => {
             try {
-                // Validate Form thanh toán
                 const paymentValues = await form.validateFields();
-
-                // Merge dữ liệu form UI vào state chung
                 const finalData = { ...formData, ...paymentValues };
                 setFormData(finalData);
 
-                // --- CHUẨN BỊ DỮ LIỆU GỬI BE (DATA MAPPING) ---
-                const submitData = new FormData();
+                // --- CHUẨN BỊ DỮ LIỆU JSON ĐỂ GỬI BE ---
+                // Backend yêu cầu ReqEventDTO, ta phải map đúng tên trường
 
-                // 1. Map các field cơ bản (text)
-                submitData.append('name', finalData.name);
-                submitData.append('description', finalData.description);
-                submitData.append(
-                    'location',
-                    finalData.locationName + ', ' + finalData.addressDetail
-                ); // Ghép địa chỉ
-                submitData.append('province', finalData.province); // Mã tỉnh
-                submitData.append('genreId', finalData.genreId);
-
-                // 2. Map Thời gian (Lấy suất diễn đầu tiên làm mốc thời gian chính của Event)
-                // Lưu ý: Cần logic BE hỗ trợ nhiều suất diễn nếu muốn lưu hết.
-                // Ở đây ta lấy suất đầu tiên để khớp với bảng events hiện tại.
+                // Xử lý thời gian (Lấy suất diễn đầu tiên vì BE hiện tại chỉ lưu 1 mốc thời gian)
+                let startTime = null;
+                let endTime = null;
                 if (finalData.showTimes && finalData.showTimes.length > 0) {
-                    const firstShow = finalData.showTimes[0];
-                    submitData.append('startTime', firstShow.startTime); // ISO String
-                    submitData.append('endTime', firstShow.endTime); // ISO String
-
-                    // Gửi vé (Tickets) dưới dạng JSON String vì FormData không nhận mảng object trực tiếp
-                    // BE cần có logic parse chuỗi này
-                    // Hoặc gửi theo convention: tickets[0].name, tickets[0].price...
-
-                    // Cách đơn giản nhất: Gửi 1 string JSON và BE parse lại
-                    const allTickets = finalData.showTimes.flatMap(
-                        st => st.tickets
-                    );
-                    submitData.append(
-                        'ticketsJson',
-                        JSON.stringify(allTickets)
-                    );
+                    startTime = finalData.showTimes[0].startTime;
+                    endTime = finalData.showTimes[0].endTime;
                 }
 
-                // 3. Map File Ảnh (Quan trọng)
-                // poster và organizerLogo trong state đang là URL blob hoặc base64.
-                // Chúng ta cần lấy File Object thực sự từ component Upload ở Step 1.
-                // *Lưu ý: Nếu Step 1 bạn lưu file object vào state thì lấy ra ở đây.
-                // Nếu chưa, bạn cần sửa Step 1 để lưu `originFileObj` vào formData.
+                // Xử lý địa chỉ
+                const locationStr =
+                    (finalData.locationName || '') +
+                    (finalData.addressDetail
+                        ? ', ' + finalData.addressDetail
+                        : '');
 
-                if (finalData.posterFile) {
-                    submitData.append('poster', finalData.posterFile);
-                }
-                if (finalData.logoFile) {
-                    submitData.append('organizerLogo', finalData.logoFile);
-                }
+                // Tạo Object JSON khớp với ReqEventDTO trong Java
+                const payload = {
+                    name: finalData.name,
+                    description: finalData.description || '',
+                    location: locationStr,
+                    province: finalData.province,
+                    genreId: finalData.genreId,
+                    startTime: startTime, // format ISO string từ step 2
+                    endTime: endTime, // format ISO string từ step 2
+                    // Các trường bắt buộc khác của BE (nếu có validation @NotNull)
+                    startDate: startTime ? startTime.split('T')[0] : null, // BE có trường startDate riêng
+                    endDate: endTime ? endTime.split('T')[0] : null // BE có trường endDate riêng
+                };
 
-                // 4. Map thông tin thanh toán (Gửi dạng JSON hoặc từng field tùy BE)
-                submitData.append(
-                    'bankAccountName',
-                    paymentValues.bankAccountName
-                );
-                submitData.append(
-                    'bankAccountNumber',
-                    paymentValues.bankAccountNumber
-                );
-                submitData.append('bankName', paymentValues.bankName);
+                console.log('Payload sending to BE:', payload);
 
                 // --- GỌI API ---
                 setLoading(true);
-                message.loading({
-                    content: 'Đang gửi dữ liệu lên hệ thống...',
+                messageApi.loading({
+                    content: 'Đang tạo sự kiện...',
                     key: 'create'
                 });
 
-                await callCreateEvent(submitData);
+                await callCreateEvent(payload);
 
-                message.success({
-                    content: 'Sự kiện đã được gửi và chờ Admin duyệt!',
+                messageApi.success({
+                    content:
+                        'Tạo sự kiện thành công! (Lưu ý: Ảnh và Vé chưa được lưu do hạn chế BE)',
                     key: 'create',
                     duration: 3
                 });
@@ -130,23 +103,29 @@ const Step4Payment = ({ setOnNextAction, formData, setFormData }) => {
                 // Cleanup & Redirect
                 localStorage.removeItem('evtgo_create_event_data');
                 localStorage.removeItem('evtgo_create_event_step');
-                navigate('/organizer/events');
+
+                setTimeout(() => {
+                    navigate('/organizer/events');
+                }, 1000);
             } catch (error) {
                 console.error('Create Event Error:', error);
-                message.error({
-                    content:
-                        'Lỗi khi tạo sự kiện: ' +
-                        (error.response?.data?.message || error.message),
+                const errorMsg =
+                    error.response?.data?.message ||
+                    error.message ||
+                    'Lỗi không xác định';
+                messageApi.error({
+                    content: 'Lỗi: ' + errorMsg,
                     key: 'create'
                 });
-                throw error; // Chặn chuyển trang
+                // Không throw error để tránh lỗi uncaught promise, chỉ dừng loading
             } finally {
                 setLoading(false);
             }
         });
-    }, [form, setOnNextAction, formData, setFormData, navigate]);
+    }, [form, setOnNextAction, formData, setFormData, navigate, messageApi]);
 
-    // --- STYLES (Giữ nguyên giao diện đẹp của bạn) ---
+    // ... (Phần Style và Return giữ nguyên như cũ) ...
+    // ... (Copy lại phần giao diện Return từ code cũ của bạn) ...
     const cardStyle = {
         borderRadius: '16px',
         background: 'linear-gradient(135deg, #141414 0%, #0f2e1f 100%)',
@@ -170,9 +149,6 @@ const Step4Payment = ({ setOnNextAction, formData, setFormData }) => {
         <div style={{ maxWidth: 900, margin: '0 auto' }}>
             <Card bordered={false} style={cardStyle}>
                 <Form form={form} layout='vertical'>
-                    {/* ... (Giữ nguyên code JSX giao diện của bạn ở trên) ... */}
-                    {/* Phần giao diện bạn đã làm rất tốt, copy lại toàn bộ phần return JSX cũ vào đây */}
-                    {/* SECTION 1: BANK INFO và SECTION 2: VAT INVOICE */}
                     <div style={{ marginBottom: 32 }}>
                         <div
                             style={{
@@ -206,7 +182,6 @@ const Step4Payment = ({ setOnNextAction, formData, setFormData }) => {
                             Doanh thu bán vé sẽ được đối soát và chuyển khoản
                             vào tài khoản này sau khi sự kiện kết thúc.
                         </Text>
-
                         <Row gutter={[24, 16]}>
                             <Col span={24}>
                                 <Form.Item
@@ -216,7 +191,12 @@ const Step4Payment = ({ setOnNextAction, formData, setFormData }) => {
                                             Chủ tài khoản
                                         </span>
                                     }
-                                    rules={[{ required: true }]}
+                                    rules={[
+                                        {
+                                            required: true,
+                                            message: 'Nhập chủ tài khoản'
+                                        }
+                                    ]}
                                 >
                                     <Input
                                         placeholder='NGUYEN VAN A'
@@ -233,7 +213,12 @@ const Step4Payment = ({ setOnNextAction, formData, setFormData }) => {
                                             Số tài khoản
                                         </span>
                                     }
-                                    rules={[{ required: true }]}
+                                    rules={[
+                                        {
+                                            required: true,
+                                            message: 'Nhập số tài khoản'
+                                        }
+                                    ]}
                                 >
                                     <Input
                                         placeholder='VD: 1902xxxxxxx'
@@ -250,7 +235,12 @@ const Step4Payment = ({ setOnNextAction, formData, setFormData }) => {
                                             Tên ngân hàng
                                         </span>
                                     }
-                                    rules={[{ required: true }]}
+                                    rules={[
+                                        {
+                                            required: true,
+                                            message: 'Nhập tên ngân hàng'
+                                        }
+                                    ]}
                                 >
                                     <Input
                                         placeholder='VD: Techcombank'
@@ -267,7 +257,12 @@ const Step4Payment = ({ setOnNextAction, formData, setFormData }) => {
                                             Chi nhánh
                                         </span>
                                     }
-                                    rules={[{ required: true }]}
+                                    rules={[
+                                        {
+                                            required: true,
+                                            message: 'Nhập chi nhánh'
+                                        }
+                                    ]}
                                 >
                                     <Input
                                         placeholder='VD: Hà Nội'
@@ -278,9 +273,7 @@ const Step4Payment = ({ setOnNextAction, formData, setFormData }) => {
                             </Col>
                         </Row>
                     </div>
-
                     <Divider style={{ borderColor: '#393f4e' }} />
-
                     <div style={{ marginTop: 32 }}>
                         <div
                             style={{
@@ -320,6 +313,7 @@ const Step4Payment = ({ setOnNextAction, formData, setFormData }) => {
                                             background: '#2a2d34',
                                             color: '#fff'
                                         }}
+                                        defaultValue='personal'
                                     >
                                         <Option value='personal'>
                                             Cá nhân
@@ -334,7 +328,12 @@ const Step4Payment = ({ setOnNextAction, formData, setFormData }) => {
                                 <Form.Item
                                     name='taxName'
                                     label={<span style={labelStyle}>Tên</span>}
-                                    rules={[{ required: true }]}
+                                    rules={[
+                                        {
+                                            required: true,
+                                            message: 'Nhập tên thuế'
+                                        }
+                                    ]}
                                 >
                                     <Input
                                         style={inputStyle}
@@ -348,7 +347,12 @@ const Step4Payment = ({ setOnNextAction, formData, setFormData }) => {
                                     label={
                                         <span style={labelStyle}>Địa chỉ</span>
                                     }
-                                    rules={[{ required: true }]}
+                                    rules={[
+                                        {
+                                            required: true,
+                                            message: 'Nhập địa chỉ thuế'
+                                        }
+                                    ]}
                                 >
                                     <Input
                                         style={inputStyle}
@@ -360,7 +364,12 @@ const Step4Payment = ({ setOnNextAction, formData, setFormData }) => {
                                 <Form.Item
                                     name='taxCode'
                                     label={<span style={labelStyle}>MST</span>}
-                                    rules={[{ required: true }]}
+                                    rules={[
+                                        {
+                                            required: true,
+                                            message: 'Nhập mã số thuế'
+                                        }
+                                    ]}
                                 >
                                     <Input
                                         style={inputStyle}
