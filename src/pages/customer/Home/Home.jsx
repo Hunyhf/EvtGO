@@ -12,7 +12,7 @@ import 'swiper/css/pagination';
 import styles from './Home.module.scss';
 import Nav from '@components/Nav/Nav.jsx';
 import EventCard from '@components/EventCard/EventCard.jsx';
-import categoryApi from '@apis/categoryApi';
+import genresApi from '@apis/genresApi';
 import { BANNER_DATA, TRENDING_DATA } from './constants';
 
 const cx = classNames.bind(styles);
@@ -53,8 +53,8 @@ function Home() {
         const loadHomeData = async () => {
             try {
                 setLoading(true);
-                const categoryRes = await categoryApi.getAll();
-                const genres = categoryRes.result || categoryRes.data || [];
+                const genresRes = await genresApi.getAll();
+                const genres = genresRes.result || genresRes.data || [];
 
                 const dataWithEvents = genres.map((genre, index) => {
                     const mockEvents = Array.from({ length: 4 }, (_, i) => ({

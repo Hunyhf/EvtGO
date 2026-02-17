@@ -15,7 +15,7 @@ import {
     Typography
 } from 'antd';
 import { InboxOutlined, PlusOutlined } from '@ant-design/icons';
-import { categoryApi } from '@apis/categoryApi';
+import genresApi from '@apis/genresApi';
 
 // Cấu hình upload (giả lập preview)
 const getBase64 = (img, callback) => {
@@ -122,8 +122,8 @@ const Step1Info = ({
 
     // Load dữ liệu ban đầu
     useEffect(() => {
-        // Load Categories
-        categoryApi
+        // Load Genres
+        genresApi
             .getAll()
             .then(res => {
                 // Tùy cấu trúc response api của bạn

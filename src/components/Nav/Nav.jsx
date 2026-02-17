@@ -2,7 +2,7 @@ import { useState, useEffect, useContext } from 'react';
 import { NavLink } from 'react-router-dom';
 import classNames from 'classnames/bind';
 import styles from './Nav.module.scss';
-// Đảm bảo genresApi được export đúng trong file @apis/genresApi
+// Đảm bảo import đúng genresApi
 import { genresApi } from '@apis/genresApi';
 import { AuthContext } from '@contexts/AuthContext';
 import Cookies from 'js-cookie';
@@ -32,41 +32,44 @@ const slugify = str => {
 
 function Nav() {
     const [genres, setGenres] = useState(DEFAULT_GENRES);
-    const { isAuthenticated, isLoading } = useContext(AuthContext);
+
+    // Thêm giá trị mặc định {} phòng trường hợp AuthContext bị undefined (chưa wrap Provider)
+    const { isAuthenticated, isLoading } = useContext(AuthContext) || {};
 
     useEffect(() => {
         const fetchGenres = async () => {
-            // Nếu API lấy danh mục là Public (ai cũng xem được), bạn nên bỏ đoạn check token này
-            // để khách vãng lai cũng thấy được menu động từ database.
-            // Nếu API yêu cầu đăng nhập mới được xem danh mục thì giữ nguyên.
+            // Kiểm tra token
             const token = Cookies.get('access_token');
+
+            // Nếu không có token, dùng danh mục mặc định
             if (!token) {
                 setGenres(DEFAULT_GENRES);
                 return;
             }
 
             try {
-                // --- SỬA LỖI TẠI ĐÂY ---
-                // Dùng genresApi thay vì categoryApi
+                // --- SỬA LỖI QUAN TRỌNG TẠI ĐÂY ---
+                // Phải dùng genresApi (biến đã import) chứ không phải categoryApi
                 const res = await genresApi.getAll();
 
-                // Kiểm tra response trả về (tùy cấu trúc backend trả về result hay data)
+                // Kiểm tra cấu trúc trả về từ Backend Spring Boot
+                // Backend thường trả về: { statusCode: 200, message: "...", result: [...] }
                 if (res && res.result) {
                     setGenres(res.result);
-                } else if (res && Array.isArray(res)) {
+                } else if (Array.isArray(res)) {
                     setGenres(res);
                 }
             } catch (error) {
                 console.warn(
-                    '>>> [Nav] Không thể lấy danh mục từ API, sử dụng fallback.'
+                    '>>> [Nav] Lỗi lấy danh mục, dùng mặc định:',
+                    error
                 );
-                // Fallback về danh sách mặc định nếu lỗi
                 setGenres(DEFAULT_GENRES);
             }
         };
 
         fetchGenres();
-    }, [isAuthenticated, isLoading]); // Dependency array
+    }, [isAuthenticated, isLoading]);
 
     return (
         <nav className={cx('wrapper')}>
@@ -74,6 +77,7 @@ function Nav() {
                 {genres.map(item => (
                     <li key={item.id} className={cx('navItem')}>
                         <NavLink
+                            // Lưu ý: Đảm bảo route /category đã được định nghĩa trong App.js hoặc routes/index.jsx
                             to={`/category?name=${slugify(item.name)}`}
                             className={({ isActive }) =>
                                 cx('navLink', { active: isActive })
