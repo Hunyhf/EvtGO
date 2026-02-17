@@ -1,4 +1,3 @@
-// src/pages/organizer/EventManagement/Step2Showtimes.jsx
 import React, { useState, useEffect } from 'react';
 import {
     Form,
@@ -43,7 +42,6 @@ const Step2Showtimes = ({
     const { token } = theme.useToken();
 
     // --- STATE QUẢN LÝ DỮ LIỆU ---
-    // Mặc định có 1 suất diễn rỗng nếu chưa có dữ liệu
     const [showTimes, setShowTimes] = useState(
         formData?.showTimes?.length > 0
             ? formData.showTimes
@@ -52,15 +50,14 @@ const Step2Showtimes = ({
 
     // State cho Modal Vé
     const [isTicketModalOpen, setIsTicketModalOpen] = useState(false);
-    const [currentShowtimeId, setCurrentShowtimeId] = useState(null); // Để biết đang thêm vé cho suất nào
-    const [editingTicketIndex, setEditingTicketIndex] = useState(null); // null = tạo mới, number = index vé đang sửa
+    const [currentShowtimeId, setCurrentShowtimeId] = useState(null);
+    const [editingTicketIndex, setEditingTicketIndex] = useState(null);
     const [ticketForm] = Form.useForm();
-    const [isFreeTicket, setIsFreeTicket] = useState(false); // Checkbox miễn phí
+    const [isFreeTicket, setIsFreeTicket] = useState(false);
 
     // --- LOGIC TÍCH HỢP VỚI CHA ---
     useEffect(() => {
         setOnNextAction(() => () => {
-            // 1. Validate cơ bản: Phải có ít nhất 1 suất diễn đầy đủ ngày giờ
             const isValid = showTimes.every(
                 st => st.startTime && st.endTime && st.tickets.length > 0
             );
@@ -72,13 +69,12 @@ const Step2Showtimes = ({
                 throw new Error('Validation failed');
             }
 
-            // 2. Lưu vào FormData và chuyển bước
             setFormData(prev => ({ ...prev, showTimes }));
             nextStep();
         });
     }, [showTimes, setFormData, nextStep, setOnNextAction]);
 
-    // --- LOGIC SUẤT DIỄN (SHOWTIME) ---
+    // Logic xuất diễn
     const addShowtime = () => {
         setShowTimes([
             ...showTimes,
@@ -96,20 +92,28 @@ const Step2Showtimes = ({
 
     const updateShowtimeTime = (id, field, value) => {
         setShowTimes(prev =>
-            prev.map(st => (st.id === id ? { ...st, [field]: value } : st))
+            prev.map(st =>
+                st.id === id
+                    ? { ...st, [field]: value ? value.toISOString() : null }
+                    : st
+            )
         );
     };
 
-    // --- LOGIC MODAL VÉ (TICKET) ---
     const openTicketModal = (showtimeId, ticketIndex = null) => {
+        const currentShowtime = showTimes.find(st => st.id === showtimeId);
+        if (!currentShowtime?.endTime) {
+            message.error(
+                'Vui lòng chọn thời gian kết thúc sự kiện trước khi tạo vé!'
+            );
+            return;
+        }
+
         setCurrentShowtimeId(showtimeId);
         setEditingTicketIndex(ticketIndex);
 
         if (ticketIndex !== null) {
-            // Edit Mode: Fill dữ liệu
-            const ticket = showTimes.find(st => st.id === showtimeId).tickets[
-                ticketIndex
-            ];
+            const ticket = currentShowtime.tickets[ticketIndex];
             ticketForm.setFieldsValue({
                 ...ticket,
                 saleTime: [
@@ -119,7 +123,6 @@ const Step2Showtimes = ({
             });
             setIsFreeTicket(ticket.price === 0);
         } else {
-            // Create Mode: Reset form
             ticketForm.resetFields();
             setIsFreeTicket(false);
         }
@@ -138,10 +141,9 @@ const Step2Showtimes = ({
                 saleEnd: values.saleTime
                     ? values.saleTime[1].toISOString()
                     : null,
-                // Giữ lại file object hoặc url nếu có upload thật
                 image: values.image?.file || values.image
             };
-            delete newTicket.saleTime; // Xóa field tạm
+            delete newTicket.saleTime;
 
             setShowTimes(prev =>
                 prev.map(st => {
@@ -149,9 +151,9 @@ const Step2Showtimes = ({
 
                     const newTickets = [...st.tickets];
                     if (editingTicketIndex !== null) {
-                        newTickets[editingTicketIndex] = newTicket; // Update
+                        newTickets[editingTicketIndex] = newTicket;
                     } else {
-                        newTickets.push(newTicket); // Create
+                        newTickets.push(newTicket);
                     }
                     return { ...st, tickets: newTickets };
                 })
@@ -180,9 +182,7 @@ const Step2Showtimes = ({
         );
     };
 
-    // --- RENDERERS ---
-
-    // Header của Accordion
+    // Helper
     const genExtra = id => (
         <DeleteOutlined
             onClick={event => {
@@ -195,7 +195,6 @@ const Step2Showtimes = ({
 
     return (
         <div style={{ maxWidth: 1000, margin: '0 auto' }}>
-            {/* Header chung */}
             <div style={{ marginBottom: 16 }}>
                 <Title level={4} style={{ color: '#fff', margin: 0 }}>
                     Thông tin suất diễn & Vé
@@ -203,7 +202,6 @@ const Step2Showtimes = ({
                 <Text type='secondary'>Vui lòng nhập thông tin suất diễn</Text>
             </div>
 
-            {/* ACCORDION SUẤT DIỄN */}
             <Collapse
                 defaultActiveKey={showTimes.map(st => st.id)}
                 className='custom-collapse'
@@ -229,7 +227,7 @@ const Step2Showtimes = ({
                             overflow: 'hidden'
                         }}
                     >
-                        {/* 1. NGÀY SỰ KIỆN (EVENT TIME) */}
+                        {/* 1. NGÀY SỰ KIỆN */}
                         <div style={{ marginBottom: 24 }}>
                             <Title
                                 level={5}
@@ -253,6 +251,7 @@ const Step2Showtimes = ({
                                             placeholder='Chọn ngày giờ bắt đầu'
                                             style={{ width: '100%' }}
                                             size='large'
+                                            // Quan trọng: Convert string -> dayjs để hiển thị
                                             value={
                                                 showtime.startTime
                                                     ? dayjs(showtime.startTime)
@@ -288,6 +287,7 @@ const Step2Showtimes = ({
                                             placeholder='Chọn ngày giờ kết thúc'
                                             style={{ width: '100%' }}
                                             size='large'
+                                            // Quan trọng: Convert string -> dayjs để hiển thị
                                             value={
                                                 showtime.endTime
                                                     ? dayjs(showtime.endTime)
@@ -311,7 +311,7 @@ const Step2Showtimes = ({
                             </Row>
                         </div>
 
-                        {/* 2. LOẠI VÉ (TICKET TYPE) */}
+                        {/* 2. LOẠI VÉ */}
                         <div>
                             <div
                                 style={{
@@ -341,7 +341,6 @@ const Step2Showtimes = ({
                                 </Button>
                             </div>
 
-                            {/* Danh sách vé đã tạo */}
                             <div
                                 style={{
                                     display: 'flex',
@@ -425,7 +424,6 @@ const Step2Showtimes = ({
                                     </Card>
                                 ))}
 
-                                {/* Nút tạo vé mới (Centered in List or Grid) */}
                                 <Button
                                     type='dashed'
                                     onClick={() => openTicketModal(showtime.id)}
@@ -451,7 +449,6 @@ const Step2Showtimes = ({
                 ))}
             </Collapse>
 
-            {/* Nút thêm suất diễn */}
             <Button
                 type='dashed'
                 block
@@ -468,7 +465,7 @@ const Step2Showtimes = ({
                 Tạo suất diễn
             </Button>
 
-            {/* --- MODAL TẠO VÉ (CUSTOM STYLE) --- */}
+            {/* --- MODAL TẠO VÉ --- */}
             <Modal
                 title={
                     <span style={{ color: '#fff', fontSize: 18 }}>
@@ -477,7 +474,7 @@ const Step2Showtimes = ({
                 }
                 open={isTicketModalOpen}
                 onCancel={() => setIsTicketModalOpen(false)}
-                footer={null} // Custom footer trong form
+                footer={null}
                 width={900}
                 centered
                 closeIcon={
@@ -486,7 +483,7 @@ const Step2Showtimes = ({
                 styles={{
                     content: {
                         background:
-                            'linear-gradient(135deg, #2a2d34 0%, #1f1f1f 100%)', // Dark gradient
+                            'linear-gradient(135deg, #2a2d34 0%, #1f1f1f 100%)',
                         padding: 0,
                         border: '1px solid #393f4e',
                         overflow: 'hidden'
@@ -506,7 +503,8 @@ const Step2Showtimes = ({
                     layout='vertical'
                     onFinish={handleSaveTicket}
                 >
-                    {/* 1. Tên vé & Giá */}
+                    {/* ... (Phần UI form vé giữ nguyên như cũ, chỉ sửa đoạn DatePicker bên dưới) ... */}
+
                     <Row gutter={24}>
                         <Col span={12}>
                             <Form.Item
@@ -532,7 +530,7 @@ const Step2Showtimes = ({
                                         color: '#fff',
                                         background: '#141414',
                                         borderColor: '#393f4e'
-                                    }} // White text on dark
+                                    }}
                                 />
                             </Form.Item>
                         </Col>
@@ -564,7 +562,6 @@ const Step2Showtimes = ({
                                     >
                                         <InputNumber
                                             style={{
-                                                width: '150px',
                                                 flex: 1,
                                                 background: '#141414',
                                                 borderColor: '#393f4e',
@@ -603,7 +600,6 @@ const Step2Showtimes = ({
                         </Col>
                     </Row>
 
-                    {/* 2. Grid 4 cột: Tổng vé, Min, Max */}
                     <Row gutter={24}>
                         <Col span={8}>
                             <Form.Item
@@ -659,7 +655,7 @@ const Step2Showtimes = ({
                         </Col>
                     </Row>
 
-                    {/* 3. Thời gian mở bán */}
+                    {/* --- VALIDATE THỜI GIAN BÁN VÉ --- */}
                     <Row gutter={24}>
                         <Col span={24}>
                             <Form.Item
@@ -673,7 +669,44 @@ const Step2Showtimes = ({
                                     {
                                         required: true,
                                         message: 'Chọn thời gian mở bán'
-                                    }
+                                    },
+                                    // Custom Validator: Kiểm tra thời gian kết thúc
+                                    ({ getFieldValue }) => ({
+                                        validator(_, value) {
+                                            if (
+                                                !value ||
+                                                !value[1] ||
+                                                !currentShowtimeId
+                                            ) {
+                                                return Promise.resolve();
+                                            }
+                                            // Tìm suất diễn hiện tại
+                                            const currentShowtime =
+                                                showTimes.find(
+                                                    s =>
+                                                        s.id ===
+                                                        currentShowtimeId
+                                                );
+                                            if (
+                                                currentShowtime &&
+                                                currentShowtime.endTime
+                                            ) {
+                                                const eventEnd = dayjs(
+                                                    currentShowtime.endTime
+                                                );
+                                                const saleEnd = value[1]; // value là mảng [start, end]
+
+                                                if (saleEnd.isAfter(eventEnd)) {
+                                                    return Promise.reject(
+                                                        new Error(
+                                                            'Thời gian kết thúc bán vé không được lớn hơn thời gian kết thúc sự kiện!'
+                                                        )
+                                                    );
+                                                }
+                                            }
+                                            return Promise.resolve();
+                                        }
+                                    })
                                 ]}
                             >
                                 <DatePicker.RangePicker
@@ -694,7 +727,6 @@ const Step2Showtimes = ({
                         </Col>
                     </Row>
 
-                    {/* 4. Mô tả & Upload (70/30) */}
                     <Row gutter={24}>
                         <Col span={16}>
                             <Form.Item
@@ -718,40 +750,8 @@ const Step2Showtimes = ({
                                 />
                             </Form.Item>
                         </Col>
-                        <Col span={8}>
-                            <Form.Item
-                                name='image'
-                                label={
-                                    <span style={{ color: '#fff' }}>
-                                        Ảnh vé (Minh hoạ)
-                                    </span>
-                                }
-                            >
-                                <Upload.Dragger
-                                    maxCount={1}
-                                    style={{
-                                        background: 'rgba(255,255,255,0.05)',
-                                        borderColor: '#393f4e',
-                                        borderStyle: 'dashed'
-                                    }}
-                                >
-                                    <p className='ant-upload-drag-icon'>
-                                        <InboxOutlined
-                                            style={{ color: '#2dc275' }}
-                                        />
-                                    </p>
-                                    <p
-                                        className='ant-upload-text'
-                                        style={{ color: '#fff', fontSize: 12 }}
-                                    >
-                                        Thêm - 1MB
-                                    </p>
-                                </Upload.Dragger>
-                            </Form.Item>
-                        </Col>
                     </Row>
 
-                    {/* 5. Footer Buttons */}
                     <Form.Item style={{ marginBottom: 0, marginTop: 16 }}>
                         <Button
                             type='primary'
@@ -764,7 +764,7 @@ const Step2Showtimes = ({
                                 height: 48,
                                 fontWeight: 600,
                                 fontSize: 16,
-                                boxShadow: '0 4px 15px rgba(45, 194, 117, 0.3)' // Glow effect
+                                boxShadow: '0 4px 15px rgba(45, 194, 117, 0.3)'
                             }}
                         >
                             Lưu
