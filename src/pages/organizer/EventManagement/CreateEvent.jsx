@@ -81,100 +81,68 @@ const CreateEvent = () => {
     };
 
     // --- LOGIC XỬ LÝ HOÀN TẤT (CALL API CREATE) ---
-    const handleFinish = async finalData => {
-        setLoading(true);
+
+    const handleFinish = async () => {
         try {
             console.log('>>> [Final Submit] Preparing payload...');
 
-            // 1. Ghép chuỗi địa chỉ (Normalizing Location)
-            const fullLocation = [
-                finalData.location, // Tên địa điểm
-                finalData.addressDetail,
-                finalData.wardName,
-                finalData.districtName,
-                finalData.provinceName
-            ]
-                .filter(Boolean)
-                .join(', ');
+            // 1. Ghép địa chỉ thành chuỗi location duy nhất
+            const fullLocation = `${formData.addressDetail}, ${formData.wardName}, ${formData.districtName}, ${formData.provinceName}`;
 
-            // 2. Map dữ liệu chuẩn theo ReqEventDTO (Backend Java)
-            const eventPayload = {
-                name: finalData.name,
-                description: finalData.description,
-                permitNumber: finalData.permitNumber,
-                permitIssuedBy: finalData.permitIssuedBy,
-                // Định dạng ngày theo YYYY-MM-DD
-                permitIssuedAt: finalData.permitIssuedAt
-                    ? dayjs(finalData.permitIssuedAt).format('YYYY-MM-DD')
-                    : '',
-                location: fullLocation,
-                genreId: finalData.genreId,
+            // 2. Format lại ShowTimes và Tickets
+            const formattedShowTimes = formData.showTimes.map(st => ({
+                startTime: dayjs(st.startTime).format('YYYY-MM-DDTHH:mm:ss'),
+                endTime: dayjs(st.endTime).format('YYYY-MM-DDTHH:mm:ss'),
+                tickets: st.tickets.map(t => ({
+                    name: t.name,
+                    price: t.price,
+                    total: t.total,
+                    minPerOrder: t.minPerOrder,
+                    maxPerOrder: t.maxPerOrder,
+                    description: t.description,
+                    saleStart: dayjs(t.saleStart).format('YYYY-MM-DDTHH:mm:ss'),
+                    saleEnd: dayjs(t.saleEnd).format('YYYY-MM-DDTHH:mm:ss')
+                }))
+            }));
 
-                // Dữ liệu thời gian (Giả định từ Step 2)
-                startDate: finalData.startDate
-                    ? dayjs(finalData.startDate).format('YYYY-MM-DD')
-                    : '',
-                startTime: finalData.startTime
-                    ? dayjs(finalData.startTime).format('HH:mm')
-                    : '',
-                endDate: finalData.endDate
-                    ? dayjs(finalData.endDate).format('YYYY-MM-DD')
-                    : '',
-                endTime: finalData.endTime
-                    ? dayjs(finalData.endTime).format('HH:mm')
-                    : ''
+            // 3. Format lại Images (Poster và Logo)
+            // Lưu ý: OrganizerLogo trong DTO là String, images là List<ImageInnerDTO>
+            const payloadImages = [{ url: formData.poster, isPoster: true }];
+
+            // 4. Tạo Payload cuối cùng khớp hoàn toàn với ReqEventDTO.java
+            const finalPayload = {
+                name: formData.name,
+                location: fullLocation, // Gộp từ các trường địa chỉ
+                description: formData.description,
+                permitNumber: formData.permitNumber,
+                permitIssuedBy: formData.permitIssuedBy,
+                permitIssuedAt: dayjs(formData.permitIssuedAt).format(
+                    'YYYY-MM-DD'
+                ),
+                organizerName: formData.organizerName,
+                organizerLogo: formData.organizerLogo, // Link ảnh logo
+                genre: { id: formData.genreId }, // Gửi object thay vì id đơn thuần
+                showTimes: formattedShowTimes,
+                images: payloadImages,
+                confirmationMessage: formData.confirmationMessage
             };
 
-            console.log('>>> Sending payload to Backend:', eventPayload);
+            console.log('>>> Sending payload to Backend:', finalPayload);
 
-            // 3. Gọi API tạo sự kiện
-            const createRes = await eventApi.create(eventPayload);
-            const newEventId = createRes?.data?.id || createRes?.result?.id;
+            const res = await eventApi.create(finalPayload);
 
-            if (!newEventId)
-                throw new Error('Hệ thống không trả về ID sự kiện mới.');
-
-            // 4. Xử lý Upload ảnh (nếu có)
-            if (finalData.images && finalData.images.length > 0) {
-                const imageFormData = new FormData();
-                finalData.images.forEach(file => {
-                    // Lấy file object thực tế từ AntD Upload hoặc từ state
-                    const fileToUpload = file.originFileObj || file;
-                    imageFormData.append('files', fileToUpload);
-                });
-                imageFormData.append('coverIndex', 0); // Mặc định ảnh 1 là ảnh bìa
-
-                await eventImageApi.uploadEventImages(
-                    newEventId,
-                    imageFormData
-                );
-                console.log('>>> Images uploaded successfully');
+            if (res.statusCode === 201 || res.data) {
+                message.success('Tạo sự kiện thành công!');
+                // Chuyển hướng hoặc xử lý tiếp...
             }
-
-            // 5. Kết thúc thành công
-            toast.success('Tạo sự kiện thành công!');
-
-            // Xóa dữ liệu tạm sau khi thành công
-            localStorage.removeItem(STORAGE_KEY_DATA);
-            localStorage.removeItem(STORAGE_KEY_STEP);
-
-            navigate('/organizer/events');
         } catch (error) {
-            console.error('Submit Error:', error);
-            // Xử lý thông báo lỗi chi tiết từ Backend (400 Bad Request)
-            const errorData = error.response?.data;
-            const msg = errorData?.message;
-
-            if (Array.isArray(msg)) {
-                // Nếu BE trả về mảng các lỗi validation
-                msg.forEach(m => toast.error(m));
+            console.error('Submit Error:', error.response?.data || error);
+            const serverError = error.response?.data?.message;
+            if (Array.isArray(serverError)) {
+                message.error(`Lỗi: ${serverError.join(', ')}`);
             } else {
-                toast.error(
-                    msg || error.message || 'Lỗi không xác định khi tạo sự kiện'
-                );
+                message.error('Có lỗi xảy ra khi tạo sự kiện!');
             }
-        } finally {
-            setLoading(false);
         }
     };
 

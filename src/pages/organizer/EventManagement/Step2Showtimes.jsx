@@ -1,3 +1,4 @@
+// src/pages/organizer/EventManagement/Step2Showtimes.jsx
 import React, { useState, useEffect } from 'react';
 import {
     Form,
@@ -9,7 +10,6 @@ import {
     Col,
     Checkbox,
     InputNumber,
-    Upload,
     Modal,
     Typography,
     Space,
@@ -23,9 +23,7 @@ import {
     CalendarOutlined,
     CopyOutlined,
     DeleteOutlined,
-    EditOutlined,
-    InboxOutlined,
-    ClockCircleOutlined
+    EditOutlined
 } from '@ant-design/icons';
 import dayjs from 'dayjs';
 
@@ -37,7 +35,7 @@ const Step2Showtimes = ({
     setOnNextAction,
     formData,
     setFormData,
-    nextStep
+    nextStep // Prop này thực tế không cần dùng trong hàm validate nữa
 }) => {
     const { token } = theme.useToken();
 
@@ -48,16 +46,18 @@ const Step2Showtimes = ({
             : [{ id: Date.now(), startTime: null, endTime: null, tickets: [] }]
     );
 
-    // State cho Modal Vé
     const [isTicketModalOpen, setIsTicketModalOpen] = useState(false);
     const [currentShowtimeId, setCurrentShowtimeId] = useState(null);
     const [editingTicketIndex, setEditingTicketIndex] = useState(null);
     const [ticketForm] = Form.useForm();
     const [isFreeTicket, setIsFreeTicket] = useState(false);
 
-    // --- LOGIC TÍCH HỢP VỚI CHA ---
+    // ----------------------------------------------------------------------
+    // LOGIC: ĐĂNG KÝ HÀM VALIDATE CHO CHA (ĐÃ SỬA)
+    // ----------------------------------------------------------------------
     useEffect(() => {
-        setOnNextAction(() => () => {
+        // Sử dụng triple closure để tương thích với CreateEvent: await onNextAction()()
+        setOnNextAction(() => () => async () => {
             const isValid = showTimes.every(
                 st => st.startTime && st.endTime && st.tickets.length > 0
             );
@@ -66,15 +66,20 @@ const Step2Showtimes = ({
                 message.error(
                     'Vui lòng nhập đầy đủ thời gian và tạo ít nhất 1 loại vé cho mỗi suất diễn!'
                 );
-                throw new Error('Validation failed');
+                return false; // Trả về false để Cha không chuyển bước
             }
 
+            // Cập nhật dữ liệu vào state tổng
             setFormData(prev => ({ ...prev, showTimes }));
-            nextStep();
-        });
-    }, [showTimes, setFormData, nextStep, setOnNextAction]);
 
-    // Logic xuất diễn
+            return true; // Trả về true để Cha tự gọi nextStep()
+        });
+
+        // Cleanup: Reset hành động khi rời khỏi component
+        return () => setOnNextAction(null);
+    }, [showTimes, setFormData, setOnNextAction]);
+
+    // --- CÁC HÀM XỬ LÝ LOGIC ---
     const addShowtime = () => {
         setShowTimes([
             ...showTimes,
@@ -140,8 +145,7 @@ const Step2Showtimes = ({
                     : null,
                 saleEnd: values.saleTime
                     ? values.saleTime[1].toISOString()
-                    : null,
-                image: values.image?.file || values.image
+                    : null
             };
             delete newTicket.saleTime;
 
@@ -166,7 +170,7 @@ const Step2Showtimes = ({
                     : 'Tạo vé mới thành công'
             );
         } catch (error) {
-            console.error(error);
+            console.error('Lỗi khi lưu vé:', error);
         }
     };
 
@@ -182,7 +186,6 @@ const Step2Showtimes = ({
         );
     };
 
-    // Helper
     const genExtra = id => (
         <DeleteOutlined
             onClick={event => {
@@ -204,7 +207,6 @@ const Step2Showtimes = ({
 
             <Collapse
                 defaultActiveKey={showTimes.map(st => st.id)}
-                className='custom-collapse'
                 style={{ background: 'transparent', border: 'none' }}
             >
                 {showTimes.map((showtime, index) => (
@@ -227,7 +229,6 @@ const Step2Showtimes = ({
                             overflow: 'hidden'
                         }}
                     >
-                        {/* 1. NGÀY SỰ KIỆN */}
                         <div style={{ marginBottom: 24 }}>
                             <Title
                                 level={5}
@@ -240,7 +241,7 @@ const Step2Showtimes = ({
                                     <Form.Item
                                         label={
                                             <span style={{ color: '#fff' }}>
-                                                Thời gian bắt đầu
+                                                Bắt đầu
                                             </span>
                                         }
                                         required
@@ -248,10 +249,8 @@ const Step2Showtimes = ({
                                         <DatePicker
                                             showTime
                                             format='HH:mm DD/MM/YYYY'
-                                            placeholder='Chọn ngày giờ bắt đầu'
                                             style={{ width: '100%' }}
                                             size='large'
-                                            // Quan trọng: Convert string -> dayjs để hiển thị
                                             value={
                                                 showtime.startTime
                                                     ? dayjs(showtime.startTime)
@@ -264,11 +263,6 @@ const Step2Showtimes = ({
                                                     date
                                                 )
                                             }
-                                            suffixIcon={
-                                                <CalendarOutlined
-                                                    style={{ color: '#2dc275' }}
-                                                />
-                                            }
                                         />
                                     </Form.Item>
                                 </Col>
@@ -276,7 +270,7 @@ const Step2Showtimes = ({
                                     <Form.Item
                                         label={
                                             <span style={{ color: '#fff' }}>
-                                                Thời gian kết thúc
+                                                Kết thúc
                                             </span>
                                         }
                                         required
@@ -284,10 +278,8 @@ const Step2Showtimes = ({
                                         <DatePicker
                                             showTime
                                             format='HH:mm DD/MM/YYYY'
-                                            placeholder='Chọn ngày giờ kết thúc'
                                             style={{ width: '100%' }}
                                             size='large'
-                                            // Quan trọng: Convert string -> dayjs để hiển thị
                                             value={
                                                 showtime.endTime
                                                     ? dayjs(showtime.endTime)
@@ -300,24 +292,17 @@ const Step2Showtimes = ({
                                                     date
                                                 )
                                             }
-                                            suffixIcon={
-                                                <CalendarOutlined
-                                                    style={{ color: '#ff4d4f' }}
-                                                />
-                                            }
                                         />
                                     </Form.Item>
                                 </Col>
                             </Row>
                         </div>
 
-                        {/* 2. LOẠI VÉ */}
                         <div>
                             <div
                                 style={{
                                     display: 'flex',
                                     justifyContent: 'space-between',
-                                    alignItems: 'center',
                                     marginBottom: 16
                                 }}
                             >
@@ -328,17 +313,6 @@ const Step2Showtimes = ({
                                     <span style={{ color: '#ff4d4f' }}>*</span>{' '}
                                     Loại vé
                                 </Title>
-                                <Button
-                                    type='default'
-                                    style={{
-                                        color: '#2dc275',
-                                        borderColor: '#2dc275',
-                                        background: 'transparent'
-                                    }}
-                                    icon={<CopyOutlined />}
-                                >
-                                    Copy loại vé từ...
-                                </Button>
                             </div>
 
                             <div
@@ -423,7 +397,6 @@ const Step2Showtimes = ({
                                         </div>
                                     </Card>
                                 ))}
-
                                 <Button
                                     type='dashed'
                                     onClick={() => openTicketModal(showtime.id)}
@@ -432,10 +405,7 @@ const Step2Showtimes = ({
                                             showtime.tickets.length > 0
                                                 ? 200
                                                 : '100%',
-                                        height:
-                                            showtime.tickets.length > 0
-                                                ? 'auto'
-                                                : 50,
+                                        height: 50,
                                         borderColor: '#393f4e',
                                         color: '#9ca6b0'
                                     }}
@@ -465,7 +435,6 @@ const Step2Showtimes = ({
                 Tạo suất diễn
             </Button>
 
-            {/* --- MODAL TẠO VÉ --- */}
             <Modal
                 title={
                     <span style={{ color: '#fff', fontSize: 18 }}>
@@ -475,26 +444,16 @@ const Step2Showtimes = ({
                 open={isTicketModalOpen}
                 onCancel={() => setIsTicketModalOpen(false)}
                 footer={null}
-                width={900}
+                width={700}
                 centered
-                closeIcon={
-                    <span style={{ color: '#fff', fontSize: 20 }}>×</span>
-                }
                 styles={{
                     content: {
-                        background:
-                            'linear-gradient(135deg, #2a2d34 0%, #1f1f1f 100%)',
-                        padding: 0,
-                        border: '1px solid #393f4e',
-                        overflow: 'hidden'
+                        background: '#2a2d34',
+                        border: '1px solid #393f4e'
                     },
                     header: {
                         background: 'transparent',
-                        padding: '20px 24px',
                         borderBottom: '1px solid #393f4e'
-                    },
-                    body: {
-                        padding: '24px'
                     }
                 }}
             >
@@ -503,9 +462,7 @@ const Step2Showtimes = ({
                     layout='vertical'
                     onFinish={handleSaveTicket}
                 >
-                    {/* ... (Phần UI form vé giữ nguyên như cũ, chỉ sửa đoạn DatePicker bên dưới) ... */}
-
-                    <Row gutter={24}>
+                    <Row gutter={16}>
                         <Col span={12}>
                             <Form.Item
                                 name='name'
@@ -515,23 +472,10 @@ const Step2Showtimes = ({
                                     </span>
                                 }
                                 rules={[
-                                    {
-                                        required: true,
-                                        message: 'Nhập tên loại vé'
-                                    }
+                                    { required: true, message: 'Nhập tên' }
                                 ]}
                             >
-                                <Input
-                                    placeholder='Nhập tên loại vé (VD: VIP, GA)'
-                                    size='large'
-                                    maxLength={50}
-                                    showCount
-                                    style={{
-                                        color: '#fff',
-                                        background: '#141414',
-                                        borderColor: '#393f4e'
-                                    }}
-                                />
+                                <Input placeholder='VD: VIP' size='large' />
                             </Form.Item>
                         </Col>
                         <Col span={12}>
@@ -561,25 +505,18 @@ const Step2Showtimes = ({
                                         ]}
                                     >
                                         <InputNumber
-                                            style={{
-                                                flex: 1,
-                                                background: '#141414',
-                                                borderColor: '#393f4e',
-                                                color: '#fff'
-                                            }}
+                                            style={{ flex: 1 }}
                                             size='large'
-                                            placeholder='0'
                                             disabled={isFreeTicket}
-                                            formatter={value =>
-                                                `${value}`.replace(
+                                            formatter={v =>
+                                                `${v}`.replace(
                                                     /\B(?=(\d{3})+(?!\d))/g,
                                                     ','
                                                 )
                                             }
-                                            parser={value =>
-                                                value.replace(/\$\s?|(,*)/g, '')
+                                            parser={v =>
+                                                v.replace(/\$\s?|(,*)/g, '')
                                             }
-                                            addonAfter='VND'
                                         />
                                     </Form.Item>
                                     <Checkbox
@@ -599,14 +536,13 @@ const Step2Showtimes = ({
                             </Form.Item>
                         </Col>
                     </Row>
-
-                    <Row gutter={24}>
-                        <Col span={8}>
+                    <Row gutter={16}>
+                        <Col span={12}>
                             <Form.Item
                                 name='total'
                                 label={
                                     <span style={{ color: '#fff' }}>
-                                        Tổng số lượng vé
+                                        Số lượng
                                     </span>
                                 }
                                 rules={[{ required: true, message: 'Nhập SL' }]}
@@ -615,161 +551,55 @@ const Step2Showtimes = ({
                                     style={{ width: '100%' }}
                                     size='large'
                                     min={1}
-                                    placeholder='100'
                                 />
                             </Form.Item>
                         </Col>
-                        <Col span={8}>
-                            <Form.Item
-                                name='minPerOrder'
-                                label={
-                                    <span style={{ color: '#fff' }}>
-                                        Tối thiểu / Đơn
-                                    </span>
-                                }
-                                initialValue={1}
-                            >
-                                <InputNumber
-                                    style={{ width: '100%' }}
-                                    size='large'
-                                    min={1}
-                                />
-                            </Form.Item>
-                        </Col>
-                        <Col span={8}>
-                            <Form.Item
-                                name='maxPerOrder'
-                                label={
-                                    <span style={{ color: '#fff' }}>
-                                        Tối đa / Đơn
-                                    </span>
-                                }
-                                initialValue={10}
-                            >
-                                <InputNumber
-                                    style={{ width: '100%' }}
-                                    size='large'
-                                    min={1}
-                                />
-                            </Form.Item>
-                        </Col>
-                    </Row>
-
-                    {/* --- VALIDATE THỜI GIAN BÁN VÉ --- */}
-                    <Row gutter={24}>
-                        <Col span={24}>
+                        <Col span={12}>
                             <Form.Item
                                 name='saleTime'
                                 label={
                                     <span style={{ color: '#fff' }}>
-                                        Thời gian mở bán vé
+                                        Thời gian bán
                                     </span>
                                 }
                                 rules={[
                                     {
                                         required: true,
-                                        message: 'Chọn thời gian mở bán'
-                                    },
-                                    // Custom Validator: Kiểm tra thời gian kết thúc
-                                    ({ getFieldValue }) => ({
-                                        validator(_, value) {
-                                            if (
-                                                !value ||
-                                                !value[1] ||
-                                                !currentShowtimeId
-                                            ) {
-                                                return Promise.resolve();
-                                            }
-                                            // Tìm suất diễn hiện tại
-                                            const currentShowtime =
-                                                showTimes.find(
-                                                    s =>
-                                                        s.id ===
-                                                        currentShowtimeId
-                                                );
-                                            if (
-                                                currentShowtime &&
-                                                currentShowtime.endTime
-                                            ) {
-                                                const eventEnd = dayjs(
-                                                    currentShowtime.endTime
-                                                );
-                                                const saleEnd = value[1]; // value là mảng [start, end]
-
-                                                if (saleEnd.isAfter(eventEnd)) {
-                                                    return Promise.reject(
-                                                        new Error(
-                                                            'Thời gian kết thúc bán vé không được lớn hơn thời gian kết thúc sự kiện!'
-                                                        )
-                                                    );
-                                                }
-                                            }
-                                            return Promise.resolve();
-                                        }
-                                    })
+                                        message: 'Chọn thời gian'
+                                    }
                                 ]}
                             >
                                 <DatePicker.RangePicker
                                     showTime
                                     format='HH:mm DD/MM/YYYY'
-                                    style={{
-                                        width: '100%',
-                                        background: '#141414',
-                                        borderColor: '#393f4e'
-                                    }}
+                                    style={{ width: '100%' }}
                                     size='large'
-                                    placeholder={[
-                                        'Bắt đầu bán',
-                                        'Kết thúc bán'
-                                    ]}
                                 />
                             </Form.Item>
                         </Col>
                     </Row>
-
-                    <Row gutter={24}>
-                        <Col span={16}>
-                            <Form.Item
-                                name='description'
-                                label={
-                                    <span style={{ color: '#fff' }}>
-                                        Mô tả loại vé
-                                    </span>
-                                }
-                            >
-                                <TextArea
-                                    rows={5}
-                                    showCount
-                                    maxLength={1000}
-                                    placeholder='Nhập mô tả chi tiết quyền lợi...'
-                                    style={{
-                                        background: '#141414',
-                                        borderColor: '#393f4e',
-                                        color: '#fff'
-                                    }}
-                                />
-                            </Form.Item>
-                        </Col>
-                    </Row>
-
-                    <Form.Item style={{ marginBottom: 0, marginTop: 16 }}>
-                        <Button
-                            type='primary'
-                            htmlType='submit'
-                            block
-                            size='large'
-                            style={{
-                                background: '#2dc275',
-                                borderColor: '#2dc275',
-                                height: 48,
-                                fontWeight: 600,
-                                fontSize: 16,
-                                boxShadow: '0 4px 15px rgba(45, 194, 117, 0.3)'
-                            }}
-                        >
-                            Lưu
-                        </Button>
+                    <Form.Item
+                        name='description'
+                        label={<span style={{ color: '#fff' }}>Mô tả</span>}
+                    >
+                        <TextArea
+                            rows={3}
+                            placeholder='Mô tả quyền lợi vé...'
+                        />
                     </Form.Item>
+                    <Button
+                        type='primary'
+                        htmlType='submit'
+                        block
+                        size='large'
+                        style={{
+                            background: '#2dc275',
+                            borderColor: '#2dc275',
+                            height: 48
+                        }}
+                    >
+                        Lưu vé
+                    </Button>
                 </Form>
             </Modal>
         </div>

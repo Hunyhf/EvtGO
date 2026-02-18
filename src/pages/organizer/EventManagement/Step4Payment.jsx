@@ -1,5 +1,16 @@
+// src/pages/organizer/EventManagement/Step4Payment.jsx
 import React, { useEffect } from 'react';
-import { Form, Input, Select, Card, Typography, Row, Col, Divider } from 'antd';
+import {
+    Form,
+    Input,
+    Select,
+    Card,
+    Typography,
+    Row,
+    Col,
+    Divider,
+    message
+} from 'antd';
 import { BankOutlined, AuditOutlined } from '@ant-design/icons';
 
 const { Title, Text } = Typography;
@@ -8,6 +19,7 @@ const { Option } = Select;
 const Step4Payment = ({ setOnNextAction, formData, setFormData }) => {
     const [form] = Form.useForm();
 
+    // 1. Hydration: Nạp dữ liệu cũ nếu có
     useEffect(() => {
         if (formData) {
             form.setFieldsValue({
@@ -23,9 +35,13 @@ const Step4Payment = ({ setOnNextAction, formData, setFormData }) => {
         }
     }, [formData, form]);
 
+    // ----------------------------------------------------------------------
+    // 2. LOGIC: ĐĂNG KÝ HÀM VALIDATE CHO CHA (ĐÃ SỬA LỖI CLOSURE)
+    // ----------------------------------------------------------------------
     useEffect(() => {
-        // Trả về một closure function để Cha có thể thực thi await
-        setOnNextAction(() => async () => {
+        // Cần triple closure () => () => async () => ...
+        // Để tương thích với lời gọi await onNextAction()() ở CreateEvent.jsx
+        setOnNextAction(() => () => async () => {
             try {
                 // Validate toàn bộ các trường trong Step 4
                 const paymentValues = await form.validateFields();
@@ -37,10 +53,11 @@ const Step4Payment = ({ setOnNextAction, formData, setFormData }) => {
                 }));
 
                 console.log('>>> [Step 4] Validation & Sync OK');
-                return true; // Trả về true để báo hiệu cho Cha
+                return true; // Trả về true để Cha tiến hành gửi API (handleFinish)
             } catch (error) {
                 console.error('>>> [Step 4] Validation failed:', error);
-                throw error; // Ném lỗi để Cha (CreateEvent) chặn quá trình handleFinish
+                message.error('Vui lòng hoàn thiện thông tin thanh toán!');
+                return false; // Trả về false để chặn không cho submit
             }
         });
 
@@ -48,9 +65,10 @@ const Step4Payment = ({ setOnNextAction, formData, setFormData }) => {
         return () => setOnNextAction(null);
     }, [form, setFormData, setOnNextAction]);
 
+    // --- STYLES ---
     const cardStyle = {
         borderRadius: '16px',
-        background: 'linear-gradient(135deg, #141414 0%, #0f2e1f 100%)',
+        background: 'linear-gradient(135deg, #2a2d34 0%, #1a2e25 100%)',
         border: '1px solid #393f4e',
         boxShadow: '0 8px 32px rgba(0, 0, 0, 0.4)',
         padding: '24px'
@@ -63,7 +81,6 @@ const Step4Payment = ({ setOnNextAction, formData, setFormData }) => {
         border: '1px solid #e5e7eb',
         height: '48px',
         fontSize: '16px',
-        boxShadow: '0 2px 6px rgba(0,0,0,0.05)',
         marginTop: '8px'
     };
 
@@ -73,7 +90,7 @@ const Step4Payment = ({ setOnNextAction, formData, setFormData }) => {
         <div style={{ maxWidth: 900, margin: '0 auto' }}>
             <Card bordered={false} style={cardStyle}>
                 <Form form={form} layout='vertical'>
-                    {/*  Thông tin Ngân hàng */}
+                    {/* Thông tin Ngân hàng */}
                     <div style={{ marginBottom: 32 }}>
                         <div
                             style={{
@@ -93,7 +110,7 @@ const Step4Payment = ({ setOnNextAction, formData, setFormData }) => {
                                 level={3}
                                 style={{ color: '#fff', margin: 0 }}
                             >
-                                Thông tin thanh toán
+                                Thông tin tài khoản nhận tiền
                             </Title>
                         </div>
                         <Text
@@ -120,12 +137,13 @@ const Step4Payment = ({ setOnNextAction, formData, setFormData }) => {
                                     rules={[
                                         {
                                             required: true,
-                                            message: 'Nhập chủ tài khoản'
+                                            message:
+                                                'Vui lòng nhập tên chủ tài khoản'
                                         }
                                     ]}
                                 >
                                     <Input
-                                        placeholder='NGUYEN VAN A'
+                                        placeholder='Ví dụ: NGUYEN VAN A'
                                         style={inputStyle}
                                         className='payment-input'
                                     />
@@ -142,12 +160,13 @@ const Step4Payment = ({ setOnNextAction, formData, setFormData }) => {
                                     rules={[
                                         {
                                             required: true,
-                                            message: 'Nhập số tài khoản'
+                                            message:
+                                                'Vui lòng nhập số tài khoản'
                                         }
                                     ]}
                                 >
                                     <Input
-                                        placeholder='VD: 1902xxxxxxx'
+                                        placeholder='Nhập số tài khoản ngân hàng'
                                         style={inputStyle}
                                         className='payment-input'
                                     />
@@ -164,12 +183,13 @@ const Step4Payment = ({ setOnNextAction, formData, setFormData }) => {
                                     rules={[
                                         {
                                             required: true,
-                                            message: 'Nhập tên ngân hàng'
+                                            message:
+                                                'Vui lòng nhập tên ngân hàng'
                                         }
                                     ]}
                                 >
                                     <Input
-                                        placeholder='VD: Techcombank'
+                                        placeholder='Ví dụ: Techcombank'
                                         style={inputStyle}
                                         className='payment-input'
                                     />
@@ -186,12 +206,12 @@ const Step4Payment = ({ setOnNextAction, formData, setFormData }) => {
                                     rules={[
                                         {
                                             required: true,
-                                            message: 'Nhập chi nhánh'
+                                            message: 'Vui lòng nhập chi nhánh'
                                         }
                                     ]}
                                 >
                                     <Input
-                                        placeholder='VD: Hà Nội'
+                                        placeholder='Ví dụ: Hà Nội'
                                         style={inputStyle}
                                         className='payment-input'
                                     />
@@ -202,7 +222,7 @@ const Step4Payment = ({ setOnNextAction, formData, setFormData }) => {
 
                     <Divider style={{ borderColor: '#393f4e' }} />
 
-                    {/* Phần 2: Hoá đơn đỏ */}
+                    {/* Hoá đơn đỏ */}
                     <div style={{ marginTop: 32 }}>
                         <div
                             style={{
@@ -222,7 +242,7 @@ const Step4Payment = ({ setOnNextAction, formData, setFormData }) => {
                                 level={3}
                                 style={{ color: '#fff', margin: 0 }}
                             >
-                                Hoá đơn đỏ
+                                Thông tin xuất hóa đơn (VAT)
                             </Title>
                         </div>
                         <Row gutter={[24, 16]}>
@@ -238,11 +258,6 @@ const Step4Payment = ({ setOnNextAction, formData, setFormData }) => {
                                     <Select
                                         size='large'
                                         style={{ width: '100%' }}
-                                        dropdownStyle={{
-                                            background: '#2a2d34',
-                                            color: '#fff'
-                                        }}
-                                        defaultValue='personal'
                                     >
                                         <Option value='personal'>
                                             Cá nhân
@@ -256,11 +271,15 @@ const Step4Payment = ({ setOnNextAction, formData, setFormData }) => {
                             <Col span={24}>
                                 <Form.Item
                                     name='taxName'
-                                    label={<span style={labelStyle}>Tên</span>}
+                                    label={
+                                        <span style={labelStyle}>
+                                            Tên cá nhân/đơn vị
+                                        </span>
+                                    }
                                     rules={[
                                         {
                                             required: true,
-                                            message: 'Nhập tên thuế'
+                                            message: 'Vui lòng nhập tên'
                                         }
                                     ]}
                                 >
@@ -279,7 +298,7 @@ const Step4Payment = ({ setOnNextAction, formData, setFormData }) => {
                                     rules={[
                                         {
                                             required: true,
-                                            message: 'Nhập địa chỉ thuế'
+                                            message: 'Vui lòng nhập địa chỉ'
                                         }
                                     ]}
                                 >
@@ -292,11 +311,15 @@ const Step4Payment = ({ setOnNextAction, formData, setFormData }) => {
                             <Col span={24}>
                                 <Form.Item
                                     name='taxCode'
-                                    label={<span style={labelStyle}>MST</span>}
+                                    label={
+                                        <span style={labelStyle}>
+                                            Mã số thuế
+                                        </span>
+                                    }
                                     rules={[
                                         {
                                             required: true,
-                                            message: 'Nhập mã số thuế'
+                                            message: 'Vui lòng nhập mã số thuế'
                                         }
                                     ]}
                                 >
@@ -311,9 +334,8 @@ const Step4Payment = ({ setOnNextAction, formData, setFormData }) => {
                 </Form>
             </Card>
             <style>{`
-                .ant-select-selector { background-color: #fff !important; border-radius: 10px !important; height: 48px !important; display: flex !important; align-items: center !important; border: 1px solid #e5e7eb !important; }
-                .payment-input:focus, .payment-input:hover, .ant-select-selector:hover, .ant-select-focused .ant-select-selector { border-color: #2dc275 !important; box-shadow: 0 0 0 3px rgba(45, 194, 117, 0.25) !important; outline: none; }
-                .ant-input-show-count-suffix { color: #9ca6b0; }
+                .ant-select-selector { background-color: #fff !important; border-radius: 10px !important; height: 48px !important; display: flex !important; align-items: center !important; }
+                .payment-input:focus, .payment-input:hover, .ant-select-selector:hover { border-color: #2dc275 !important; box-shadow: 0 0 0 3px rgba(45, 194, 117, 0.2) !important; outline: none; }
             `}</style>
         </div>
     );

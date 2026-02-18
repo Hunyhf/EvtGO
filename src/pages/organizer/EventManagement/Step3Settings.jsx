@@ -9,13 +9,12 @@ const { TextArea } = Input;
 const Step3Settings = ({
     setOnNextAction,
     formData,
-    setFormData,
-    nextStep
+    setFormData
+    // nextStep // Không cần dùng prop này nữa vì Cha sẽ tự xử lý chuyển bước
 }) => {
     const [form] = Form.useForm();
-    const { token } = theme.useToken();
 
-    // 1. Init Data
+    // 1. Init Data (Hydration)
     useEffect(() => {
         if (formData) {
             form.setFieldsValue({
@@ -24,36 +23,45 @@ const Step3Settings = ({
         }
     }, [formData, form]);
 
-    // 2. Register Action (Lưu và chuyển bước)
+    // ----------------------------------------------------------------------
+    // 2. LOGIC: ĐĂNG KÝ HÀM VALIDATE CHO CHA (ĐÃ SỬA)
+    // ----------------------------------------------------------------------
     useEffect(() => {
-        setOnNextAction(() => () => {
-            return form
-                .validateFields()
-                .then(values => {
-                    console.log('Step 3 Validated:', values);
-                    setFormData(prev => ({ ...prev, ...values }));
+        // Sử dụng triple closure () => () => async () => ...
+        // để tương thích với lời gọi await onNextAction()() ở CreateEvent.jsx
+        setOnNextAction(() => () => async () => {
+            try {
+                // Thực hiện validate form
+                const values = await form.validateFields();
 
-                    if (nextStep) {
-                        nextStep();
-                    }
-                })
-                .catch(info => {
-                    message.error('Vui lòng kiểm tra lại thông tin!');
-                    console.error('Validate Failed:', info);
-                    throw new Error('Validation failed');
-                });
+                console.log('Step 3 Validated:', values);
+
+                // Cập nhật dữ liệu vào state tổng
+                setFormData(prev => ({ ...prev, ...values }));
+
+                // Trả về true để báo cho Cha là hợp lệ, Cha sẽ tự gọi nextStep()
+                return true;
+            } catch (error) {
+                message.error('Vui lòng nhập nội dung tin nhắn xác nhận!');
+                console.error('Validate Failed:', error);
+                // Trả về false để chặn không cho qua bước tiếp theo
+                return false;
+            }
         });
-    }, [form, setOnNextAction, setFormData, nextStep]);
 
-    // Styles custom cho Textarea để đè lên style mặc định của Antd
+        // Cleanup khi unmount
+        return () => setOnNextAction(null);
+    }, [form, setOnNextAction, setFormData]);
+
+    // Styles custom cho Textarea
     const textAreaStyle = {
-        backgroundColor: '#fff', // Yêu cầu "White textarea"
-        color: '#333', // Chữ đen trên nền trắng
+        backgroundColor: '#fff',
+        color: '#333',
         borderRadius: '8px',
         border: '1px solid #e5e7eb',
         padding: '12px',
         fontSize: '16px',
-        fontFamily: "'Inter', sans-serif", // Clean modern sans-serif
+        fontFamily: "'Inter', sans-serif",
         boxShadow: 'inset 0 2px 4px 0 rgba(0, 0, 0, 0.06)'
     };
 
@@ -67,7 +75,6 @@ const Step3Settings = ({
                 bordered={false}
                 style={{
                     borderRadius: '12px',
-                    // Black-to-green gradient background effect
                     background:
                         'linear-gradient(145deg, #2a2d34 0%, #1a2e25 100%)',
                     boxShadow: '0 10px 30px rgba(0, 0, 0, 0.5)',
@@ -76,7 +83,7 @@ const Step3Settings = ({
                     position: 'relative'
                 }}
             >
-                {/* Trang trí Neon Green Accent bên trái */}
+                {/* Neon Green Accent */}
                 <div
                     style={{
                         position: 'absolute',
@@ -124,8 +131,8 @@ const Step3Settings = ({
                             Tin nhắn xác nhận cho người tham gia
                         </Title>
                         <Text style={{ color: '#9ca6b0', fontSize: '14px' }}>
-                            Tin nhắn xác nhận này sẽ được gửi đến cho người tham
-                            gia sau khi đặt vé thành công
+                            Tin nhắn này sẽ được gửi tự động sau khi người dùng
+                            đặt vé thành công.
                         </Text>
                     </div>
                 </div>
@@ -134,11 +141,17 @@ const Step3Settings = ({
                 <Form.Item
                     name='confirmationMessage'
                     style={{ marginBottom: 0 }}
+                    rules={[
+                        {
+                            required: true,
+                            message: 'Nội dung không được để trống'
+                        }
+                    ]}
                 >
                     <div className='custom-textarea-wrapper'>
                         <TextArea
                             rows={8}
-                            placeholder='Nhập nội dung tin nhắn xác nhận...'
+                            placeholder='Ví dụ: Cảm ơn bạn đã quan tâm đến sự kiện của chúng tôi...'
                             maxLength={500}
                             showCount={{
                                 formatter: ({ count, maxLength }) => (
@@ -153,14 +166,12 @@ const Step3Settings = ({
                                 )
                             }}
                             style={textAreaStyle}
-                            // Classname để CSS focus effect (xem style bên dưới)
                             className='neon-focus-textarea'
                         />
                     </div>
                 </Form.Item>
             </Card>
 
-            {/* CSS-in-JS nhỏ để xử lý Focus state màu xanh neon */}
             <style>{`
                 .neon-focus-textarea:focus, 
                 .neon-focus-textarea:hover {

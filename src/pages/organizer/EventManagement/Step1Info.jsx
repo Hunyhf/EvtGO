@@ -47,11 +47,12 @@ const Step1Info = ({
     );
 
     // ----------------------------------------------------------------------
-    // LOGIC: ĐĂNG KÝ HÀM VALIDATE CHO CHA (CreateEvent)
+    // LOGIC: ĐĂNG KÝ HÀM VALIDATE CHO CHA (CreateEvent) - ĐÃ SỬA LỖI
     // ----------------------------------------------------------------------
     useEffect(() => {
-        // Cha sẽ thực thi hàm này khi nhấn "Tiếp tục"
-        setOnNextAction(() => async () => {
+        // Cần sử dụng triple closure () => () => async () => ...
+        // để React lưu đúng "hàm trả về hàm" vào state thay vì thực thi nó ngay lập tức.
+        setOnNextAction(() => () => async () => {
             try {
                 // 1. Chạy validate của Ant Design Form
                 const values = await form.validateFields();
@@ -72,7 +73,6 @@ const Step1Info = ({
                 if (currentLogo) imagesArr.push(currentLogo);
 
                 // 3. Cập nhật state Cha.
-                // Quan trọng: Không gọi nextStep() ở đây, để Cha tự gọi sau khi validate trả về true
                 setParentFormData(prev => ({
                     ...prev,
                     ...values,
@@ -112,7 +112,6 @@ const Step1Info = ({
 
         fetchInitialData();
 
-        // FIX date4.isValid: Chuyển string sang dayjs object trước khi nạp vào Form
         if (parentFormData) {
             form.setFieldsValue({
                 ...parentFormData,
@@ -121,7 +120,6 @@ const Step1Info = ({
                     : null
             });
 
-            // Re-load danh sách địa lý nếu đã có dữ liệu cũ (khi quay lại bước 1)
             if (parentFormData.province)
                 handleProvinceChange(parentFormData.province, false);
             if (parentFormData.district)
@@ -130,7 +128,7 @@ const Step1Info = ({
     }, []);
 
     // ----------------------------------------------------------------------
-    // XỬ LÝ ĐỊA LÝ: LƯU CẢ TÊN ĐỂ CHA GHÉP CHUỖI LOCATION
+    // XỬ LÝ ĐỊA LÝ
     // ----------------------------------------------------------------------
     const handleProvinceChange = async (value, resetChildren = true) => {
         const province = provinces.find(p => p.code === value);
@@ -205,7 +203,7 @@ const Step1Info = ({
                 }));
             }
         });
-        return false; // Ngăn auto upload
+        return false;
     };
 
     return (
@@ -262,7 +260,6 @@ const Step1Info = ({
             </Card>
 
             <Row gutter={24}>
-                {/* --- BAN TỔ CHỨC --- */}
                 <Col span={24} lg={8}>
                     <Card
                         style={{
@@ -327,7 +324,6 @@ const Step1Info = ({
                     </Card>
                 </Col>
 
-                {/* --- THÔNG TIN SỰ KIỆN --- */}
                 <Col span={24} lg={16}>
                     <Card
                         style={{
@@ -454,7 +450,7 @@ const Step1Info = ({
                                     name='location'
                                     label={
                                         <span style={{ color: '#fff' }}>
-                                            Tên địa điểm (Sân vận động,...)
+                                            Tên địa điểm
                                         </span>
                                     }
                                     rules={[
@@ -567,7 +563,7 @@ const Step1Info = ({
                             name='addressDetail'
                             label={
                                 <span style={{ color: '#fff' }}>
-                                    Địa chỉ chi tiết (Số nhà, tên đường)
+                                    Địa chỉ chi tiết
                                 </span>
                             }
                             rules={[
@@ -586,7 +582,6 @@ const Step1Info = ({
                 </Col>
             </Row>
 
-            {/* --- MÔ TẢ --- */}
             <Card
                 style={{
                     marginTop: 24,
