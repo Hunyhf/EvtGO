@@ -9,19 +9,21 @@ import StaffLayout from '@components/layouts/StaffLayout.jsx';
 
 // Import Pages
 import Staff from '@pages/staff/Staff.jsx';
-// CUSTOMER
+
+// CUSTOMER PAGES
 import Home from '@pages/customer/Home/Home.jsx';
-// --- SỬA TẠI ĐÂY: Đổi Category thành Genre ---
 import Genre from '@pages/customer/Genre/Genre';
 import Profile from '@pages/customer/Profile/Profile.jsx';
 import Ticket from '@pages/customer/Ticket/Ticket.jsx';
 import NotFound from '@pages/customer/NotFound/NotFound.jsx';
 
-// ADMIN
+// ADMIN PAGES (Đã thêm đầy đủ 3 trang)
 import AdminDashBoard from '@pages/admin/AdminDashBoard/AdminDashBoard.jsx';
 import UserManagement from '@pages/admin/UserManagement/UserManagement.jsx';
+// Lưu ý: Đây là trang mới tạo ở bước trước
+import AdminEventManagement from '@pages/admin/EventManagement/AdminEventManagement.jsx';
 
-// Organizer
+// ORGANIZER PAGES
 import EventManagement from '@pages/organizer/EventManagement/EventManagement';
 import CreateEvent from '@pages/organizer/EventManagement/CreateEvent';
 
@@ -35,7 +37,10 @@ export const BREADCRUMB_LABELS = {
     '/my-tickets': 'Vé của tôi',
     '/profile': 'Hồ sơ cá nhân',
     '/organizer': 'Quản lý sự kiện',
-    '/organizer/events/create': 'Tạo sự kiện mới'
+    '/organizer/events/create': 'Tạo sự kiện mới',
+    '/admin': 'Tổng quan',
+    '/admin/users': 'Quản lý người dùng',
+    '/admin/events': 'Quản lý sự kiện'
 };
 
 export const routes = createBrowserRouter([
@@ -51,10 +56,7 @@ export const routes = createBrowserRouter([
                 element: <CustomerLayout />,
                 children: [
                     { index: true, element: <Home /> },
-
-                    // --- SỬA TẠI ĐÂY: path='genre' và element=<Genre /> ---
                     { path: 'genre', element: <Genre /> },
-
                     {
                         path: 'my-tickets',
                         element: (
@@ -92,7 +94,7 @@ export const routes = createBrowserRouter([
                 children: [{ index: true, element: <Staff /> }]
             },
 
-            // --- NHÓM ADMIN ---
+            // --- NHÓM ADMIN (Đã cập nhật đầy đủ) ---
             {
                 path: '/admin',
                 element: (
@@ -101,10 +103,20 @@ export const routes = createBrowserRouter([
                     </ProtectedRoute>
                 ),
                 children: [
-                    { index: true, element: <AdminDashBoard /> },
+                    // 1. Thống kê (Dashboard) - Trang chủ của Admin
+                    {
+                        index: true,
+                        element: <AdminDashBoard />
+                    },
+                    // 2. Quản lý người dùng
                     {
                         path: 'users',
                         element: <UserManagement />
+                    },
+                    // 3. Quản lý sự kiện
+                    {
+                        path: 'events',
+                        element: <AdminEventManagement />
                     }
                 ]
             },
@@ -119,19 +131,19 @@ export const routes = createBrowserRouter([
                 ),
                 children: [
                     {
-                        path: 'events', // Tương đương /organizer/events
+                        path: 'events',
                         element: <EventManagement />
                     },
                     {
-                        path: 'events/create', // Tương đương /organizer/events/create
+                        path: 'events/create',
                         element: <CreateEvent />
                     },
                     {
-                        path: 'profile', // Tương đương /organizer/profile
+                        path: 'profile',
                         element: <Profile />
                     },
                     {
-                        path: 'terms', // Tương đương /organizer/terms
+                        path: 'terms',
                         element: <div>Trang điều khoản</div>
                     }
                 ]

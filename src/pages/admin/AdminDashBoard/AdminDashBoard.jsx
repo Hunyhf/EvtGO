@@ -1,129 +1,241 @@
-import React, { useState, useEffect } from 'react';
-import { Row, Col, Table, Tag, Typography, message } from 'antd';
+import React from 'react';
+import { Card, Col, Row, Statistic, Table, Tag, Typography, Space } from 'antd';
 import {
     UserOutlined,
     CalendarOutlined,
-    AccountBookOutlined,
-    ArrowUpOutlined
+    DollarOutlined,
+    CheckCircleOutlined,
+    ClockCircleOutlined,
+    RiseOutlined
 } from '@ant-design/icons';
-import classNames from 'classnames/bind';
+import styles from './AdminDashBoard.module.scss'; // Style riêng nếu cần
 
-import styles from './AdminDashBoard.module.scss';
-import StatCard from '@components/StatCard/StatCard.jsx';
-import { callFetchAllUsers } from '@apis/userApi';
-
-const cx = classNames.bind(styles);
-const { Title, Text } = Typography;
+const { Title } = Typography;
 
 function AdminDashBoard() {
-    const [stats, setStats] = useState({
-        totalUsers: 0,
-        activeEvents: 93,
-        revenue: 25600000,
-        growth: 11.28
-    });
-    const [loading, setLoading] = useState(true);
-
-    useEffect(() => {
-        fetchDashboardData();
-    }, []);
-
-    const fetchDashboardData = async () => {
-        try {
-            setLoading(true);
-            // Gọi API lấy tổng số người dùng
-            const res = await callFetchAllUsers('page=1&size=1');
-            if (res?.meta) {
-                setStats(prev => ({ ...prev, totalUsers: res.meta.total }));
-            }
-        } catch (error) {
-            message.error('Lỗi khi tải dữ liệu thống kê');
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    const columns = [
+    // === MOCK DATA (Dữ liệu giả lập) ===
+    const stats = [
         {
-            title: 'Sự kiện',
-            dataIndex: 'name',
-            key: 'name',
-            render: text => (
-                <span className={cx('table-text-bold')}>{text}</span>
+            title: 'Tổng người dùng',
+            value: 1250,
+            icon: (
+                <UserOutlined style={{ fontSize: '24px', color: '#1890ff' }} />
+            ),
+            suffix: '',
+            color: '#e6f7ff'
+        },
+        {
+            title: 'Tổng sự kiện',
+            value: 86,
+            icon: (
+                <CalendarOutlined
+                    style={{ fontSize: '24px', color: '#722ed1' }}
+                />
+            ),
+            suffix: 'events',
+            color: '#f9f0ff'
+        },
+        {
+            title: 'Doanh thu (tháng)',
+            value: 125000000,
+            icon: (
+                <DollarOutlined
+                    style={{ fontSize: '24px', color: '#52c41a' }}
+                />
+            ),
+            suffix: 'VND',
+            color: '#f6ffed'
+        },
+        {
+            title: 'Sự kiện chờ duyệt',
+            value: 5,
+            icon: (
+                <ClockCircleOutlined
+                    style={{ fontSize: '24px', color: '#fa8c16' }}
+                />
+            ),
+            suffix: '',
+            color: '#fff7e6'
+        }
+    ];
+
+    // Dữ liệu bảng người dùng mới
+    const recentUsers = [
+        {
+            key: 1,
+            name: 'Nguyễn Văn A',
+            email: 'a@gmail.com',
+            role: 'Customer',
+            date: '2023-10-25'
+        },
+        {
+            key: 2,
+            name: 'Trần Thị B',
+            email: 'b@gmail.com',
+            role: 'Organizer',
+            date: '2023-10-24'
+        },
+        {
+            key: 3,
+            name: 'Lê Văn C',
+            email: 'c@gmail.com',
+            role: 'Customer',
+            date: '2023-10-23'
+        }
+    ];
+
+    // Dữ liệu bảng sự kiện mới
+    const recentEvents = [
+        {
+            key: 1,
+            name: 'Hòa nhạc Mùa Thu',
+            organizer: 'Band A',
+            status: 'pending',
+            date: '2023-11-20'
+        },
+        {
+            key: 2,
+            name: 'Triển lãm Art',
+            organizer: 'Studio B',
+            status: 'approved',
+            date: '2023-12-05'
+        },
+        {
+            key: 3,
+            name: 'Workshop React',
+            organizer: 'Tech C',
+            status: 'rejected',
+            date: '2023-11-15'
+        }
+    ];
+
+    // Cấu hình cột cho bảng Users
+    const userColumns = [
+        { title: 'Tên', dataIndex: 'name', key: 'name' },
+        { title: 'Email', dataIndex: 'email', key: 'email' },
+        {
+            title: 'Vai trò',
+            dataIndex: 'role',
+            key: 'role',
+            render: role => (
+                <Tag color={role === 'Organizer' ? 'purple' : 'blue'}>
+                    {role}
+                </Tag>
             )
         },
-        { title: 'Người tổ chức', dataIndex: 'organizer', key: 'organizer' },
+        { title: 'Ngày tham gia', dataIndex: 'date', key: 'date' }
+    ];
+
+    // Cấu hình cột cho bảng Events
+    const eventColumns = [
+        { title: 'Tên sự kiện', dataIndex: 'name', key: 'name' },
+        { title: 'BTC', dataIndex: 'organizer', key: 'organizer' },
         {
             title: 'Trạng thái',
             dataIndex: 'status',
-            render: status => (
-                <Tag color={status === 'Đang diễn ra' ? '#2dc275' : '#faad14'}>
-                    {status}
-                </Tag>
-            )
+            key: 'status',
+            render: status => {
+                let color = 'default';
+                let text = 'Khác';
+                if (status === 'approved') {
+                    color = 'success';
+                    text = 'Đã duyệt';
+                }
+                if (status === 'pending') {
+                    color = 'warning';
+                    text = 'Chờ duyệt';
+                }
+                if (status === 'rejected') {
+                    color = 'error';
+                    text = 'Từ chối';
+                }
+                return <Tag color={color}>{text}</Tag>;
+            }
         }
     ];
 
     return (
-        <div className={cx('dashboard')}>
-            <div className={cx('dashboard__header')}>
-                <Title level={2} className={cx('dashboard__title')}>
-                    Bảng điều khiển quản trị
-                </Title>
-            </div>
+        <div className={styles.dashboardContainer}>
+            <Title level={3} style={{ marginBottom: 20 }}>
+                Tổng quan hệ thống
+            </Title>
 
-            <Row gutter={[24, 24]}>
-                <Col xs={24} sm={12} lg={6}>
-                    <StatCard
-                        title='Tổng người dùng'
-                        value={stats.totalUsers}
-                        icon={<UserOutlined />}
-                        color='#2dc275'
-                        loading={loading}
-                    />
-                </Col>
-                <Col xs={24} sm={12} lg={6}>
-                    <StatCard
-                        title='Sự kiện'
-                        value={stats.activeEvents}
-                        icon={<CalendarOutlined />}
-                        color='#1890ff'
-                        loading={loading}
-                    />
-                </Col>
-                <Col xs={24} sm={12} lg={6}>
-                    <StatCard
-                        title='Doanh thu'
-                        value={stats.revenue}
-                        suffix='đ'
-                        icon={<AccountBookOutlined />}
-                        color='#faad14'
-                        loading={loading}
-                    />
-                </Col>
-                <Col xs={24} sm={12} lg={6}>
-                    <StatCard
-                        title='Tăng trưởng'
-                        value={stats.growth}
-                        suffix='%'
-                        icon={<ArrowUpOutlined />}
-                        color='#2dc275'
-                        loading={loading}
-                    />
-                </Col>
+            {/* 1. Phần Thống kê (Stats Cards) */}
+            <Row gutter={[16, 16]}>
+                {stats.map((item, index) => (
+                    <Col xs={24} sm={12} lg={6} key={index}>
+                        <Card
+                            bordered={false}
+                            hoverable
+                            className={styles.statCard}
+                        >
+                            <div className={styles.statContent}>
+                                <div
+                                    className={styles.statIcon}
+                                    style={{ backgroundColor: item.color }}
+                                >
+                                    {item.icon}
+                                </div>
+                                <div className={styles.statInfo}>
+                                    <Statistic
+                                        title={item.title}
+                                        value={item.value}
+                                        suffix={
+                                            <span
+                                                style={{
+                                                    fontSize: '14px',
+                                                    color: '#888'
+                                                }}
+                                            >
+                                                {item.suffix}
+                                            </span>
+                                        }
+                                        valueStyle={{
+                                            fontSize: '24px',
+                                            fontWeight: 'bold'
+                                        }}
+                                    />
+                                </div>
+                            </div>
+                        </Card>
+                    </Col>
+                ))}
             </Row>
 
-            <div className={cx('dashboard__table-section')}>
-                <div className={cx('section-header')}>
-                    <Title level={4}>Sự kiện mới đăng ký</Title>
-                </div>
-                <Table
-                    columns={columns}
-                    dataSource={[]}
-                    pagination={false}
-                    className={cx('custom-table')}
-                />
-            </div>
+            {/* 2. Phần Bảng dữ liệu (Tables) */}
+            <Row gutter={[24, 24]} style={{ marginTop: 24 }}>
+                {/* Bảng Người dùng mới */}
+                <Col xs={24} lg={12}>
+                    <Card
+                        title='Người dùng mới tham gia'
+                        bordered={false}
+                        extra={<a href='/admin/users'>Xem tất cả</a>}
+                    >
+                        <Table
+                            columns={userColumns}
+                            dataSource={recentUsers}
+                            pagination={false}
+                            size='small'
+                        />
+                    </Card>
+                </Col>
+
+                {/* Bảng Sự kiện gần đây */}
+                <Col xs={24} lg={12}>
+                    <Card
+                        title='Sự kiện gần đây'
+                        bordered={false}
+                        extra={<a href='/admin/events'>Xem tất cả</a>}
+                    >
+                        <Table
+                            columns={eventColumns}
+                            dataSource={recentEvents}
+                            pagination={false}
+                            size='small'
+                        />
+                    </Card>
+                </Col>
+            </Row>
         </div>
     );
 }

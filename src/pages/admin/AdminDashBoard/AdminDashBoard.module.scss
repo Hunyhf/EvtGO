@@ -1,63 +1,32 @@
-@import '@styles/variables.scss';
+.dashboardContainer {
+    padding: 0; // Padding đã được layout cha xử lý
+}
 
-.dashboard {
-    padding: 24px;
-    background-color: #f8fafc;
-    min-height: 100vh;
+.statCard {
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
 
-    &__header {
-        margin-bottom: 32px;
-    }
-
-    &__title {
-        color: $secondary-color !important;
-        margin-bottom: 8px !important;
-    }
-
-    &__subtitle {
-        color: $text-color;
-    }
-
-    &__stats-container {
-        margin-top: 24px;
-    }
-
-    &__card {
-        border-radius: 12px !important;
-        overflow: hidden;
-        transition:
-            transform 0.3s ease,
-            box-shadow 0.3s ease !important;
-
-        &:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.05) !important;
-        }
-    }
-
-    &__table-wrapper {
-        margin-top: 32px;
-        background: $white-color;
-        padding: 24px;
-        border-radius: 12px;
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+    :global(.ant-card-body) {
+        padding: 20px;
     }
 }
 
-:global {
-    .ant-table-thead > tr > th {
-        background-color: #fdfdfd !important;
-        color: $third-color !important;
-        font-weight: 600;
-    }
+.statContent {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
 
-    .ant-statistic-title {
-        color: $text-color !important;
-        font-size: 14px;
-    }
+.statIcon {
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    display: flex;
+    justify_content: center;
+    align-items: center;
+    flex-shrink: 0;
+}
 
-    .ant-statistic-content {
-        color: $secondary-color !important;
-        font-weight: 700;
-    }
+.statInfo {
+    flex-grow: 1;
 }

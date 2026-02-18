@@ -1,0 +1,52 @@
+.container {
+    padding: 0; // Layout cha đã có padding nếu cần, hoặc để 0
+}
+
+.header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 24px;
+    flex-wrap: wrap;
+    gap: 16px;
+
+    .title {
+        margin: 0;
+        font-size: 24px;
+        font-weight: 600;
+        color: #1f1f1f;
+    }
+
+    .actions {
+        display: flex;
+        gap: 12px;
+    }
+}
+
+.tableContainer {
+    background: #fff;
+    border-radius: 8px;
+    padding: 16px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.eventInfo {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+
+    .thumbnail {
+        width: 60px;
+        height: 40px;
+        object-fit: cover;
+        border-radius: 4px;
+        background-color: #f0f0f0;
+    }
+
+    .name {
+        font-weight: 500;
+        color: #262626;
+        font-size: 14px;
+        line-height: 1.4;
+    }
+}
