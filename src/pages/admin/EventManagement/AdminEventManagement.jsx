@@ -17,7 +17,8 @@ import {
     CheckCircleOutlined,
     CloseCircleOutlined,
     SearchOutlined,
-    EnvironmentOutlined
+    EnvironmentOutlined,
+    ClockCircleOutlined
 } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import { eventApi } from '@apis/eventApi';
@@ -63,23 +64,28 @@ function AdminEventManagement() {
                     ? `${BASE_URL_IMAGE}/${posterObj.url}`
                     : 'https://placehold.co/150x100?text=No+Image';
 
-                // Ghép Date và Time chuỗi từ BE
-                const fullStartTime = event.startDate
+                // Ghép Date và Time chuỗi từ BE để so sánh chính xác
+                const fullStartTimeStr = event.startDate
                     ? `${event.startDate} ${event.startTime || '00:00:00'}`
                     : null;
-                const fullEndTime = event.endDate
+                const fullEndTimeStr = event.endDate
                     ? `${event.endDate} ${event.endTime || '23:59:59'}`
                     : null;
 
-                // --- LOGIC TRẠNG THÁI GIỐNG ORGANIZER ---
-                let derivedStatus = 'PENDING'; // Mặc định là Chờ duyệt
-                if (event.published) {
-                    // Nếu đã duyệt (isPublished = true)
-                    if (fullStartTime && dayjs(fullStartTime).isAfter(now)) {
-                        derivedStatus = 'UPCOMING'; // Sắp tới
-                    } else {
-                        derivedStatus = 'PAST'; // Đã qua
-                    }
+                const eventStartTime = fullStartTimeStr
+                    ? dayjs(fullStartTimeStr)
+                    : null;
+
+                // --- LOGIC TRẠNG THÁI ---
+                // Sử dụng isPublished thay vì published để đồng bộ với Organizer
+                let derivedStatus = 'PENDING';
+
+                if (eventStartTime && eventStartTime.isBefore(now)) {
+                    derivedStatus = 'PAST'; // Đã qua giờ tổ chức
+                } else if (event.isPublished || event.published) {
+                    derivedStatus = 'UPCOMING'; // Đã duyệt và chưa đến giờ
+                } else {
+                    derivedStatus = 'PENDING'; // Chưa duyệt và chưa đến giờ
                 }
 
                 return {
@@ -87,8 +93,8 @@ function AdminEventManagement() {
                     key: event.id,
                     posterUrl: posterUrl,
                     derivedStatus: derivedStatus,
-                    fullStartTime: fullStartTime,
-                    fullEndTime: fullEndTime,
+                    fullStartTime: fullStartTimeStr,
+                    fullEndTime: fullEndTimeStr,
                     organizerName: event.createdBy || 'N/A'
                 };
             });
@@ -109,11 +115,11 @@ function AdminEventManagement() {
     // === 2. ACTIONS ===
     const handleApprove = async id => {
         try {
-            // Gọi API approve (đã map với togglePublished trong eventApi.js)
             await eventApi.approve(id);
             message.success('Đã duyệt sự kiện thành công!');
             fetchEvents();
         } catch (error) {
+            // Hiển thị lỗi từ Backend nếu sự kiện đã qua thời gian bắt đầu
             message.error(
                 error.response?.data?.message || 'Lỗi khi duyệt sự kiện.'
             );
@@ -122,7 +128,6 @@ function AdminEventManagement() {
 
     const handleRejectConfirm = async () => {
         try {
-            // Gọi API reject (đã map với remove trong eventApi.js vì BE không có reject)
             await eventApi.reject(currentEventId);
             message.success('Đã xóa (từ chối) sự kiện.');
             setIsRejectModalOpen(false);
@@ -197,19 +202,13 @@ function AdminEventManagement() {
             key: 'time',
             width: 200,
             render: (_, record) => (
-                <div style={{ fontSize: '13px' }}>
+                <div style={{ fontSize: '12px' }}>
                     <div>
-                        <span style={{ color: '#888' }}>Bắt đầu: </span>
+                        <ClockCircleOutlined
+                            style={{ marginRight: 5, color: '#888' }}
+                        />
                         {record.fullStartTime
                             ? dayjs(record.fullStartTime).format(
-                                  'HH:mm DD/MM/YYYY'
-                              )
-                            : '--'}
-                    </div>
-                    <div>
-                        <span style={{ color: '#888' }}>Kết thúc: </span>
-                        {record.fullEndTime
-                            ? dayjs(record.fullEndTime).format(
                                   'HH:mm DD/MM/YYYY'
                               )
                             : '--'}
@@ -238,50 +237,62 @@ function AdminEventManagement() {
         {
             title: 'Hành động',
             key: 'action',
-            render: (_, record) => (
-                <Space size='small'>
-                    <Tooltip title='Xem chi tiết'>
-                        <Button
-                            icon={<EyeOutlined />}
-                            onClick={() =>
-                                message.info(
-                                    `Xem chi tiết sự kiện: ${record.name}`
-                                )
-                            }
-                        />
-                    </Tooltip>
+            render: (_, record) => {
+                // Hiển thị nút nếu sự kiện chưa được duyệt
+                const isNotPublished = !(
+                    record.isPublished || record.published
+                );
 
-                    {record.derivedStatus === 'PENDING' && (
-                        <>
-                            <Popconfirm
-                                title='Duyệt sự kiện này?'
-                                onConfirm={() => handleApprove(record.id)}
-                                okText='Duyệt'
-                                cancelText='Hủy'
-                            >
-                                <Button
-                                    type='primary'
-                                    ghost
-                                    icon={<CheckCircleOutlined />}
-                                >
-                                    Duyệt
-                                </Button>
-                            </Popconfirm>
-
+                return (
+                    <Space size='small'>
+                        <Tooltip title='Xem chi tiết'>
                             <Button
-                                danger
-                                icon={<CloseCircleOutlined />}
-                                onClick={() => {
-                                    setCurrentEventId(record.id);
-                                    setIsRejectModalOpen(true);
-                                }}
-                            >
-                                Từ chối
-                            </Button>
-                        </>
-                    )}
-                </Space>
-            )
+                                icon={<EyeOutlined />}
+                                onClick={() =>
+                                    message.info(`Sự kiện: ${record.name}`)
+                                }
+                            />
+                        </Tooltip>
+
+                        {isNotPublished && (
+                            <>
+                                <Popconfirm
+                                    title='Duyệt sự kiện này?'
+                                    onConfirm={() => handleApprove(record.id)}
+                                    okText='Duyệt'
+                                    cancelText='Hủy'
+                                >
+                                    <Button
+                                        type='primary'
+                                        ghost
+                                        icon={<CheckCircleOutlined />}
+                                    >
+                                        Duyệt
+                                    </Button>
+                                </Popconfirm>
+
+                                <Button
+                                    danger
+                                    icon={<CloseCircleOutlined />}
+                                    onClick={() => {
+                                        setCurrentEventId(record.id);
+                                        setIsRejectModalOpen(true);
+                                    }}
+                                >
+                                    Từ chối
+                                </Button>
+                            </>
+                        )}
+
+                        {/* Cảnh báo thêm nếu sự kiện đã quá hạn nhưng chưa duyệt */}
+                        {record.derivedStatus === 'PAST' && isNotPublished && (
+                            <Tag color='error' style={{ marginLeft: 8 }}>
+                                Quá hạn
+                            </Tag>
+                        )}
+                    </Space>
+                );
+            }
         }
     ];
 
