@@ -19,8 +19,8 @@ import {
     SearchOutlined
 } from '@ant-design/icons';
 import dayjs from 'dayjs';
-// --- LƯU Ý: Import có dấu ngoặc nhọn {} do file api dùng named export ---
 import { eventApi } from '@apis/eventApi';
+// Import styles
 import styles from './AdminEventManagement.module.scss';
 
 const { Title } = Typography;
@@ -32,7 +32,6 @@ function AdminEventManagement() {
     const [searchText, setSearchText] = useState('');
     const [filterStatus, setFilterStatus] = useState('ALL');
 
-    // State Modal Từ chối
     const [isRejectModalOpen, setIsRejectModalOpen] = useState(false);
     const [currentEventId, setCurrentEventId] = useState(null);
     const [rejectReason, setRejectReason] = useState('');
@@ -41,19 +40,26 @@ function AdminEventManagement() {
     const fetchEvents = async () => {
         setLoading(true);
         try {
-            // Truyền params để lấy list (ví dụ page 1, size 100)
             const params = {
-                page: 0,
+                page: 1, // API của bạn trả về page: 1, có thể start từ 1
                 size: 100
-                // sort: 'createdAt,desc' // Nếu BE hỗ trợ sort
             };
             const res = await eventApi.getAll(params);
 
-            // Log dữ liệu để xem cấu trúc BE trả về (quan trọng)
             console.log('API Response:', res);
 
-            // Xử lý dữ liệu: Tùy BE trả về res.data hay res.data.content
-            const events = res.content || res.data || [];
+            // --- SỬA TẠI ĐÂY: Lấy dữ liệu từ res.result ---
+            let events = [];
+            if (res.result && Array.isArray(res.result)) {
+                events = res.result; // Cấu trúc Backend của bạn
+            } else if (Array.isArray(res)) {
+                events = res;
+            } else if (res.content && Array.isArray(res.content)) {
+                events = res.content;
+            } else if (res.data && Array.isArray(res.data)) {
+                events = res.data;
+            }
+
             setDataSource(events);
         } catch (error) {
             console.error('Lỗi tải sự kiện:', error);
@@ -68,27 +74,23 @@ function AdminEventManagement() {
     }, []);
 
     // === 2. ACTIONS ===
-
-    // Xử lý Duyệt
     const handleApprove = async id => {
         try {
             await eventApi.approve(id);
             message.success('Đã duyệt sự kiện!');
-            fetchEvents(); // Reload lại bảng
+            fetchEvents();
         } catch (error) {
             console.error(error);
             message.error('Lỗi khi duyệt sự kiện.');
         }
     };
 
-    // Mở modal từ chối
     const openRejectModal = id => {
         setCurrentEventId(id);
         setRejectReason('');
         setIsRejectModalOpen(true);
     };
 
-    // Xử lý Từ chối (Submit)
     const handleRejectConfirm = async () => {
         if (!rejectReason.trim()) {
             message.warning('Vui lòng nhập lý do!');
@@ -106,21 +108,18 @@ function AdminEventManagement() {
     };
 
     // === 3. FILTER CLIENT-SIDE ===
-    // (Lọc tạm thời ở FE, tốt nhất là gọi API filter nếu dữ liệu lớn)
     const filteredData = dataSource.filter(item => {
-        // Giả sử status BE trả về là: "PENDING", "APPROVED", "REJECTED"
         const status = item.status ? item.status.toUpperCase() : '';
-
         const matchStatus = filterStatus === 'ALL' || status === filterStatus;
-        // Kiểm tra tên sự kiện (item.name) và tên BTC (item.organizerName)
-        // Hãy sửa 'name' và 'organizerName' đúng theo key mà API trả về
+
+        // Kiểm tra an toàn null cho các trường
+        const eventName = item.eventName || item.name || '';
+        const organizerName = item.organizerName || '';
+
         const matchSearch =
-            (item.name || '')
-                .toLowerCase()
-                .includes(searchText.toLowerCase()) ||
-            (item.organizerName || '')
-                .toLowerCase()
-                .includes(searchText.toLowerCase());
+            eventName.toLowerCase().includes(searchText.toLowerCase()) ||
+            organizerName.toLowerCase().includes(searchText.toLowerCase());
+
         return matchStatus && matchSearch;
     });
 
@@ -128,13 +127,18 @@ function AdminEventManagement() {
     const columns = [
         {
             title: 'Sự kiện',
-            dataIndex: 'name', // Check key API trả về (name hay eventName?)
-            key: 'name',
+            dataIndex: 'eventName',
+            key: 'eventName',
             width: 300,
             render: (text, record) => {
-                // Check key ảnh (imageUrl, coverImage...?)
-                const imgUrl =
-                    record.imageUrl || 'https://via.placeholder.com/150';
+                // Xử lý ảnh
+                let imgUrl = 'https://via.placeholder.com/150';
+                if (record.eventImages && record.eventImages.length > 0) {
+                    imgUrl = record.eventImages[0].imageUrl;
+                } else if (record.imageUrl) {
+                    imgUrl = record.imageUrl;
+                }
+
                 return (
                     <div className={styles.eventInfo}>
                         <img
@@ -143,7 +147,9 @@ function AdminEventManagement() {
                             className={styles.thumbnail}
                         />
                         <div className={styles.name}>
-                            <div style={{ fontWeight: 'bold' }}>{text}</div>
+                            <div style={{ fontWeight: 'bold' }}>
+                                {text || record.name}
+                            </div>
                             <div style={{ fontSize: '12px', color: '#888' }}>
                                 ID: {record.id}
                             </div>
@@ -154,13 +160,13 @@ function AdminEventManagement() {
         },
         {
             title: 'Ban tổ chức',
-            dataIndex: 'organizerName', // Check key API
+            dataIndex: 'organizerName',
             key: 'organizer',
             render: text => text || 'Đang cập nhật'
         },
         {
             title: 'Thời gian',
-            dataIndex: 'startTime', // Check key API (startTime, startDate...?)
+            dataIndex: 'startTime',
             key: 'startTime',
             render: date =>
                 date ? dayjs(date).format('DD/MM/YYYY HH:mm') : '--'
@@ -174,7 +180,6 @@ function AdminEventManagement() {
                 let text = 'Khác';
                 const s = status ? status.toUpperCase() : '';
 
-                // Mapping màu sắc
                 if (s === 'PUBLISHED' || s === 'APPROVED' || s === 'ACTIVE') {
                     color = 'success';
                     text = 'Đã duyệt';
@@ -196,8 +201,6 @@ function AdminEventManagement() {
             key: 'action',
             render: (_, record) => {
                 const s = record.status ? record.status.toUpperCase() : '';
-                // Chỉ hiện nút duyệt nếu chưa duyệt (PENDING)
-                // Bạn có thể sửa điều kiện này tùy logic
                 const isPending = s === 'PENDING' || s === 'WAITING';
 
                 return (
@@ -244,7 +247,8 @@ function AdminEventManagement() {
     ];
 
     return (
-        <div className={styles.container}>
+        // SỬA TẠI ĐÂY: Đổi styles.container thành styles.content theo yêu cầu
+        <div className={styles.content}>
             <div className={styles.header}>
                 <Title level={3} className={styles.title}>
                     Quản lý sự kiện
