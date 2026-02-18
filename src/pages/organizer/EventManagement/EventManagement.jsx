@@ -19,8 +19,7 @@ import {
     DashboardOutlined,
     TeamOutlined,
     FileTextOutlined,
-    PlusOutlined,
-    ClockCircleOutlined
+    PlusOutlined
 } from '@ant-design/icons';
 import dayjs from 'dayjs';
 
@@ -28,7 +27,10 @@ import { eventApi } from '@apis/eventApi';
 
 const { Title } = Typography;
 
-const BASE_URL_IMAGE = 'http://localhost:8080/api/v1/files';
+// Lấy URL gốc từ biến môi trường hoặc fallback về localhost
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080';
+// Đường dẫn API lấy ảnh (Giả sử BE lưu trong folder 'events')
+const IMAGE_ENDPOINT = '/api/v1/files/events';
 
 const styles = {
     container: {
@@ -91,7 +93,7 @@ const EventManagement = () => {
     const [events, setEvents] = useState([]);
     const [loading, setLoading] = useState(false);
     const [searchText, setSearchText] = useState('');
-    const [activeTab, setActiveTab] = useState('upcoming'); // Mặc định xem sự kiện Sắp tới
+    const [activeTab, setActiveTab] = useState('upcoming');
     const [currentPage, setCurrentPage] = useState(1);
     const pageSize = 6;
 
@@ -105,12 +107,26 @@ const EventManagement = () => {
 
             const mappedData = (Array.isArray(rawData) ? rawData : []).map(
                 e => {
+                    // 1. XỬ LÝ ẢNH (Logic đã sửa)
+                    const images = e.images || [];
+                    // Tìm ảnh có cover=true (JSON mới) hoặc isCover=true (Code cũ), nếu ko có lấy ảnh đầu
                     const posterObj =
-                        e.images?.find(img => img.isCover === true) ||
-                        e.images?.[0];
-                    const posterUrl = posterObj?.url
-                        ? `${BASE_URL_IMAGE}/${posterObj.url}`
-                        : 'https://placehold.co/300x400?text=No+Image';
+                        images.find(
+                            img => img.cover === true || img.isCover === true
+                        ) || images[0];
+
+                    let posterUrl =
+                        'https://placehold.co/300x400?text=No+Image';
+
+                    if (posterObj && posterObj.url) {
+                        if (posterObj.url.startsWith('http')) {
+                            // Nếu là link online
+                            posterUrl = posterObj.url;
+                        } else {
+                            // Nếu là tên file, ghép với API URL
+                            posterUrl = `${API_URL}${IMAGE_ENDPOINT}/${posterObj.url}`;
+                        }
+                    }
 
                     // Ghép thời gian đầy đủ để so sánh
                     const fullStartStr = e.startDate
@@ -121,7 +137,6 @@ const EventManagement = () => {
                         ...e,
                         posterUrl,
                         fullStartTime: fullStartStr,
-                        // Đồng bộ field 'published' từ Backend
                         isApproved: e.published === true
                     };
                 }
@@ -139,7 +154,7 @@ const EventManagement = () => {
         fetchEvents();
     }, [fetchEvents]);
 
-    // --- FILTER LOGIC (QUAN TRỌNG) ---
+    // --- FILTER LOGIC ---
     const filteredEvents = useMemo(() => {
         const now = dayjs();
         let result = events;
@@ -155,22 +170,19 @@ const EventManagement = () => {
             );
         }
 
-        // 2. Phân loại theo Tab (Giống logic Admin)
+        // 2. Phân loại theo Tab
         switch (activeTab) {
             case 'upcoming':
-                // Đã duyệt VÀ chưa đến giờ tổ chức
                 result = result.filter(
                     e => e.isApproved && dayjs(e.fullStartTime).isAfter(now)
                 );
                 break;
             case 'pending':
-                // Chưa duyệt VÀ chưa quá hạn
                 result = result.filter(
                     e => !e.isApproved && dayjs(e.fullStartTime).isAfter(now)
                 );
                 break;
             case 'past':
-                // Đã quá giờ tổ chức (Bất kể duyệt hay chưa)
                 result = result.filter(e =>
                     dayjs(e.fullStartTime).isBefore(now)
                 );
@@ -307,6 +319,7 @@ const EventManagement = () => {
                                                 position: 'relative'
                                             }}
                                         >
+                                            {/* THÊM ONERROR ĐỂ XỬ LÝ ẢNH LỖI */}
                                             <img
                                                 src={event.posterUrl}
                                                 alt={event.name}
@@ -314,6 +327,11 @@ const EventManagement = () => {
                                                     width: '100%',
                                                     height: '100%',
                                                     objectFit: 'cover'
+                                                }}
+                                                onError={e => {
+                                                    e.target.onerror = null;
+                                                    e.target.src =
+                                                        'https://placehold.co/300x400?text=Image+Not+Found';
                                                 }}
                                             />
                                             <div
