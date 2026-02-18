@@ -23,6 +23,9 @@ const { Title } = Typography;
 const { Option } = Select;
 const { Dragger } = Upload;
 
+// --- PHẦN THÊM MỚI 1: URL cơ sở để truy cập ảnh từ Backend ---
+const IMAGE_BASE_URL = 'http://localhost:8080/storage/events';
+
 const getBase64 = (img, callback) => {
     const reader = new FileReader();
     reader.addEventListener('load', () => callback(reader.result));
@@ -41,57 +44,49 @@ const Step1Info = ({
     const [districts, setDistricts] = useState([]);
     const [wards, setWards] = useState([]);
 
-    const [posterUrl, setPosterUrl] = useState(parentFormData?.poster || null);
-    const [logoUrl, setLogoUrl] = useState(
-        parentFormData?.organizerLogo || null
-    );
+    const [posterUrl, setPosterUrl] = useState(null);
+    const [logoUrl, setLogoUrl] = useState(null);
 
     // ----------------------------------------------------------------------
-    // LOGIC: ĐĂNG KÝ HÀM VALIDATE CHO CHA (CreateEvent) - ĐÃ SỬA LỖI
+    // LOGIC: ĐĂNG KÝ HÀM VALIDATE CHO CHA (CreateEvent) - GIỮ NGUYÊN
     // ----------------------------------------------------------------------
     useEffect(() => {
-        // Cần sử dụng triple closure () => () => async () => ...
-        // để React lưu đúng "hàm trả về hàm" vào state thay vì thực thi nó ngay lập tức.
         setOnNextAction(() => () => async () => {
             try {
-                // 1. Chạy validate của Ant Design Form
                 const values = await form.validateFields();
-
-                // 2. Normalize dữ liệu ảnh (Poster index 0, Logo index 1)
                 const currentPoster =
                     parentFormData.posterFile || parentFormData.images?.[0];
                 const currentLogo =
                     parentFormData.logoFile || parentFormData.images?.[1];
 
-                if (!currentPoster && !parentFormData.poster) {
+                if (!posterUrl) {
+                    // Kiểm tra qua state posterUrl thay vì parentFormData
                     message.error('Vui lòng tải lên ảnh nền sự kiện!');
                     return false;
                 }
 
                 const imagesArr = [];
-                if (currentPoster) imagesArr.push(currentPoster);
-                if (currentLogo) imagesArr.push(currentLogo);
+                if (parentFormData.posterFile)
+                    imagesArr.push(parentFormData.posterFile);
+                if (parentFormData.logoFile)
+                    imagesArr.push(parentFormData.logoFile);
 
-                // 3. Cập nhật state Cha.
                 setParentFormData(prev => ({
                     ...prev,
                     ...values,
                     images: imagesArr
                 }));
-
-                return true; // Báo cho Cha là dữ liệu hợp lệ
+                return true;
             } catch (error) {
                 console.error('Validation Step 1 Failed:', error);
-                return false; // Chặn không cho qua bước tiếp theo
+                return false;
             }
         });
-
-        // Cleanup khi unmount
         return () => setOnNextAction(null);
-    }, [form, parentFormData, setParentFormData, setOnNextAction]);
+    }, [form, parentFormData, setParentFormData, setOnNextAction, posterUrl]);
 
     // ----------------------------------------------------------------------
-    // LOGIC: KHỞI TẠO DỮ LIỆU & HYDRATION
+    // LOGIC: KHỞI TẠO DỮ LIỆU & LẤY ẢNH TỪ DATA (HYDRATION)
     // ----------------------------------------------------------------------
     useEffect(() => {
         const fetchInitialData = async () => {
@@ -120,15 +115,38 @@ const Step1Info = ({
                     : null
             });
 
+            // --- PHẦN THÊM MỚI 2: Logic xử lý ảnh từ mảng images của Backend ---
+            if (parentFormData.images && parentFormData.images.length > 0) {
+                // 1. Tìm ảnh Poster (isCover = true) trong mảng images
+                const posterData = parentFormData.images.find(
+                    img => img.isCover === true
+                );
+                if (posterData) {
+                    const fullUrl = `${IMAGE_BASE_URL}/${parentFormData.id}/${posterData.url}`;
+                    setPosterUrl(fullUrl);
+                    form.setFieldsValue({ poster: fullUrl }); // Cập nhật form để pass validation
+                }
+
+                // 2. Tìm ảnh Logo (Quy ước: ảnh đầu tiên không phải cover)
+                const logoData = parentFormData.images.find(
+                    img => img.isCover === false
+                );
+                if (logoData) {
+                    const fullUrl = `${IMAGE_BASE_URL}/${parentFormData.id}/${logoData.url}`;
+                    setLogoUrl(fullUrl);
+                    form.setFieldsValue({ organizerLogo: fullUrl });
+                }
+            }
+
             if (parentFormData.province)
                 handleProvinceChange(parentFormData.province, false);
             if (parentFormData.district)
                 handleDistrictChange(parentFormData.district, false);
         }
-    }, []);
+    }, [parentFormData]); // Thêm parentFormData vào dependency để cập nhật khi data từ API trả về
 
     // ----------------------------------------------------------------------
-    // XỬ LÝ ĐỊA LÝ
+    // CÁC HÀM XỬ LÝ ĐỊA LÝ & UPLOAD - GIỮ NGUYÊN NHƯ CŨ
     // ----------------------------------------------------------------------
     const handleProvinceChange = async (value, resetChildren = true) => {
         const province = provinces.find(p => p.code === value);
@@ -176,9 +194,6 @@ const Step1Info = ({
         setParentFormData(prev => ({ ...prev, wardName: ward?.name }));
     };
 
-    // ----------------------------------------------------------------------
-    // UPLOAD LOGIC
-    // ----------------------------------------------------------------------
     const handleUpload = (file, type) => {
         if (!file.type.startsWith('image/')) {
             message.error('Chỉ được upload ảnh!');
@@ -338,7 +353,6 @@ const Step1Info = ({
                         >
                             Thông tin sự kiện
                         </Title>
-
                         <Form.Item
                             name='name'
                             label={
