@@ -59,7 +59,7 @@ function Genre() {
 
     const [tempFilters, setTempFilters] = useState({ ...filters });
 
-    // Khi URL thay đổi -> Reset về trang 1
+    // Khi URL thay đổi (VD: bấm từ Navbar) -> Reset về trang 1
     useEffect(() => {
         if (urlGenreId) {
             setFilters(prev => ({ ...prev, genreId: urlGenreId }));
@@ -83,12 +83,14 @@ function Genre() {
     const fetchEvents = async () => {
         setLoading(true);
         try {
-            // SỬA LỖI TÊN TRƯỜNG ĐỂ KHỚP VỚI EVENT.JAVA
-            // Entity: private boolean isActive; private boolean isPublished;
-            // Cú pháp filter: FieldName:Value (Boolean không cần nháy đơn)
-            let filterString = `isPublished:true and isActive:true`;
+            const now = dayjs();
 
-            // Lọc theo thể loại (genre.id là số)
+            // 1. LOGIC FILTER THEO BE:
+            // Chỉ cần isPublished:true là được hiện lên.
+            // KHÔNG lọc isActive:true ở đây để lấy được các bản ghi "Sắp diễn ra" (isActive:false)
+            let filterString = `isPublished:true`;
+
+            // Lọc theo thể loại
             if (filters.genreId) {
                 filterString += ` and genre.id:${filters.genreId}`;
             }
@@ -106,7 +108,7 @@ function Genre() {
             console.log('>>> [Genre] Filter String gửi đi:', filterString);
 
             const params = {
-                page: currentPage - 1, // Backend dùng index 0
+                page: currentPage - 1, // Spring Boot index 0
                 size: pageSize,
                 filter: filterString
             };
@@ -123,25 +125,33 @@ function Genre() {
                 res?.data ||
                 (Array.isArray(res) ? res : []);
 
-            const mappedRealData = rawData.map(e => {
-                const posterObj =
-                    e.images?.find(img => img.isCover) || e.images?.[0];
-                const startDateObj = dayjs(e.startDate);
+            // 2. Cơ chế tự ẩn khi tới thời gian diễn ra (Lọc ở FE để hỗ trợ BE)
+            const mappedRealData = rawData
+                .filter(e => {
+                    // Nếu thời gian bắt đầu <= hiện tại thì không hiện ở trang Khám phá nữa
+                    const eventStartTime = dayjs(e.startTime);
+                    return eventStartTime.isAfter(now);
+                })
+                .map(e => {
+                    const posterObj =
+                        e.images?.find(img => img.isCover) || e.images?.[0];
+                    const startDateObj = dayjs(e.startDate);
 
-                return {
-                    ...e,
-                    title: e.name,
-                    date: startDateObj.isValid()
-                        ? startDateObj.format('DD/MM/YYYY')
-                        : 'Sắp diễn ra',
-                    month: startDateObj.isValid()
-                        ? startDateObj.format('MMM').toUpperCase()
-                        : 'UP',
-                    url: posterObj?.url
-                        ? `${BASE_URL_IMAGE}/${posterObj.url}`
-                        : 'https://placehold.co/400x600?text=No+Image'
-                };
-            });
+                    return {
+                        ...e,
+                        title: e.name,
+                        // Dữ liệu này sẽ được EventCard dùng để quyết định hiện nút Mua hay Sắp diễn ra
+                        date: startDateObj.isValid()
+                            ? startDateObj.format('DD/MM/YYYY')
+                            : 'Sắp diễn ra',
+                        month: startDateObj.isValid()
+                            ? startDateObj.format('MMM').toUpperCase()
+                            : 'UP',
+                        url: posterObj?.url
+                            ? `${BASE_URL_IMAGE}/${posterObj.url}`
+                            : 'https://placehold.co/400x600?text=No+Image'
+                    };
+                });
 
             setEvents(mappedRealData);
         } catch (e) {
