@@ -22,15 +22,12 @@ import {
     PlusOutlined
 } from '@ant-design/icons';
 import dayjs from 'dayjs';
-
 import { eventApi } from '@apis/eventApi';
 
 const { Title } = Typography;
 
-// Lấy URL gốc từ biến môi trường hoặc fallback về localhost
+// Cấu hình URL từ môi trường
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080';
-// Đường dẫn API lấy ảnh (Giả sử BE lưu trong folder 'events')
-const IMAGE_ENDPOINT = '/api/v1/files/events';
 
 const styles = {
     container: {
@@ -66,7 +63,6 @@ const styles = {
         overflow: 'hidden',
         boxShadow: '0 4px 20px rgba(0,0,0,0.3)',
         border: '1px solid #2a2a2a',
-        transition: 'transform 0.2s, box-shadow 0.2s',
         height: '100%',
         display: 'flex',
         flexDirection: 'column'
@@ -89,7 +85,6 @@ const styles = {
 
 const EventManagement = () => {
     const navigate = useNavigate();
-
     const [events, setEvents] = useState([]);
     const [loading, setLoading] = useState(false);
     const [searchText, setSearchText] = useState('');
@@ -97,54 +92,52 @@ const EventManagement = () => {
     const [currentPage, setCurrentPage] = useState(1);
     const pageSize = 6;
 
-    // --- FETCH DATA ---
+    /**
+     * Helper: Lấy ảnh đầu tiên làm ảnh bìa (KISS)
+     */
+    const getFirstImagePoster = images => {
+        const PLACEHOLDER = 'https://placehold.co/300x400?text=No+Image';
+
+        // Luôn lấy phần tử đầu tiên của mảng
+        const firstImage = images?.[0];
+
+        if (!firstImage?.url) return PLACEHOLDER;
+
+        // Nếu là URL tuyệt đối dùng luôn, nếu là file cục bộ thì ghép đường dẫn chuẩn
+        return firstImage.url.startsWith('http')
+            ? firstImage.url
+            : `${API_URL}/api/v1/files/events/${firstImage.url}`;
+    };
+
+    /**
+     * Fetch và Mapping dữ liệu
+     */
     const fetchEvents = useCallback(async () => {
         setLoading(true);
         try {
             const response = await eventApi.getAll();
+            // Fallback linh hoạt cho các cấu trúc JSON khác nhau
             const rawData =
-                response?.content || response?.result || response?.data || [];
+                response?.data?.result ||
+                response?.result ||
+                response?.data ||
+                [];
 
             const mappedData = (Array.isArray(rawData) ? rawData : []).map(
-                e => {
-                    // 1. XỬ LÝ ẢNH (Logic đã sửa)
-                    const images = e.images || [];
-                    // Tìm ảnh có cover=true (JSON mới) hoặc isCover=true (Code cũ), nếu ko có lấy ảnh đầu
-                    const posterObj =
-                        images.find(
-                            img => img.cover === true || img.isCover === true
-                        ) || images[0];
-
-                    let posterUrl =
-                        'https://placehold.co/300x400?text=No+Image';
-
-                    if (posterObj && posterObj.url) {
-                        if (posterObj.url.startsWith('http')) {
-                            // Nếu là link online
-                            posterUrl = posterObj.url;
-                        } else {
-                            // Nếu là tên file, ghép với API URL
-                            posterUrl = `${API_URL}${IMAGE_ENDPOINT}/${posterObj.url}`;
-                        }
-                    }
-
-                    // Ghép thời gian đầy đủ để so sánh
-                    const fullStartStr = e.startDate
+                e => ({
+                    ...e,
+                    // Áp dụng logic lấy ảnh đầu tiên
+                    posterUrl: getFirstImagePoster(e.images),
+                    fullStartTime: e.startDate
                         ? `${e.startDate} ${e.startTime || '00:00:00'}`
-                        : null;
-
-                    return {
-                        ...e,
-                        posterUrl,
-                        fullStartTime: fullStartStr,
-                        isApproved: e.published === true
-                    };
-                }
+                        : null,
+                    isApproved: e.published === true
+                })
             );
 
             setEvents(mappedData);
         } catch (error) {
-            console.error('>>> [EventManagement] Lỗi tải danh sách:', error);
+            console.error('>>> [EventManagement] Fetch Error:', error);
         } finally {
             setLoading(false);
         }
@@ -154,44 +147,36 @@ const EventManagement = () => {
         fetchEvents();
     }, [fetchEvents]);
 
-    // --- FILTER LOGIC ---
+    /**
+     * Logic lọc danh sách (Sử dụng useMemo để tối ưu performance)
+     */
     const filteredEvents = useMemo(() => {
         const now = dayjs();
         let result = events;
 
-        // 1. Lọc theo ô tìm kiếm
         if (searchText) {
             const lowerSearch = searchText.toLowerCase();
             result = result.filter(
                 e =>
-                    (e.name && e.name.toLowerCase().includes(lowerSearch)) ||
-                    (e.location &&
-                        e.location.toLowerCase().includes(lowerSearch))
+                    e.name?.toLowerCase().includes(lowerSearch) ||
+                    e.location?.toLowerCase().includes(lowerSearch)
             );
         }
 
-        // 2. Phân loại theo Tab
         switch (activeTab) {
             case 'upcoming':
-                result = result.filter(
+                return result.filter(
                     e => e.isApproved && dayjs(e.fullStartTime).isAfter(now)
                 );
-                break;
             case 'pending':
-                result = result.filter(
+                return result.filter(
                     e => !e.isApproved && dayjs(e.fullStartTime).isAfter(now)
                 );
-                break;
             case 'past':
-                result = result.filter(e =>
-                    dayjs(e.fullStartTime).isBefore(now)
-                );
-                break;
+                return result.filter(e => dayjs(e.fullStartTime).isBefore(now));
             default:
-                break;
+                return result;
         }
-
-        return result;
     }, [events, searchText, activeTab]);
 
     const currentData = useMemo(() => {
@@ -201,7 +186,7 @@ const EventManagement = () => {
 
     return (
         <div style={styles.container}>
-            {/* TOP BAR */}
+            {/* Toolbar */}
             <div style={styles.searchContainer}>
                 <div
                     style={{
@@ -272,34 +257,35 @@ const EventManagement = () => {
                 </Space>
             </div>
 
-            {/* LIST */}
+            {/* Event Cards Grid */}
             <Row gutter={[24, 24]}>
                 {loading ? (
                     <div
                         style={{
                             color: '#fff',
                             textAlign: 'center',
-                            width: '100%'
+                            width: '100%',
+                            padding: '40px'
                         }}
                     >
-                        Đang tải dữ liệu...
+                        Đang tải...
                     </div>
                 ) : currentData.length === 0 ? (
                     <div
                         style={{
                             color: '#9ca6b0',
                             textAlign: 'center',
-                            width: '100%'
+                            width: '100%',
+                            padding: '40px'
                         }}
                     >
-                        Không tìm thấy sự kiện nào trong mục này.
+                        Không có dữ liệu.
                     </div>
                 ) : (
                     currentData.map(event => {
                         const isPast = dayjs(event.fullStartTime).isBefore(
                             dayjs()
                         );
-
                         return (
                             <Col xs={24} lg={12} key={event.id}>
                                 <div
@@ -312,6 +298,7 @@ const EventManagement = () => {
                                             height: '180px'
                                         }}
                                     >
+                                        {/* Ảnh bìa - Lấy file đầu tiên */}
                                         <div
                                             style={{
                                                 width: '180px',
@@ -319,7 +306,6 @@ const EventManagement = () => {
                                                 position: 'relative'
                                             }}
                                         >
-                                            {/* THÊM ONERROR ĐỂ XỬ LÝ ẢNH LỖI */}
                                             <img
                                                 src={event.posterUrl}
                                                 alt={event.name}
@@ -331,7 +317,7 @@ const EventManagement = () => {
                                                 onError={e => {
                                                     e.target.onerror = null;
                                                     e.target.src =
-                                                        'https://placehold.co/300x400?text=Image+Not+Found';
+                                                        'https://placehold.co/300x400?text=Image+Error';
                                                 }}
                                             />
                                             <div
@@ -344,14 +330,15 @@ const EventManagement = () => {
                                                     color: '#fff',
                                                     padding: '4px 8px',
                                                     borderRadius: '4px',
-                                                    fontSize: '12px',
+                                                    fontSize: '11px',
                                                     fontWeight: 'bold'
                                                 }}
                                             >
-                                                {event.genreName || 'Sự kiện'}
+                                                {event.genreName || 'SỰ KIỆN'}
                                             </div>
                                         </div>
 
+                                        {/* Nội dung */}
                                         <div
                                             style={{
                                                 padding: '16px',
@@ -367,7 +354,7 @@ const EventManagement = () => {
                                                     style={{
                                                         color: '#fff',
                                                         margin: '0 0 8px 0',
-                                                        fontSize: '18px'
+                                                        fontSize: '17px'
                                                     }}
                                                     ellipsis={{ rows: 2 }}
                                                 >
@@ -375,18 +362,17 @@ const EventManagement = () => {
                                                 </Title>
                                                 <Space
                                                     direction='vertical'
-                                                    size={4}
+                                                    size={2}
                                                 >
                                                     <div
                                                         style={{
                                                             color: '#2dc275',
-                                                            fontSize: '14px',
-                                                            fontWeight: 500
+                                                            fontSize: '13px'
                                                         }}
                                                     >
                                                         <CalendarOutlined
                                                             style={{
-                                                                marginRight: 8
+                                                                marginRight: 6
                                                             }}
                                                         />
                                                         {dayjs(
@@ -398,20 +384,20 @@ const EventManagement = () => {
                                                     <div
                                                         style={{
                                                             color: '#9ca6b0',
-                                                            fontSize: '13px'
+                                                            fontSize: '12px'
                                                         }}
+                                                        className='text-ellipsis-1'
                                                     >
                                                         <EnvironmentOutlined
                                                             style={{
-                                                                marginRight: 8
+                                                                marginRight: 6
                                                             }}
                                                         />
-                                                        {event.location ||
-                                                            'Địa chỉ đang cập nhật'}
+                                                        {event.location}
                                                     </div>
                                                 </Space>
                                             </div>
-                                            <div style={{ marginTop: '8px' }}>
+                                            <div>
                                                 {isPast ? (
                                                     <Tag color='default'>
                                                         Đã qua
@@ -429,39 +415,34 @@ const EventManagement = () => {
                                         </div>
                                     </div>
 
+                                    {/* Actions */}
                                     <div
                                         style={{
                                             display: 'flex',
                                             borderTop: '1px solid #2a2a2a',
                                             background: '#1a1a1a',
-                                            padding: '8px 0'
+                                            padding: '4px 0'
                                         }}
                                     >
                                         <button
                                             style={styles.actionButton}
                                             className='action-btn'
                                         >
-                                            <DashboardOutlined
-                                                style={{ fontSize: '18px' }}
-                                            />
+                                            <DashboardOutlined />
                                             <span>Tổng quan</span>
                                         </button>
                                         <button
                                             style={styles.actionButton}
                                             className='action-btn'
                                         >
-                                            <TeamOutlined
-                                                style={{ fontSize: '18px' }}
-                                            />
+                                            <TeamOutlined />
                                             <span>Thành viên</span>
                                         </button>
                                         <button
                                             style={styles.actionButton}
                                             className='action-btn'
                                         >
-                                            <FileTextOutlined
-                                                style={{ fontSize: '18px' }}
-                                            />
+                                            <FileTextOutlined />
                                             <span>Đơn hàng</span>
                                         </button>
                                         <button
@@ -476,9 +457,7 @@ const EventManagement = () => {
                                                 )
                                             }
                                         >
-                                            <EditOutlined
-                                                style={{ fontSize: '18px' }}
-                                            />
+                                            <EditOutlined />
                                             <span>Chỉnh sửa</span>
                                         </button>
                                     </div>
@@ -489,7 +468,8 @@ const EventManagement = () => {
                 )}
             </Row>
 
-            <div style={{ marginTop: '40px', textAlign: 'right' }}>
+            {/* Pagination */}
+            <div style={{ marginTop: '32px', textAlign: 'right' }}>
                 <Pagination
                     current={currentPage}
                     onChange={setCurrentPage}
@@ -501,14 +481,13 @@ const EventManagement = () => {
 
             <style>{`
                 .event-card-hover:hover {
-                    box-shadow: 0 0 20px rgba(45, 194, 117, 0.3) !important;
+                    box-shadow: 0 0 15px rgba(45, 194, 117, 0.2) !important;
                     border-color: #2dc275 !important;
-                    transform: translateY(-5px);
+                    transform: translateY(-3px);
+                    transition: all 0.3s;
                 }
-                .action-btn:hover {
-                    color: #fff !important;
-                    background: rgba(255,255,255,0.05) !important;
-                }
+                .action-btn:hover { color: #fff !important; background: rgba(255,255,255,0.05) !important; }
+                .text-ellipsis-1 { display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; overflow: hidden; }
             `}</style>
         </div>
     );
