@@ -13,6 +13,7 @@ import dayjs from 'dayjs';
 
 // Import APIs
 import { eventApi } from '@apis/eventApi';
+import { eventImageApi } from '@apis/eventImageApi';
 
 import Step1Info from './Step1Info';
 import Step2Showtimes from './Step2Showtimes';
@@ -37,6 +38,8 @@ const CreateEvent = () => {
 
     const [formData, setFormData] = useState(() => {
         const savedData = localStorage.getItem(STORAGE_KEY_DATA);
+        // Lưu ý: posterFile (File object) không thể lưu trong localStorage
+        // Nên khi F5 trang, file sẽ mất, người dùng cần chọn lại ảnh.
         return savedData
             ? JSON.parse(savedData)
             : {
@@ -48,7 +51,9 @@ const CreateEvent = () => {
                   location: '',
                   addressDetail: '',
                   genreId: null,
-                  images: [],
+                  poster: null, // URL preview (Base64)
+                  posterFile: null, // File gốc (quan trọng để upload)
+                  organizerLogo: null,
                   showTimes: []
               };
     });
@@ -58,7 +63,9 @@ const CreateEvent = () => {
     }, [localCurrentStep, setCurrentStep]);
 
     useEffect(() => {
-        localStorage.setItem(STORAGE_KEY_DATA, JSON.stringify(formData));
+        // Lọc bỏ posterFile trước khi lưu vào localStorage vì JSON không stringify được File Object
+        const { posterFile, ...dataToSave } = formData;
+        localStorage.setItem(STORAGE_KEY_DATA, JSON.stringify(dataToSave));
         localStorage.setItem(STORAGE_KEY_STEP, localCurrentStep);
     }, [formData, localCurrentStep]);
 
@@ -75,14 +82,13 @@ const CreateEvent = () => {
         }
     };
 
-    // --- LOGIC XỬ LÝ HOÀN TẤT (MAP DATA FE -> BE) ---
+    // --- LOGIC XỬ LÝ HOÀN TẤT ---
     const handleFinish = async () => {
         setLoading(true);
         try {
             console.log('>>> [Final Submit] Preparing payload...');
 
-            // 1. Ghép địa chỉ thành chuỗi location duy nhất
-            // Loại bỏ các phần tử rỗng nếu người dùng không nhập đủ xã/huyện
+            // 1. Chuẩn bị Location
             const parts = [
                 formData.addressDetail,
                 formData.wardName,
@@ -91,13 +97,11 @@ const CreateEvent = () => {
             ].filter(Boolean);
             const fullLocation = parts.join(', ');
 
-            // 2. Lấy thông tin thời gian từ suất diễn ĐẦU TIÊN (Do BE chỉ hỗ trợ 1 suất diễn)
-            // Nếu không có suất diễn nào, dùng thời gian hiện tại hoặc để trống (sẽ bị lỗi validate BE)
+            // 2. Format thời gian
             const firstShow =
                 formData.showTimes && formData.showTimes.length > 0
                     ? formData.showTimes[0]
                     : {};
-
             const startDate = firstShow.startTime
                 ? dayjs(firstShow.startTime).format('YYYY-MM-DD')
                 : '';
@@ -111,54 +115,98 @@ const CreateEvent = () => {
                 ? dayjs(firstShow.endTime).format('HH:mm')
                 : '';
 
-            // 3. Tạo Payload chuẩn khớp 100% với ReqEventDTO.java
+            // 3. Payload tạo Event (Text Only)
             const finalPayload = {
                 name: formData.name,
                 description: formData.description,
                 permitNumber: formData.permitNumber,
-                // Format ngày cấp phép
                 permitIssuedAt: formData.permitIssuedAt
                     ? dayjs(formData.permitIssuedAt).format('YYYY-MM-DD')
                     : '',
                 permitIssuedBy: formData.permitIssuedBy,
                 location: fullLocation,
-
-                // Các trường bắt buộc mà BE đang báo thiếu (Array(4))
                 startDate: startDate,
                 startTime: startTime,
                 endDate: endDate,
                 endTime: endTime,
-
-                // Gửi genreId trực tiếp (Long) thay vì object
-                genreId: formData.genreId
+                genreId: formData.genreId,
+                organizerName: formData.organizerName,
+                // Logo nếu là Base64 dài quá có thể gây lỗi, tốt nhất nên upload riêng như poster
+                organizerLogo:
+                    formData.organizerLogo &&
+                    formData.organizerLogo.length < 255
+                        ? formData.organizerLogo
+                        : null
             };
 
-            console.log('>>> Sending payload to Backend:', finalPayload);
+            console.log('>>> 1. Sending Event Payload:', finalPayload);
 
+            // GỌI API 1: TẠO SỰ KIỆN
             const res = await eventApi.create(finalPayload);
 
-            // Kiểm tra kết quả trả về
+            // Nếu tạo thành công
             if (res.data || res.statusCode === 201 || res.id) {
-                message.success('Tạo sự kiện thành công!');
-                // Xóa dữ liệu tạm
+                const newEventId = res.data?.id || res.id;
+                message.success('Thông tin sự kiện đã được lưu!');
+
+                // GỌI API 2: UPLOAD ẢNH POSTER (Nếu có file gốc)
+                if (formData.posterFile && newEventId) {
+                    try {
+                        console.log(
+                            '>>> 2. Uploading Poster File for Event ID:',
+                            newEventId
+                        );
+
+                        // Tạo FormData để gửi file
+                        const uploadData = new FormData();
+
+                        // 1. Sửa 'file' thành 'files' để khớp với @RequestParam("files") của BE
+                        uploadData.append('files', formData.posterFile);
+
+                        // 2. Thay 'isPoster' bằng 'coverIndex'
+                        // Vì ta chỉ gửi 1 file (poster), nên index của nó là 0
+                        uploadData.append('coverIndex', '0');
+
+                        // Gọi hàm upload
+                        await eventImageApi.uploadEventImages(
+                            newEventId,
+                            uploadData
+                        );
+
+                        console.log('>>> Poster uploaded successfully');
+                        message.success('Đã tải lên ảnh bìa thành công!');
+                    } catch (imgError) {
+                        console.error('Lỗi lưu ảnh:', imgError);
+                        if (imgError.response) {
+                            console.error('Data:', imgError.response.data);
+                            console.error('Status:', imgError.response.status);
+                        }
+                        message.warning(
+                            'Sự kiện đã tạo nhưng tải ảnh thất bại (Lỗi 500/400).'
+                        );
+                    }
+                } else if (!formData.posterFile && formData.poster) {
+                    // Trường hợp user có ảnh (base64 từ local storage) nhưng mất file object do reload trang
+                    message.warning(
+                        'Không tìm thấy file gốc ảnh bìa. Vui lòng chọn lại ảnh để tải lên.'
+                    );
+                }
+
+                // Dọn dẹp và chuyển trang
                 localStorage.removeItem(STORAGE_KEY_DATA);
                 localStorage.removeItem(STORAGE_KEY_STEP);
-                // Chuyển hướng
-                navigate('/organizer/events');
-            } else {
-                // Trường hợp thành công nhưng không khớp điều kiện trên, vẫn thông báo
-                message.success('Đã gửi yêu cầu tạo sự kiện.');
-                navigate('/organizer/events');
+
+                // Đợi 1 chút để user đọc thông báo
+                setTimeout(() => {
+                    navigate('/organizer/events');
+                }, 1500);
             }
         } catch (error) {
             console.error('Submit Error:', error.response?.data || error);
-
-            // Xử lý hiển thị lỗi từ Backend trả về
             const responseData = error.response?.data;
             if (responseData && responseData.message) {
                 const msgs = responseData.message;
                 if (Array.isArray(msgs)) {
-                    // Hiển thị danh sách lỗi (VD: thiếu startDate, endTime...)
                     msgs.forEach(msg => message.error(msg));
                 } else {
                     message.error(msgs);
@@ -171,14 +219,13 @@ const CreateEvent = () => {
         }
     };
 
-    // --- XỬ LÝ NÚT TIẾP TỤC ---
     const handleNext = async () => {
         if (onNextAction) {
             try {
                 const isStepValid = await onNextAction()();
                 if (!isStepValid) return;
             } catch (error) {
-                console.warn('Validation error in step component', error);
+                console.warn('Validation error', error);
                 return;
             }
         }
