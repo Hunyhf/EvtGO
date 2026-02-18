@@ -30,7 +30,6 @@ import { eventApi } from '@apis/eventApi';
 const { Title } = Typography;
 
 // 1. KHAI BÁO URL BACKEND ĐỂ LẤY FILE
-// Thay đổi port nếu server của bạn chạy port khác
 const BASE_URL_IMAGE = 'http://localhost:8080/api/v1/files';
 
 const styles = {
@@ -104,26 +103,27 @@ const EventManagement = () => {
         try {
             const response = await eventApi.getAll();
 
-            // Lấy data từ response (giả sử cấu trúc RestResponse)
+            // Lấy data từ response
             const rawData =
                 response?.content || response?.result || response?.data || [];
 
             // BIẾN ĐỔI DỮ LIỆU ĐỂ HIỂN THỊ ĐÚNG ẢNH VÀ ĐỊA CHỈ
             const mappedData = (Array.isArray(rawData) ? rawData : []).map(
                 e => {
-                    // TÌM ẢNH BÌA (isPoster = true trong code FE hoặc coverIndex trong BE)
+                    // TÌM ẢNH BÌA: Ưu tiên ảnh có isPoster hoặc isCover là true
                     const posterObj =
-                        e.images?.find(img => img.isPoster === true) ||
-                        e.images?.[0];
+                        e.images?.find(
+                            img => img.isPoster === true || img.isCover === true
+                        ) || e.images?.[0];
 
-                    // GHÉP URL: Nếu có tên file thì ghép với domain server, nếu không dùng placeholder
+                    // GHÉP URL ĐẦY ĐỦ TỪ TÊN FILE TRONG DATABASE
                     const posterUrl = posterObj?.url
                         ? `${BASE_URL_IMAGE}/${posterObj.url}`
                         : 'https://placehold.co/300x400?text=No+Image';
 
                     return {
                         ...e,
-                        posterUrl, // Gán URL đã ghép vào đây
+                        posterUrl, // URL ảnh đã ghép hoàn chỉnh
                         status: e.isPublished ? 'PUBLISHED' : 'PENDING'
                     };
                 }
@@ -204,7 +204,8 @@ const EventManagement = () => {
                         style={{
                             borderRadius: '50px',
                             padding: '10px 20px',
-                            maxWidth: '400px'
+                            maxWidth: '400px',
+                            border: 'none'
                         }}
                         onChange={e => setSearchText(e.target.value)}
                     />
@@ -215,7 +216,8 @@ const EventManagement = () => {
                         onClick={fetchEvents}
                         style={{
                             background: '#2dc275',
-                            borderColor: '#2dc275'
+                            borderColor: '#2dc275',
+                            fontWeight: 600
                         }}
                     >
                         Làm mới
@@ -226,7 +228,12 @@ const EventManagement = () => {
                         size='large'
                         icon={<PlusOutlined />}
                         onClick={() => navigate('/organizer/create-event')}
-                        style={{ color: '#2dc275', borderColor: '#2dc275' }}
+                        style={{
+                            color: '#2dc275',
+                            borderColor: '#2dc275',
+                            background: 'transparent',
+                            fontWeight: 600
+                        }}
                     >
                         Tạo sự kiện
                     </Button>
@@ -262,7 +269,17 @@ const EventManagement = () => {
                             width: '100%'
                         }}
                     >
-                        Đang tải...
+                        Đang tải dữ liệu...
+                    </div>
+                ) : currentData.length === 0 ? (
+                    <div
+                        style={{
+                            color: '#9ca6b0',
+                            textAlign: 'center',
+                            width: '100%'
+                        }}
+                    >
+                        Không tìm thấy sự kiện nào.
                     </div>
                 ) : (
                     currentData.map(event => (
@@ -274,7 +291,7 @@ const EventManagement = () => {
                                 <div
                                     style={{ display: 'flex', height: '180px' }}
                                 >
-                                    {/* Thumbnail: Hiển thị posterUrl đã được ghép ở trên */}
+                                    {/* Thumbnail */}
                                     <div
                                         style={{
                                             width: '180px',
@@ -296,6 +313,22 @@ const EventManagement = () => {
                                                     'https://placehold.co/300x400?text=Error+Image';
                                             }}
                                         />
+                                        <div
+                                            style={{
+                                                position: 'absolute',
+                                                top: 10,
+                                                left: 10,
+                                                background: 'rgba(0,0,0,0.6)',
+                                                color: '#fff',
+                                                padding: '4px 8px',
+                                                borderRadius: '4px',
+                                                fontSize: '12px',
+                                                fontWeight: 'bold',
+                                                backdropFilter: 'blur(4px)'
+                                            }}
+                                        >
+                                            {event.genreName || 'Sự kiện'}
+                                        </div>
                                     </div>
 
                                     {/* Info */}
@@ -313,7 +346,8 @@ const EventManagement = () => {
                                                 level={4}
                                                 style={{
                                                     color: '#fff',
-                                                    margin: '0 0 8px 0'
+                                                    margin: '0 0 8px 0',
+                                                    fontSize: '18px'
                                                 }}
                                                 ellipsis={{ rows: 2 }}
                                             >
@@ -324,7 +358,11 @@ const EventManagement = () => {
                                                 size={4}
                                             >
                                                 <div
-                                                    style={{ color: '#2dc275' }}
+                                                    style={{
+                                                        color: '#2dc275',
+                                                        fontSize: '14px',
+                                                        fontWeight: 500
+                                                    }}
                                                 >
                                                     <CalendarOutlined
                                                         style={{
@@ -338,14 +376,17 @@ const EventManagement = () => {
                                                     )}
                                                 </div>
                                                 <div
-                                                    style={{ color: '#9ca6b0' }}
+                                                    style={{
+                                                        color: '#9ca6b0',
+                                                        fontSize: '13px'
+                                                    }}
                                                 >
                                                     <EnvironmentOutlined
                                                         style={{
                                                             marginRight: 8
                                                         }}
                                                     />
-                                                    {/* SỬA: Hiển thị trường location từ BE */}
+                                                    {/* HIỂN THỊ ĐỊA CHỈ TỪ TRƯỜNG location */}
                                                     {event.location ||
                                                         'Địa chỉ đang cập nhật'}
                                                 </div>
@@ -374,16 +415,31 @@ const EventManagement = () => {
                                         padding: '8px 0'
                                     }}
                                 >
-                                    <button style={styles.actionButton}>
-                                        <DashboardOutlined />
+                                    <button
+                                        style={styles.actionButton}
+                                        className='action-btn'
+                                    >
+                                        <DashboardOutlined
+                                            style={{ fontSize: '18px' }}
+                                        />
                                         <span>Tổng quan</span>
                                     </button>
-                                    <button style={styles.actionButton}>
-                                        <TeamOutlined />
+                                    <button
+                                        style={styles.actionButton}
+                                        className='action-btn'
+                                    >
+                                        <TeamOutlined
+                                            style={{ fontSize: '18px' }}
+                                        />
                                         <span>Thành viên</span>
                                     </button>
-                                    <button style={styles.actionButton}>
-                                        <FileTextOutlined />
+                                    <button
+                                        style={styles.actionButton}
+                                        className='action-btn'
+                                    >
+                                        <FileTextOutlined
+                                            style={{ fontSize: '18px' }}
+                                        />
                                         <span>Đơn hàng</span>
                                     </button>
                                     <button
@@ -391,13 +447,16 @@ const EventManagement = () => {
                                             ...styles.actionButton,
                                             color: '#2dc275'
                                         }}
+                                        className='action-btn'
                                         onClick={() =>
                                             navigate(
                                                 `/organizer/events/edit/${event.id}`
                                             )
                                         }
                                     >
-                                        <EditOutlined />
+                                        <EditOutlined
+                                            style={{ fontSize: '18px' }}
+                                        />
                                         <span>Chỉnh sửa</span>
                                     </button>
                                 </div>
@@ -422,6 +481,10 @@ const EventManagement = () => {
                     box-shadow: 0 0 20px rgba(45, 194, 117, 0.3) !important;
                     border-color: #2dc275 !important;
                     transform: translateY(-5px);
+                }
+                .action-btn:hover {
+                    color: #fff !important;
+                    background: rgba(255,255,255,0.05) !important;
                 }
             `}</style>
         </div>
