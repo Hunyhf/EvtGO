@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Modal, Radio, Switch, Tag, Button, Spin } from 'antd';
+// 1. Import thêm Pagination từ antd
+import { Modal, Radio, Switch, Tag, Button, Spin, Pagination } from 'antd';
 import {
     CalendarOutlined,
     FilterOutlined,
@@ -36,6 +37,11 @@ function Genre() {
     const [loading, setLoading] = useState(false);
     const [isModalOpen, setIsModalOpen] = useState(false);
 
+    // 2. Thêm State quản lý phân trang
+    const [currentPage, setCurrentPage] = useState(1);
+    const [totalItems, setTotalItems] = useState(0);
+    const pageSize = 12; // Cố định 12 sản phẩm theo yêu cầu
+
     const [filters, setFilters] = useState({
         location: 'Toàn quốc',
         genreId: urlGenreId || '',
@@ -49,6 +55,7 @@ function Genre() {
         if (urlGenreId) {
             setFilters(prev => ({ ...prev, genreId: urlGenreId }));
             setTempFilters(prev => ({ ...prev, genreId: urlGenreId }));
+            setCurrentPage(1); // Reset về trang 1 khi đổi thể loại
         }
     }, [urlGenreId]);
 
@@ -66,19 +73,31 @@ function Genre() {
         setLoading(true);
         try {
             const now = dayjs();
+
+            // 3. Cập nhật params gửi lên Server
+            // Lưu ý: Spring Data JPA thường dùng page 0-indexed,
+            // nhưng Responese của bạn trả về page+1.
+            // Nếu API client chưa xử lý -1, hãy kiểm tra lại tại đây.
             const params = {
-                page: 1,
-                size: 50,
+                page: currentPage,
+                size: pageSize,
                 search: urlSearchQuery
             };
 
             const res = await eventApi.getAll(params);
+
+            // Lấy thông tin meta để hiển thị phân trang
+            if (res?.meta) {
+                setTotalItems(res.meta.total);
+            }
+
             const rawData =
                 res?.result ||
                 res?.content ||
                 res?.data ||
                 (Array.isArray(res) ? res : []);
 
+            // Giữ logic lọc hiện tại của bạn
             const realDataFiltered = rawData.filter(e => {
                 const isApproved = e.published === true;
                 const matchGenre =
@@ -109,8 +128,9 @@ function Genre() {
                 });
                 setEvents(mappedRealData);
             } else {
+                // Nếu không có data thật, hiện mock data (chỉ hiện 12 cái)
                 setEvents(
-                    Array.from({ length: 8 }, (_, i) => ({
+                    Array.from({ length: pageSize }, (_, i) => ({
                         id: `mock-${i}`,
                         title: `Sự kiện ${genresList.find(g => String(g.id) === String(filters.genreId))?.name || 'Trải nghiệm'} #${i + 1}`,
                         date: '20/03/2026',
@@ -127,12 +147,14 @@ function Genre() {
         }
     };
 
+    // 4. Lắng nghe sự thay đổi của currentPage
     useEffect(() => {
         fetchEvents();
-    }, [filters, urlSearchQuery, genresList]);
+    }, [filters, urlSearchQuery, genresList, currentPage]);
 
     const handleApply = () => {
         setFilters({ ...tempFilters });
+        setCurrentPage(1); // Reset về trang 1 khi áp dụng bộ lọc mới
         setIsModalOpen(false);
     };
 
@@ -176,9 +198,10 @@ function Genre() {
                             <Tag
                                 color='cyan'
                                 closable
-                                onClose={() =>
-                                    setFilters(f => ({ ...f, genreId: '' }))
-                                }
+                                onClose={() => {
+                                    setFilters(f => ({ ...f, genreId: '' }));
+                                    setCurrentPage(1);
+                                }}
                                 style={{
                                     borderRadius: 20,
                                     padding: '2px 12px'
@@ -204,14 +227,36 @@ function Genre() {
                         <Spin size='large' tip='Đang tìm kiếm sự kiện...' />
                     </div>
                 ) : (
-                    <div className={cx('eventsGrid')}>
-                        {events.map(event => (
-                            <EventCard key={event.id} data={event} />
-                        ))}
-                    </div>
+                    <>
+                        <div className={cx('eventsGrid')}>
+                            {events.map(event => (
+                                <EventCard key={event.id} data={event} />
+                            ))}
+                        </div>
+
+                        {/* 5. Thêm Pagination Component */}
+                        {!loading && events.length > 0 && (
+                            <div className={cx('paginationContainer')}>
+                                <Pagination
+                                    current={currentPage}
+                                    total={totalItems}
+                                    pageSize={pageSize}
+                                    onChange={page => {
+                                        setCurrentPage(page);
+                                        window.scrollTo({
+                                            top: 0,
+                                            behavior: 'smooth'
+                                        });
+                                    }}
+                                    showSizeChanger={false} // Cố định 12 sản phẩm
+                                />
+                            </div>
+                        )}
+                    </>
                 )}
             </div>
 
+            {/* Modal giữ nguyên... */}
             <Modal
                 title={<span className={cx('modalTitle')}>Bộ lọc sự kiện</span>}
                 open={isModalOpen}
@@ -221,6 +266,7 @@ function Genre() {
                 centered
                 className={cx('customModal')}
             >
+                {/* ... nội dung modal ... */}
                 <div className={cx('modalBody')}>
                     <div className={cx('filterSection')}>
                         <h4>Vị trí</h4>

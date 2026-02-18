@@ -33,17 +33,10 @@ const togglePublished = id => {
 };
 
 const approve = id => {
-    /** * Sửa lỗi 404: Vì BE không có /approve, ta dùng /published.
-     * Logic: Khi Admin bấm Duyệt, isPublished sẽ chuyển từ false -> true.
-     */
     return togglePublished(id);
 };
 
 const reject = id => {
-    /**
-     * Vì BE không có /reject và không lưu reason,
-     * ta sử dụng hàm remove (Xóa) để từ chối sự kiện này.
-     */
     return remove(id);
 };
 
