@@ -9,8 +9,7 @@ import {
     Typography,
     Row,
     Col,
-    Pagination,
-    Alert
+    Pagination
 } from 'antd';
 import {
     SearchOutlined,
@@ -21,7 +20,7 @@ import {
     TeamOutlined,
     FileTextOutlined,
     PlusOutlined,
-    ExclamationCircleOutlined
+    ClockCircleOutlined
 } from '@ant-design/icons';
 import dayjs from 'dayjs';
 
@@ -29,7 +28,6 @@ import { eventApi } from '@apis/eventApi';
 
 const { Title } = Typography;
 
-// 1. KHAI BÁO URL BACKEND ĐỂ LẤY FILE
 const BASE_URL_IMAGE = 'http://localhost:8080/api/v1/files';
 
 const styles = {
@@ -93,7 +91,7 @@ const EventManagement = () => {
     const [events, setEvents] = useState([]);
     const [loading, setLoading] = useState(false);
     const [searchText, setSearchText] = useState('');
-    const [activeTab, setActiveTab] = useState('pending');
+    const [activeTab, setActiveTab] = useState('upcoming'); // Mặc định xem sự kiện Sắp tới
     const [currentPage, setCurrentPage] = useState(1);
     const pageSize = 6;
 
@@ -102,29 +100,29 @@ const EventManagement = () => {
         setLoading(true);
         try {
             const response = await eventApi.getAll();
-
-            // Lấy data từ response
             const rawData =
                 response?.content || response?.result || response?.data || [];
 
-            // BIẾN ĐỔI DỮ LIỆU ĐỂ HIỂN THỊ ĐÚNG ẢNH VÀ ĐỊA CHỈ
             const mappedData = (Array.isArray(rawData) ? rawData : []).map(
                 e => {
-                    // TÌM ẢNH BÌA: Ưu tiên ảnh có isPoster hoặc isCover là true
                     const posterObj =
-                        e.images?.find(
-                            img => img.isPoster === true || img.isCover === true
-                        ) || e.images?.[0];
-
-                    // GHÉP URL ĐẦY ĐỦ TỪ TÊN FILE TRONG DATABASE
+                        e.images?.find(img => img.isCover === true) ||
+                        e.images?.[0];
                     const posterUrl = posterObj?.url
                         ? `${BASE_URL_IMAGE}/${posterObj.url}`
                         : 'https://placehold.co/300x400?text=No+Image';
 
+                    // Ghép thời gian đầy đủ để so sánh
+                    const fullStartStr = e.startDate
+                        ? `${e.startDate} ${e.startTime || '00:00:00'}`
+                        : null;
+
                     return {
                         ...e,
-                        posterUrl, // URL ảnh đã ghép hoàn chỉnh
-                        status: e.isPublished ? 'PUBLISHED' : 'PENDING'
+                        posterUrl,
+                        fullStartTime: fullStartStr,
+                        // Đồng bộ field 'published' từ Backend
+                        isApproved: e.published === true
                     };
                 }
             );
@@ -141,37 +139,40 @@ const EventManagement = () => {
         fetchEvents();
     }, [fetchEvents]);
 
-    // --- FILTER LOGIC ---
+    // --- FILTER LOGIC (QUAN TRỌNG) ---
     const filteredEvents = useMemo(() => {
         const now = dayjs();
         let result = events;
 
+        // 1. Lọc theo ô tìm kiếm
         if (searchText) {
             const lowerSearch = searchText.toLowerCase();
             result = result.filter(
                 e =>
                     (e.name && e.name.toLowerCase().includes(lowerSearch)) ||
                     (e.location &&
-                        e.location.toLowerCase().includes(lowerSearch)) // SỬA: locationName -> location
+                        e.location.toLowerCase().includes(lowerSearch))
             );
         }
 
+        // 2. Phân loại theo Tab (Giống logic Admin)
         switch (activeTab) {
             case 'upcoming':
+                // Đã duyệt VÀ chưa đến giờ tổ chức
                 result = result.filter(
-                    e =>
-                        e.status === 'PUBLISHED' &&
-                        dayjs(e.startDate).isAfter(now)
-                );
-                break;
-            case 'past':
-                result = result.filter(e =>
-                    dayjs(e.endDate || e.startDate).isBefore(now)
+                    e => e.isApproved && dayjs(e.fullStartTime).isAfter(now)
                 );
                 break;
             case 'pending':
+                // Chưa duyệt VÀ chưa quá hạn
                 result = result.filter(
-                    e => e.status === 'PENDING' || !e.status
+                    e => !e.isApproved && dayjs(e.fullStartTime).isAfter(now)
+                );
+                break;
+            case 'past':
+                // Đã quá giờ tổ chức (Bất kể duyệt hay chưa)
+                result = result.filter(e =>
+                    dayjs(e.fullStartTime).isBefore(now)
                 );
                 break;
             default:
@@ -242,8 +243,8 @@ const EventManagement = () => {
                 <Space size={12} wrap>
                     {[
                         { key: 'upcoming', label: 'Sắp tới' },
-                        { key: 'past', label: 'Đã qua' },
-                        { key: 'pending', label: 'Chờ duyệt' }
+                        { key: 'pending', label: 'Chờ duyệt' },
+                        { key: 'past', label: 'Đã qua' }
                     ].map(tab => (
                         <div
                             key={tab.key}
@@ -279,190 +280,194 @@ const EventManagement = () => {
                             width: '100%'
                         }}
                     >
-                        Không tìm thấy sự kiện nào.
+                        Không tìm thấy sự kiện nào trong mục này.
                     </div>
                 ) : (
-                    currentData.map(event => (
-                        <Col xs={24} lg={12} key={event.id}>
-                            <div
-                                className='event-card-hover'
-                                style={styles.card}
-                            >
+                    currentData.map(event => {
+                        const isPast = dayjs(event.fullStartTime).isBefore(
+                            dayjs()
+                        );
+
+                        return (
+                            <Col xs={24} lg={12} key={event.id}>
                                 <div
-                                    style={{ display: 'flex', height: '180px' }}
+                                    className='event-card-hover'
+                                    style={styles.card}
                                 >
-                                    {/* Thumbnail */}
                                     <div
                                         style={{
-                                            width: '180px',
-                                            flexShrink: 0,
-                                            position: 'relative'
+                                            display: 'flex',
+                                            height: '180px'
                                         }}
                                     >
-                                        <img
-                                            src={event.posterUrl}
-                                            alt={event.name}
-                                            style={{
-                                                width: '100%',
-                                                height: '100%',
-                                                objectFit: 'cover'
-                                            }}
-                                            onError={e => {
-                                                e.target.onerror = null;
-                                                e.target.src =
-                                                    'https://placehold.co/300x400?text=Error+Image';
-                                            }}
-                                        />
                                         <div
                                             style={{
-                                                position: 'absolute',
-                                                top: 10,
-                                                left: 10,
-                                                background: 'rgba(0,0,0,0.6)',
-                                                color: '#fff',
-                                                padding: '4px 8px',
-                                                borderRadius: '4px',
-                                                fontSize: '12px',
-                                                fontWeight: 'bold',
-                                                backdropFilter: 'blur(4px)'
+                                                width: '180px',
+                                                flexShrink: 0,
+                                                position: 'relative'
                                             }}
                                         >
-                                            {event.genreName || 'Sự kiện'}
+                                            <img
+                                                src={event.posterUrl}
+                                                alt={event.name}
+                                                style={{
+                                                    width: '100%',
+                                                    height: '100%',
+                                                    objectFit: 'cover'
+                                                }}
+                                            />
+                                            <div
+                                                style={{
+                                                    position: 'absolute',
+                                                    top: 10,
+                                                    left: 10,
+                                                    background:
+                                                        'rgba(0,0,0,0.6)',
+                                                    color: '#fff',
+                                                    padding: '4px 8px',
+                                                    borderRadius: '4px',
+                                                    fontSize: '12px',
+                                                    fontWeight: 'bold'
+                                                }}
+                                            >
+                                                {event.genreName || 'Sự kiện'}
+                                            </div>
+                                        </div>
+
+                                        <div
+                                            style={{
+                                                padding: '16px',
+                                                flex: 1,
+                                                display: 'flex',
+                                                flexDirection: 'column',
+                                                justifyContent: 'space-between'
+                                            }}
+                                        >
+                                            <div>
+                                                <Title
+                                                    level={4}
+                                                    style={{
+                                                        color: '#fff',
+                                                        margin: '0 0 8px 0',
+                                                        fontSize: '18px'
+                                                    }}
+                                                    ellipsis={{ rows: 2 }}
+                                                >
+                                                    {event.name}
+                                                </Title>
+                                                <Space
+                                                    direction='vertical'
+                                                    size={4}
+                                                >
+                                                    <div
+                                                        style={{
+                                                            color: '#2dc275',
+                                                            fontSize: '14px',
+                                                            fontWeight: 500
+                                                        }}
+                                                    >
+                                                        <CalendarOutlined
+                                                            style={{
+                                                                marginRight: 8
+                                                            }}
+                                                        />
+                                                        {dayjs(
+                                                            event.fullStartTime
+                                                        ).format(
+                                                            'HH:mm - DD/MM/YYYY'
+                                                        )}
+                                                    </div>
+                                                    <div
+                                                        style={{
+                                                            color: '#9ca6b0',
+                                                            fontSize: '13px'
+                                                        }}
+                                                    >
+                                                        <EnvironmentOutlined
+                                                            style={{
+                                                                marginRight: 8
+                                                            }}
+                                                        />
+                                                        {event.location ||
+                                                            'Địa chỉ đang cập nhật'}
+                                                    </div>
+                                                </Space>
+                                            </div>
+                                            <div style={{ marginTop: '8px' }}>
+                                                {isPast ? (
+                                                    <Tag color='default'>
+                                                        Đã qua
+                                                    </Tag>
+                                                ) : event.isApproved ? (
+                                                    <Tag color='success'>
+                                                        Đang bán
+                                                    </Tag>
+                                                ) : (
+                                                    <Tag color='warning'>
+                                                        Chờ duyệt
+                                                    </Tag>
+                                                )}
+                                            </div>
                                         </div>
                                     </div>
 
-                                    {/* Info */}
                                     <div
                                         style={{
-                                            padding: '16px',
-                                            flex: 1,
                                             display: 'flex',
-                                            flexDirection: 'column',
-                                            justifyContent: 'space-between'
+                                            borderTop: '1px solid #2a2a2a',
+                                            background: '#1a1a1a',
+                                            padding: '8px 0'
                                         }}
                                     >
-                                        <div>
-                                            <Title
-                                                level={4}
-                                                style={{
-                                                    color: '#fff',
-                                                    margin: '0 0 8px 0',
-                                                    fontSize: '18px'
-                                                }}
-                                                ellipsis={{ rows: 2 }}
-                                            >
-                                                {event.name}
-                                            </Title>
-                                            <Space
-                                                direction='vertical'
-                                                size={4}
-                                            >
-                                                <div
-                                                    style={{
-                                                        color: '#2dc275',
-                                                        fontSize: '14px',
-                                                        fontWeight: 500
-                                                    }}
-                                                >
-                                                    <CalendarOutlined
-                                                        style={{
-                                                            marginRight: 8
-                                                        }}
-                                                    />
-                                                    {dayjs(
-                                                        event.startDate
-                                                    ).format(
-                                                        'HH:mm - DD/MM/YYYY'
-                                                    )}
-                                                </div>
-                                                <div
-                                                    style={{
-                                                        color: '#9ca6b0',
-                                                        fontSize: '13px'
-                                                    }}
-                                                >
-                                                    <EnvironmentOutlined
-                                                        style={{
-                                                            marginRight: 8
-                                                        }}
-                                                    />
-                                                    {/* HIỂN THỊ ĐỊA CHỈ TỪ TRƯỜNG location */}
-                                                    {event.location ||
-                                                        'Địa chỉ đang cập nhật'}
-                                                </div>
-                                            </Space>
-                                        </div>
-                                        <div style={{ marginTop: '8px' }}>
-                                            {event.status === 'PUBLISHED' ? (
-                                                <Tag color='success'>
-                                                    Đang bán
-                                                </Tag>
-                                            ) : (
-                                                <Tag color='warning'>
-                                                    Chờ duyệt
-                                                </Tag>
-                                            )}
-                                        </div>
+                                        <button
+                                            style={styles.actionButton}
+                                            className='action-btn'
+                                        >
+                                            <DashboardOutlined
+                                                style={{ fontSize: '18px' }}
+                                            />
+                                            <span>Tổng quan</span>
+                                        </button>
+                                        <button
+                                            style={styles.actionButton}
+                                            className='action-btn'
+                                        >
+                                            <TeamOutlined
+                                                style={{ fontSize: '18px' }}
+                                            />
+                                            <span>Thành viên</span>
+                                        </button>
+                                        <button
+                                            style={styles.actionButton}
+                                            className='action-btn'
+                                        >
+                                            <FileTextOutlined
+                                                style={{ fontSize: '18px' }}
+                                            />
+                                            <span>Đơn hàng</span>
+                                        </button>
+                                        <button
+                                            style={{
+                                                ...styles.actionButton,
+                                                color: '#2dc275'
+                                            }}
+                                            className='action-btn'
+                                            onClick={() =>
+                                                navigate(
+                                                    `/organizer/events/edit/${event.id}`
+                                                )
+                                            }
+                                        >
+                                            <EditOutlined
+                                                style={{ fontSize: '18px' }}
+                                            />
+                                            <span>Chỉnh sửa</span>
+                                        </button>
                                     </div>
                                 </div>
-
-                                {/* Actions */}
-                                <div
-                                    style={{
-                                        display: 'flex',
-                                        borderTop: '1px solid #2a2a2a',
-                                        background: '#1a1a1a',
-                                        padding: '8px 0'
-                                    }}
-                                >
-                                    <button
-                                        style={styles.actionButton}
-                                        className='action-btn'
-                                    >
-                                        <DashboardOutlined
-                                            style={{ fontSize: '18px' }}
-                                        />
-                                        <span>Tổng quan</span>
-                                    </button>
-                                    <button
-                                        style={styles.actionButton}
-                                        className='action-btn'
-                                    >
-                                        <TeamOutlined
-                                            style={{ fontSize: '18px' }}
-                                        />
-                                        <span>Thành viên</span>
-                                    </button>
-                                    <button
-                                        style={styles.actionButton}
-                                        className='action-btn'
-                                    >
-                                        <FileTextOutlined
-                                            style={{ fontSize: '18px' }}
-                                        />
-                                        <span>Đơn hàng</span>
-                                    </button>
-                                    <button
-                                        style={{
-                                            ...styles.actionButton,
-                                            color: '#2dc275'
-                                        }}
-                                        className='action-btn'
-                                        onClick={() =>
-                                            navigate(
-                                                `/organizer/events/edit/${event.id}`
-                                            )
-                                        }
-                                    >
-                                        <EditOutlined
-                                            style={{ fontSize: '18px' }}
-                                        />
-                                        <span>Chỉnh sửa</span>
-                                    </button>
-                                </div>
-                            </div>
-                        </Col>
-                    ))
+                            </Col>
+                        );
+                    })
                 )}
             </Row>
 
