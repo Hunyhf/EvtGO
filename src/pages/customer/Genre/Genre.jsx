@@ -1,12 +1,12 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Modal, Radio, Switch, Tag, Button, Empty, Spin } from 'antd';
+import { Modal, Radio, Switch, Tag, Button, Spin } from 'antd';
 import {
     CalendarOutlined,
     FilterOutlined,
-    DownOutlined,
-    SearchOutlined
+    DownOutlined
 } from '@ant-design/icons';
+import dayjs from 'dayjs';
 import classNames from 'classnames/bind';
 
 import styles from './Genre.module.scss';
@@ -15,6 +15,8 @@ import { eventApi } from '@apis/eventApi';
 import { genresApi } from '@apis/genresApi';
 
 const cx = classNames.bind(styles);
+
+const BASE_URL_IMAGE = 'http://localhost:8080/api/v1/files';
 
 const LOCATIONS = [
     'Toàn quốc',
@@ -25,17 +27,15 @@ const LOCATIONS = [
 ];
 
 function Genre() {
-    const [searchParams, setSearchParams] = useSearchParams();
+    const [searchParams] = useSearchParams();
     const urlGenreId = searchParams.get('id');
     const urlSearchQuery = searchParams.get('q') || '';
 
-    // State dữ liệu & UI
     const [events, setEvents] = useState([]);
     const [genresList, setGenresList] = useState([]);
     const [loading, setLoading] = useState(false);
     const [isModalOpen, setIsModalOpen] = useState(false);
 
-    // State lọc (Applied & Temp)
     const [filters, setFilters] = useState({
         location: 'Toàn quốc',
         genreId: urlGenreId || '',
@@ -46,9 +46,18 @@ function Genre() {
     const [tempFilters, setTempFilters] = useState({ ...filters });
 
     useEffect(() => {
+        if (urlGenreId) {
+            setFilters(prev => ({ ...prev, genreId: urlGenreId }));
+            setTempFilters(prev => ({ ...prev, genreId: urlGenreId }));
+        }
+    }, [urlGenreId]);
+
+    useEffect(() => {
         const loadGenres = async () => {
             const res = await genresApi.getAll();
-            setGenresList(res?.result || res?.data || []);
+            setGenresList(
+                res?.result || res?.data || (Array.isArray(res) ? res : [])
+            );
         };
         loadGenres();
     }, []);
@@ -56,32 +65,63 @@ function Genre() {
     const fetchEvents = async () => {
         setLoading(true);
         try {
+            const now = dayjs();
             const params = {
                 page: 1,
-                size: 12,
-                genreId: filters.genreId,
-                search: urlSearchQuery,
-                sort: 'startTime,asc'
+                size: 50,
+                search: urlSearchQuery
             };
-            const res = await eventApi.getAll(params);
-            const data = res?.result?.content || res?.data || [];
 
-            // Mock Fallback nếu DB trống
-            if (data.length === 0) {
+            const res = await eventApi.getAll(params);
+            const rawData =
+                res?.result ||
+                res?.content ||
+                res?.data ||
+                (Array.isArray(res) ? res : []);
+
+            const realDataFiltered = rawData.filter(e => {
+                const isApproved = e.published === true;
+                const matchGenre =
+                    !filters.genreId ||
+                    String(e.genreId) === String(filters.genreId);
+                const eventStartTime = dayjs(
+                    `${e.startDate} ${e.startTime || '00:00:00'}`
+                );
+
+                return isApproved && matchGenre && eventStartTime.isAfter(now);
+            });
+
+            if (realDataFiltered.length > 0) {
+                const mappedRealData = realDataFiltered.map(e => {
+                    const posterObj =
+                        e.images?.find(img => img.isCover) || e.images?.[0];
+                    const startDateObj = dayjs(e.startDate);
+
+                    return {
+                        ...e,
+                        title: e.name,
+                        date: startDateObj.format('DD/MM/YYYY'),
+                        month: startDateObj.format('MMM').toUpperCase(),
+                        url: posterObj?.url
+                            ? `${BASE_URL_IMAGE}/${posterObj.url}`
+                            : 'https://placehold.co/400x600?text=No+Image'
+                    };
+                });
+                setEvents(mappedRealData);
+            } else {
                 setEvents(
                     Array.from({ length: 8 }, (_, i) => ({
                         id: `mock-${i}`,
-                        name: `Sự kiện Trải nghiệm #${i + 1}`,
-                        startTime: '2026-03-20T19:00:00',
-                        poster: `https://picsum.photos/400/250?random=${i + 20}`,
+                        title: `Sự kiện ${genresList.find(g => String(g.id) === String(filters.genreId))?.name || 'Trải nghiệm'} #${i + 1}`,
+                        date: '20/03/2026',
+                        month: 'MAR',
+                        url: `https://picsum.photos/400/250?random=${i + 50}`,
                         price: filters.isFree ? 0 : 450000 + i * 20000
                     }))
                 );
-            } else {
-                setEvents(data);
             }
         } catch (e) {
-            console.error(e);
+            console.error('>>> [Genre] Error:', e);
         } finally {
             setLoading(false);
         }
@@ -89,7 +129,7 @@ function Genre() {
 
     useEffect(() => {
         fetchEvents();
-    }, [filters, urlSearchQuery]);
+    }, [filters, urlSearchQuery, genresList]);
 
     const handleApply = () => {
         setFilters({ ...tempFilters });
@@ -108,11 +148,12 @@ function Genre() {
     return (
         <div className={cx('genrePage')}>
             <div className={cx('container')}>
-                {/* TOP TOOLBAR */}
                 <div className={cx('toolbar')}>
                     <div className={cx('titleSection')}>
                         <span className={cx('neonText')}>
-                            Kết quả tìm kiếm:
+                            {urlSearchQuery
+                                ? `Kết quả tìm kiếm: "${urlSearchQuery}"`
+                                : 'Khám phá sự kiện'}
                         </span>
                     </div>
 
@@ -132,20 +173,35 @@ function Genre() {
                         </div>
 
                         {filters.genreId && (
-                            <div className={cx('pill', 'active')}>
-                                {genresList.find(
-                                    g =>
-                                        String(g.id) === String(filters.genreId)
-                                )?.name || 'Đang chọn'}
-                            </div>
+                            <Tag
+                                color='cyan'
+                                closable
+                                onClose={() =>
+                                    setFilters(f => ({ ...f, genreId: '' }))
+                                }
+                                style={{
+                                    borderRadius: 20,
+                                    padding: '2px 12px'
+                                }}
+                            >
+                                {
+                                    genresList.find(
+                                        g =>
+                                            String(g.id) ===
+                                            String(filters.genreId)
+                                    )?.name
+                                }
+                            </Tag>
                         )}
                     </div>
                 </div>
 
-                {/* GRID DỮ LIỆU */}
                 {loading ? (
-                    <div className={cx('center')}>
-                        <Spin size='large' />
+                    <div
+                        className={cx('center')}
+                        style={{ padding: '100px 0' }}
+                    >
+                        <Spin size='large' tip='Đang tìm kiếm sự kiện...' />
                     </div>
                 ) : (
                     <div className={cx('eventsGrid')}>
@@ -156,7 +212,6 @@ function Genre() {
                 )}
             </div>
 
-            {/* FLOATING FILTER MODAL */}
             <Modal
                 title={<span className={cx('modalTitle')}>Bộ lọc sự kiện</span>}
                 open={isModalOpen}
@@ -167,7 +222,6 @@ function Genre() {
                 className={cx('customModal')}
             >
                 <div className={cx('modalBody')}>
-                    {/* Location */}
                     <div className={cx('filterSection')}>
                         <h4>Vị trí</h4>
                         <Radio.Group
@@ -188,7 +242,6 @@ function Genre() {
                         </Radio.Group>
                     </div>
 
-                    {/* Price */}
                     <div className={cx('filterSection', 'flexBetween')}>
                         <h4>Sự kiện Miễn phí</h4>
                         <Switch
@@ -199,7 +252,6 @@ function Genre() {
                         />
                     </div>
 
-                    {/* Categories */}
                     <div className={cx('filterSection')}>
                         <h4>Thể loại</h4>
                         <div className={cx('chipGroup')}>
@@ -221,11 +273,9 @@ function Genre() {
                                     {genre.name}
                                 </div>
                             ))}
-                            <div className={cx('chip')}>Khác</div>
                         </div>
                     </div>
 
-                    {/* Footer Actions */}
                     <div className={cx('modalFooter')}>
                         <Button
                             className={cx('btnReset')}

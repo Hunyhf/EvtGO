@@ -4,21 +4,23 @@ import { Link } from 'react-router-dom';
 import classNames from 'classnames/bind';
 import { Swiper, SwiperSlide } from 'swiper/react';
 import { Navigation, Pagination, Autoplay } from 'swiper/modules';
+import dayjs from 'dayjs';
 
 import 'swiper/css';
 import 'swiper/css/navigation';
 import 'swiper/css/pagination';
 
 import styles from './Home.module.scss';
-import Nav from '@components/Nav/Nav.jsx'; // Nếu Nav export default thì giữ nguyên
+import Nav from '@components/Nav/Nav.jsx';
 import EventCard from '@components/EventCard/EventCard.jsx';
-// FIX: Dùng Named Import vì genresApi.js không export default
 import { genresApi } from '@apis/genresApi';
+import { eventApi } from '@apis/eventApi';
 import { BANNER_DATA, TRENDING_DATA } from './constants';
 
 const cx = classNames.bind(styles);
 
-// NOTE: Nên tách hàm này ra file utils/stringUtils.js để dùng chung với Nav.jsx (DRY)
+const BASE_URL_IMAGE = 'http://localhost:8080/api/v1/files';
+
 const createSlug = str => {
     if (!str) return '';
     return str
@@ -55,25 +57,70 @@ function Home() {
         const loadHomeData = async () => {
             try {
                 setLoading(true);
-                // Gọi API lấy danh sách thể loại
-                const res = await genresApi.getAll(); // Đã fix import nên gọi được
+                const now = dayjs();
 
-                // Safety check: Đảm bảo luôn là mảng
-                const genres = Array.isArray(res) ? res : res?.result || [];
+                // 1. Gọi API lấy Thể loại và Sự kiện
+                const [genresRes, eventsRes] = await Promise.all([
+                    genresApi.getAll(),
+                    eventApi.getAll({ page: 1, size: 200 }) // Lấy số lượng lớn để phân loại
+                ]);
 
-                // Map dữ liệu fake event (Giữ nguyên logic cũ của bạn)
+                const genres = Array.isArray(genresRes)
+                    ? genresRes
+                    : genresRes?.result || [];
+                const allRawEvents =
+                    eventsRes?.result ||
+                    eventsRes?.content ||
+                    eventsRes?.data ||
+                    [];
+
+                // 2. Lọc sự kiện thực: Đã DUYỆT và CHƯA DIỄN RA
+                const validRealEvents = allRawEvents.filter(e => {
+                    const isApproved = e.published === true;
+                    const eventTime = dayjs(
+                        `${e.startDate} ${e.startTime || '00:00:00'}`
+                    );
+                    return isApproved && eventTime.isAfter(now);
+                });
+
+                // 3. Xây dựng các Section
                 const dataWithEvents = genres.map((genre, index) => {
-                    const mockEvents = Array.from({ length: 4 }, (_, i) => ({
-                        id: `mock-${genre.id}-${i}`,
-                        title: `Sự kiện ${genre.name} nổi bật ${i + 1}`,
-                        date: '10/02/2026',
-                        price: i % 2 === 0 ? 500000 : 0,
-                        url: `https://picsum.photos/400/250?random=${index * 5 + i}`
-                    }));
+                    // Tìm các sự kiện thực thuộc Genre này
+                    const realEventsInGenre = validRealEvents
+                        .filter(e => String(e.genreId) === String(genre.id))
+                        .map(e => {
+                            const posterObj =
+                                e.images?.find(img => img.isCover) ||
+                                e.images?.[0];
+                            return {
+                                ...e,
+                                title: e.name,
+                                date: dayjs(e.startDate).format('DD/MM/YYYY'),
+                                price: 0,
+                                url: posterObj?.url
+                                    ? `${BASE_URL_IMAGE}/${posterObj.url}`
+                                    : 'https://placehold.co/400x250?text=No+Image'
+                            };
+                        });
+
+                    // Logic: Nếu có dữ liệu thực thì dùng, nếu không thì dùng Mock API cho đỡ trống
+                    let finalEvents = [];
+                    if (realEventsInGenre.length > 0) {
+                        finalEvents = realEventsInGenre.slice(0, 4);
+                    } else {
+                        // TẠO MOCK DATA NẾU DANH MỤC TRỐNG
+                        finalEvents = Array.from({ length: 4 }, (_, i) => ({
+                            id: `mock-${genre.id}-${i}`,
+                            title: `Sự kiện ${genre.name} tiêu biểu ${i + 1}`,
+                            date: '25/12/2026',
+                            price: i % 2 === 0 ? 250000 : 0,
+                            url: `https://picsum.photos/400/250?random=${index * 10 + i}`
+                        }));
+                    }
 
                     return {
                         ...genre,
-                        events: mockEvents
+                        events: finalEvents
                     };
                 });
 
@@ -91,13 +138,12 @@ function Home() {
     const handleScroll = direction => {
         const { current } = trendingRef;
         if (current) {
-            const scrollAmount = current.clientWidth * 0.8; // Scroll 80% chiều rộng để UX tốt hơn
+            const scrollAmount = current.clientWidth * 0.8;
             const leftPos =
                 direction === 'left'
                     ? current.scrollLeft - scrollAmount
                     : current.scrollLeft + scrollAmount;
 
-            // UX: Scroll mượt
             current.scrollTo({
                 left: leftPos,
                 behavior: 'smooth'
@@ -138,7 +184,6 @@ function Home() {
                         <button
                             className={cx('controlBtn', 'prev')}
                             onClick={() => handleScroll('left')}
-                            aria-label='Previous slide'
                         >
                             ❮
                         </button>
@@ -162,7 +207,6 @@ function Home() {
                         <button
                             className={cx('controlBtn', 'next')}
                             onClick={() => handleScroll('right')}
-                            aria-label='Next slide'
                         >
                             ❯
                         </button>
@@ -173,9 +217,13 @@ function Home() {
                 {loading ? (
                     <div
                         className={cx('loadingState')}
-                        style={{ textAlign: 'center', padding: '40px' }}
+                        style={{
+                            textAlign: 'center',
+                            padding: '60px',
+                            color: '#fff'
+                        }}
                     >
-                        Đang tải dữ liệu...
+                        Đang tải danh sách sự kiện...
                     </div>
                 ) : (
                     sections.map(genre => {
@@ -191,7 +239,6 @@ function Home() {
                                         {genre.name}
                                     </h3>
                                     <Link
-                                        // FIX: Đồng bộ URL với Nav.jsx (/genre?id=...)
                                         to={`/genre?id=${genre.id}&name=${genreSlug}`}
                                         className={cx('viewMore')}
                                         onClick={() => window.scrollTo(0, 0)}
