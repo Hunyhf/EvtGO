@@ -80,35 +80,30 @@ function Genre() {
     }, []);
 
     // Hàm gọi API lấy sự kiện
+
     const fetchEvents = async () => {
         setLoading(true);
         try {
             const now = dayjs();
 
             // 1. LOGIC FILTER THEO BE:
-            // Chỉ cần isPublished:true là được hiện lên.
-            // KHÔNG lọc isActive:true ở đây để lấy được các bản ghi "Sắp diễn ra" (isActive:false)
+            // Giữ nguyên filter isPublished:true để lấy các sự kiện đã được duyệt
             let filterString = `isPublished:true`;
 
-            // Lọc theo thể loại
             if (filters.genreId) {
                 filterString += ` and genre.id:${filters.genreId}`;
             }
 
-            // Lọc theo tên (Tìm kiếm)
             if (urlSearchQuery) {
                 filterString += ` and name ~~ '%${urlSearchQuery}%'`;
             }
 
-            // Lọc theo địa điểm
             if (filters.location && filters.location !== 'Toàn quốc') {
                 filterString += ` and location ~~ '%${filters.location}%'`;
             }
 
-            console.log('>>> [Genre] Filter String gửi đi:', filterString);
-
             const params = {
-                page: currentPage - 1, // Spring Boot index 0
+                page: currentPage - 1,
                 size: pageSize,
                 filter: filterString
             };
@@ -125,33 +120,35 @@ function Genre() {
                 res?.data ||
                 (Array.isArray(res) ? res : []);
 
-            // 2. Cơ chế tự ẩn khi tới thời gian diễn ra (Lọc ở FE để hỗ trợ BE)
-            const mappedRealData = rawData
-                .filter(e => {
-                    // Nếu thời gian bắt đầu <= hiện tại thì không hiện ở trang Khám phá nữa
-                    const eventStartTime = dayjs(e.startTime);
-                    return eventStartTime.isAfter(now);
-                })
-                .map(e => {
-                    const posterObj =
-                        e.images?.find(img => img.isCover) || e.images?.[0];
-                    const startDateObj = dayjs(e.startDate);
+            // 2. MAPPING DỮ LIỆU (Thay đổi quan trọng ở đây)
+            // Loại bỏ .filter() để giữ lại các sự kiện đã qua
+            const mappedRealData = rawData.map(e => {
+                const posterObj =
+                    e.images?.find(img => img.isCover) || e.images?.[0];
+                const startDateObj = dayjs(e.startDate);
 
-                    return {
-                        ...e,
-                        title: e.name,
-                        // Dữ liệu này sẽ được EventCard dùng để quyết định hiện nút Mua hay Sắp diễn ra
-                        date: startDateObj.isValid()
-                            ? startDateObj.format('DD/MM/YYYY')
-                            : 'Sắp diễn ra',
-                        month: startDateObj.isValid()
-                            ? startDateObj.format('MMM').toUpperCase()
-                            : 'UP',
-                        url: posterObj?.url
-                            ? `${BASE_URL_IMAGE}/${posterObj.url}`
-                            : 'https://placehold.co/400x600?text=No+Image'
-                    };
-                });
+                // KIỂM TRA SỰ KIỆN ĐÃ QUA CHƯA
+                // Ưu tiên kiểm tra theo endTime, nếu không có thì dùng startTime
+                const eventEndTime = e.endTime
+                    ? dayjs(e.endTime)
+                    : dayjs(e.startTime);
+                const isPast = eventEndTime.isBefore(now);
+
+                return {
+                    ...e,
+                    title: e.name,
+                    isPast: isPast, // Gửi flag này xuống EventCard để hiển thị nhãn
+                    date: startDateObj.isValid()
+                        ? startDateObj.format('DD/MM/YYYY')
+                        : 'Sắp diễn ra',
+                    month: startDateObj.isValid()
+                        ? startDateObj.format('MMM').toUpperCase()
+                        : 'UP',
+                    url: posterObj?.url
+                        ? `${BASE_URL_IMAGE}/${posterObj.url}`
+                        : 'https://placehold.co/400x600?text=No+Image'
+                };
+            });
 
             setEvents(mappedRealData);
         } catch (e) {
