@@ -1,33 +1,13 @@
-// src/pages/organizer/EventManagement/Step4Payment.jsx
-import React, { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import {
-    Form,
-    Input,
-    Select,
-    Card,
-    Typography,
-    Row,
-    Col,
-    Divider,
-    App // Import App của Antd để dùng message context
-} from 'antd';
+import React, { useEffect } from 'react';
+import { Form, Input, Select, Card, Typography, Row, Col, Divider } from 'antd';
 import { BankOutlined, AuditOutlined } from '@ant-design/icons';
-
-import { eventApi } from '@apis/eventApi';
 
 const { Title, Text } = Typography;
 const { Option } = Select;
 
 const Step4Payment = ({ setOnNextAction, formData, setFormData }) => {
     const [form] = Form.useForm();
-    const navigate = useNavigate();
-    const [loading, setLoading] = useState(false);
 
-    // Hook message từ App component để tránh lỗi context
-    const { message: messageApi } = App.useApp();
-
-    // 1. Init Data
     useEffect(() => {
         if (formData) {
             form.setFieldsValue({
@@ -43,101 +23,31 @@ const Step4Payment = ({ setOnNextAction, formData, setFormData }) => {
         }
     }, [formData, form]);
 
-    // 2. XỬ LÝ KHI BẤM NÚT "HOÀN TẤT" (NEXT)
     useEffect(() => {
+        // Trả về một closure function để Cha có thể thực thi await
         setOnNextAction(() => async () => {
             try {
-                // Validate form thanh toán hiện tại
+                // Validate toàn bộ các trường trong Step 4
                 const paymentValues = await form.validateFields();
 
-                // Merge dữ liệu form hiện tại vào formData tổng
-                const finalData = { ...formData, ...paymentValues };
-                setFormData(finalData);
+                // Cập nhật dữ liệu vào formData tổng của Cha
+                setFormData(prev => ({
+                    ...prev,
+                    ...paymentValues
+                }));
 
-                // --- PREPARE PAYLOAD ---
-                // Logic: Lấy thời gian từ showTimes[0] (do BE hiện tại xử lý đơn giản 1 khung giờ)
-                let startTime = null;
-                let endTime = null;
-
-                if (
-                    Array.isArray(finalData.showTimes) &&
-                    finalData.showTimes.length > 0
-                ) {
-                    startTime = finalData.showTimes[0].startTime; // Dạng ISOString hoặc string từ DatePicker
-                    endTime = finalData.showTimes[0].endTime;
-                }
-
-                // Logic: Ghép địa chỉ
-                const locationStr = [
-                    finalData.locationName,
-                    finalData.addressDetail
-                ]
-                    .filter(Boolean)
-                    .join(', '); // Lọc bỏ giá trị null/undefined/empty
-
-                // Tạo JSON khớp với DTO Backend
-                const payload = {
-                    name: finalData.name,
-                    description: finalData.description || '',
-                    location: locationStr,
-                    province: finalData.province,
-                    genreId: finalData.genreId,
-                    startTime: startTime,
-                    endTime: endTime,
-                    // Map thêm các trường nếu BE yêu cầu tách riêng ngày
-                    startDate: startTime ? startTime.split('T')[0] : null,
-                    endDate: endTime ? endTime.split('T')[0] : null
-
-                    // Thông tin thanh toán (Nếu BE có lưu)
-                    // ...paymentValues
-                };
-
-                console.log('>>> [Step4] Payload:', payload);
-
-                // --- CALL API ---
-                setLoading(true);
-                messageApi.loading({
-                    content: 'Đang khởi tạo sự kiện...',
-                    key: 'create_process'
-                });
-
-                // FIX: Gọi qua eventApi.create
-                const res = await eventApi.create(payload);
-
-                messageApi.success({
-                    content: 'Tạo sự kiện thành công!',
-                    key: 'create_process',
-                    duration: 2
-                });
-
-                // Cleanup LocalStorage
-                localStorage.removeItem('evtgo_create_event_data');
-                localStorage.removeItem('evtgo_create_event_step');
-
-                // Redirect sau 1.5s
-                setTimeout(() => {
-                    navigate('/organizer/events');
-                }, 1500);
+                console.log('>>> [Step 4] Validation & Sync OK');
+                return true; // Trả về true để báo hiệu cho Cha
             } catch (error) {
-                console.error('>>> [Step4] Create Error:', error);
-
-                const errorMsg =
-                    error.response?.data?.message ||
-                    error.message ||
-                    'Có lỗi xảy ra!';
-                messageApi.error({
-                    content: `Tạo thất bại: ${errorMsg}`,
-                    key: 'create_process'
-                });
-
-                // Không throw tiếp để giữ user ở lại trang này sửa lỗi
-            } finally {
-                setLoading(false);
+                console.error('>>> [Step 4] Validation failed:', error);
+                throw error; // Ném lỗi để Cha (CreateEvent) chặn quá trình handleFinish
             }
         });
-    }, [form, setOnNextAction, formData, setFormData, navigate, messageApi]);
 
-    // --- STYLES ---
+        // Cleanup action khi unmount bước này
+        return () => setOnNextAction(null);
+    }, [form, setFormData, setOnNextAction]);
+
     const cardStyle = {
         borderRadius: '16px',
         background: 'linear-gradient(135deg, #141414 0%, #0f2e1f 100%)',
@@ -163,7 +73,7 @@ const Step4Payment = ({ setOnNextAction, formData, setFormData }) => {
         <div style={{ maxWidth: 900, margin: '0 auto' }}>
             <Card bordered={false} style={cardStyle}>
                 <Form form={form} layout='vertical'>
-                    {/* Phần 1: Thông tin Ngân hàng */}
+                    {/*  Thông tin Ngân hàng */}
                     <div style={{ marginBottom: 32 }}>
                         <div
                             style={{

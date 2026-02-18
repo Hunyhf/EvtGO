@@ -12,13 +12,15 @@ import {
     Col,
     message,
     Card,
-    Typography
+    Typography,
+    DatePicker // Đảm bảo đã import DatePicker
 } from 'antd';
 import { InboxOutlined, PlusOutlined } from '@ant-design/icons';
+import dayjs from 'dayjs';
 
 import { genresApi } from '@apis/genresApi';
 
-// Cấu hình upload (giả lập preview)
+// Helper: Chuyển ảnh sang base64 để preview
 const getBase64 = (img, callback) => {
     const reader = new FileReader();
     reader.addEventListener('load', () => callback(reader.result));
@@ -37,90 +39,78 @@ const Step1Info = ({
 }) => {
     const [form] = Form.useForm();
 
-    // State dữ liệu danh mục & địa lý
     const [categories, setCategories] = useState([]);
-    const [loadingCategories, setLoadingCategories] = useState(false); // ADD: Loading state
+    const [loadingCategories, setLoadingCategories] = useState(false);
     const [provinces, setProvinces] = useState([]);
     const [districts, setDistricts] = useState([]);
     const [wards, setWards] = useState([]);
 
-    // State hiển thị ảnh preview
     const [posterUrl, setPosterUrl] = useState(parentFormData?.poster || null);
     const [logoUrl, setLogoUrl] = useState(
         parentFormData?.organizerLogo || null
     );
 
     // ----------------------------------------------------------------------
-    // LOGIC QUAN TRỌNG: XỬ LÝ KHI BẤM NEXT
+    // LOGIC: XỬ LÝ KHI BẤM TIẾP TỤC (Đăng ký vào Parent)
     // ----------------------------------------------------------------------
     useEffect(() => {
         setOnNextAction(() => () => {
             return form
                 .validateFields()
                 .then(values => {
-                    console.log('Step 1 Validated:', values);
-
-                    // 1. Lấy file thực tế từ parentFormData
+                    // Normalize dữ liệu: File thực tế từ state cha + Text từ form hiện tại
                     const currentPosterFile = parentFormData.posterFile;
                     const currentLogoFile = parentFormData.logoFile;
 
-                    // 2. Validate thủ công: Bắt buộc phải có file ảnh
                     if (!currentPosterFile && !parentFormData.poster) {
                         message.error('Vui lòng tải lên ảnh nền sự kiện!');
                         throw new Error('Missing poster file');
                     }
 
-                    // 3. TẠO MẢNG IMAGES THEO ĐÚNG THỨ TỰ YÊU CẦU
-                    // Index 0: Poster, Index 1: Logo
                     const imagesArr = [];
-
-                    if (currentPosterFile) {
-                        imagesArr.push(currentPosterFile);
-                    } else if (parentFormData.images?.[0]) {
+                    // Index 0: Poster, Index 1: Logo
+                    if (currentPosterFile) imagesArr.push(currentPosterFile);
+                    else if (parentFormData.images?.[0])
                         imagesArr.push(parentFormData.images[0]);
-                    }
 
-                    if (currentLogoFile) {
-                        imagesArr.push(currentLogoFile);
-                    } else if (parentFormData.images?.[1]) {
+                    if (currentLogoFile) imagesArr.push(currentLogoFile);
+                    else if (parentFormData.images?.[1])
                         imagesArr.push(parentFormData.images[1]);
-                    }
 
-                    // 4. Cập nhật vào State cha
+                    // Đồng bộ state cha
                     setParentFormData(prev => ({
                         ...prev,
                         ...values,
                         images: imagesArr
                     }));
 
-                    // 5. Chuyển bước
                     if (nextStep) nextStep();
                     return true;
                 })
                 .catch(info => {
                     console.error('Validate Failed:', info);
+                    return false;
                 });
         });
     }, [form, setOnNextAction, setParentFormData, nextStep, parentFormData]);
 
-    // Load dữ liệu ban đầu
+    // ----------------------------------------------------------------------
+    // LOGIC: KHỞI TẠO DỮ LIỆU (Hydration)
+    // ----------------------------------------------------------------------
     useEffect(() => {
         const fetchInitialData = async () => {
-            // 1. Load Genres (Có try/catch và loading)
             try {
                 setLoadingCategories(true);
-                const res = await genresApi.getAll(); // Gọi qua object genresApi
+                const res = await genresApi.getAll();
                 const list =
                     res?.result || res?.data || (Array.isArray(res) ? res : []);
                 setCategories(list);
             } catch (err) {
                 console.error('Lỗi tải danh mục:', err);
-                message.error('Không thể tải danh sách thể loại');
             } finally {
                 setLoadingCategories(false);
             }
 
-            // 2. Load Tỉnh/Thành
             try {
                 const res = await axios.get(
                     'https://provinces.open-api.vn/api/p/'
@@ -133,9 +123,18 @@ const Step1Info = ({
 
         fetchInitialData();
 
-        // Fill dữ liệu cũ nếu quay lại bước này
+        // FIX LỖI: Hydrate permitIssuedAt từ string sang dayjs
         if (parentFormData) {
-            form.setFieldsValue(parentFormData);
+            const initialValues = {
+                ...parentFormData,
+                // Chuyển đổi string sang object dayjs cho DatePicker
+                permitIssuedAt: parentFormData.permitIssuedAt
+                    ? dayjs(parentFormData.permitIssuedAt)
+                    : null
+            };
+
+            form.setFieldsValue(initialValues);
+
             if (parentFormData.province)
                 handleProvinceChange(parentFormData.province, false);
             if (parentFormData.district)
@@ -155,8 +154,6 @@ const Step1Info = ({
                 `https://provinces.open-api.vn/api/p/${value}?depth=2`
             );
             setDistricts(res.data.districts);
-
-            // Lưu tên tỉnh để hiển thị nếu cần
             if (resetChildren) {
                 const province = provinces.find(p => p.code === value);
                 setParentFormData(prev => ({
@@ -184,17 +181,13 @@ const Step1Info = ({
         }
     };
 
-    // Logic Upload
     const handleUpload = (file, type) => {
         const isImage = file.type.startsWith('image/');
         if (!isImage) {
             message.error('Bạn chỉ được upload file ảnh!');
             return Upload.LIST_IGNORE;
         }
-
-        // ADD: Validate kích thước ảnh (VD: < 5MB)
-        const isLt5M = file.size / 1024 / 1024 < 5;
-        if (!isLt5M) {
+        if (file.size / 1024 / 1024 >= 5) {
             message.error('Ảnh phải nhỏ hơn 5MB!');
             return Upload.LIST_IGNORE;
         }
@@ -221,18 +214,9 @@ const Step1Info = ({
         return false;
     };
 
-    const quillModules = {
-        toolbar: [
-            [{ header: [1, 2, false] }],
-            ['bold', 'italic', 'underline', 'strike'],
-            [{ list: 'ordered' }, { list: 'bullet' }],
-            ['link', 'clean']
-        ]
-    };
-
     return (
-        <Form form={form} layout='vertical' initialValues={parentFormData}>
-            {/* --- 1. ẢNH BÌA --- */}
+        <Form form={form} layout='vertical'>
+            {/* ẢNH BÌA */}
             <Card
                 style={{
                     marginBottom: 24,
@@ -245,13 +229,12 @@ const Step1Info = ({
                     rules={[
                         {
                             required: true,
-                            message: 'Vui lòng tải lên ảnh nền sự kiện (Cover)'
+                            message: 'Vui lòng tải lên ảnh nền sự kiện'
                         }
                     ]}
                     style={{ marginBottom: 0 }}
                 >
                     <Dragger
-                        name='file'
                         multiple={false}
                         showUploadList={false}
                         beforeUpload={file => handleUpload(file, 'poster')}
@@ -286,18 +269,14 @@ const Step1Info = ({
                                 <p className='ant-upload-text'>
                                     Kéo thả hoặc chọn Ảnh Bìa (Cover)
                                 </p>
-                                <p className='ant-upload-hint'>
-                                    Kích thước: 1280x720 (Sẽ được đặt làm ảnh
-                                    đại diện sự kiện)
-                                </p>
                             </div>
                         )}
                     </Dragger>
                 </Form.Item>
             </Card>
 
-            {/* --- 2. THÔNG TIN & LOGO --- */}
             <Row gutter={24}>
+                {/* BTC */}
                 <Col span={24} lg={8}>
                     <Card
                         style={{
@@ -322,9 +301,7 @@ const Step1Info = ({
                         >
                             <Form.Item name='organizerLogo' noStyle>
                                 <Upload
-                                    name='avatar'
                                     listType='picture-circle'
-                                    className='avatar-uploader'
                                     showUploadList={false}
                                     beforeUpload={file =>
                                         handleUpload(file, 'logo')
@@ -368,6 +345,7 @@ const Step1Info = ({
                     </Card>
                 </Col>
 
+                {/* THÔNG TIN SỰ KIỆN */}
                 <Col span={24} lg={16}>
                     <Card
                         style={{
@@ -402,6 +380,68 @@ const Step1Info = ({
                             />
                         </Form.Item>
 
+                        {/* GIẤY PHÉP */}
+                        <Row gutter={16}>
+                            <Col span={8}>
+                                <Form.Item
+                                    name='permitNumber'
+                                    label={
+                                        <span style={{ color: '#fff' }}>
+                                            Số giấy phép
+                                        </span>
+                                    }
+                                    rules={[
+                                        {
+                                            required: true,
+                                            message: 'Nhập số giấy phép'
+                                        }
+                                    ]}
+                                >
+                                    <Input placeholder='Số GP' size='large' />
+                                </Form.Item>
+                            </Col>
+                            <Col span={8}>
+                                <Form.Item
+                                    name='permitIssuedAt'
+                                    label={
+                                        <span style={{ color: '#fff' }}>
+                                            Ngày cấp
+                                        </span>
+                                    }
+                                    rules={[
+                                        {
+                                            required: true,
+                                            message: 'Chọn ngày cấp'
+                                        }
+                                    ]}
+                                >
+                                    <DatePicker
+                                        placeholder='Chọn ngày'
+                                        size='large'
+                                        style={{ width: '100%' }}
+                                    />
+                                </Form.Item>
+                            </Col>
+                            <Col span={8}>
+                                <Form.Item
+                                    name='permitIssuedBy'
+                                    label={
+                                        <span style={{ color: '#fff' }}>
+                                            Nơi cấp
+                                        </span>
+                                    }
+                                    rules={[
+                                        {
+                                            required: true,
+                                            message: 'Nhập nơi cấp'
+                                        }
+                                    ]}
+                                >
+                                    <Input placeholder='Nơi cấp' size='large' />
+                                </Form.Item>
+                            </Col>
+                        </Row>
+
                         <Row gutter={16}>
                             <Col span={12}>
                                 <Form.Item
@@ -422,7 +462,7 @@ const Step1Info = ({
                                         placeholder='Chọn thể loại'
                                         size='large'
                                         allowClear
-                                        loading={loadingCategories} // ADD: Loading state
+                                        loading={loadingCategories}
                                     >
                                         {categories.map(c => (
                                             <Option key={c.id} value={c.id}>
@@ -455,7 +495,7 @@ const Step1Info = ({
                             </Col>
                         </Row>
 
-                        {/* Địa lý */}
+                        {/* ĐỊA LÝ */}
                         <Row gutter={16}>
                             <Col span={8}>
                                 <Form.Item
@@ -466,14 +506,11 @@ const Step1Info = ({
                                         </span>
                                     }
                                     rules={[
-                                        {
-                                            required: true,
-                                            message: 'Chọn Tỉnh/Thành'
-                                        }
+                                        { required: true, message: 'Chọn Tỉnh' }
                                     ]}
                                 >
                                     <Select
-                                        placeholder='Tỉnh/Thành'
+                                        placeholder='Tỉnh'
                                         size='large'
                                         onChange={val =>
                                             handleProvinceChange(val)
@@ -499,18 +536,18 @@ const Step1Info = ({
                                     name='district'
                                     label={
                                         <span style={{ color: '#fff' }}>
-                                            Quận/Huyện
+                                            Huyện
                                         </span>
                                     }
                                     rules={[
                                         {
                                             required: true,
-                                            message: 'Chọn Quận/Huyện'
+                                            message: 'Chọn Huyện'
                                         }
                                     ]}
                                 >
                                     <Select
-                                        placeholder='Quận/Huyện'
+                                        placeholder='Huyện'
                                         size='large'
                                         onChange={val =>
                                             handleDistrictChange(val)
@@ -537,18 +574,15 @@ const Step1Info = ({
                                     name='ward'
                                     label={
                                         <span style={{ color: '#fff' }}>
-                                            Phường/Xã
+                                            Xã
                                         </span>
                                     }
                                     rules={[
-                                        {
-                                            required: true,
-                                            message: 'Chọn Phường/Xã'
-                                        }
+                                        { required: true, message: 'Chọn Xã' }
                                     ]}
                                 >
                                     <Select
-                                        placeholder='Phường/Xã'
+                                        placeholder='Xã'
                                         size='large'
                                         disabled={!wards.length}
                                         showSearch
@@ -576,12 +610,7 @@ const Step1Info = ({
                                     Địa chỉ chi tiết
                                 </span>
                             }
-                            rules={[
-                                {
-                                    required: true,
-                                    message: 'Nhập số nhà, tên đường'
-                                }
-                            ]}
+                            rules={[{ required: true, message: 'Nhập số nhà' }]}
                         >
                             <Input
                                 placeholder='VD: Số 123, Đường Nguyễn Huệ'
@@ -592,7 +621,6 @@ const Step1Info = ({
                 </Col>
             </Row>
 
-            {/* --- 3. MÔ TẢ --- */}
             <Card
                 style={{
                     marginTop: 24,
@@ -605,16 +633,10 @@ const Step1Info = ({
                 </Title>
                 <Form.Item
                     name='description'
-                    rules={[
-                        {
-                            required: true,
-                            message: 'Vui lòng nhập mô tả sự kiện'
-                        }
-                    ]}
+                    rules={[{ required: true, message: 'Vui lòng nhập mô tả' }]}
                 >
                     <ReactQuill
                         theme='snow'
-                        modules={quillModules}
                         style={{
                             background: '#fff',
                             borderRadius: 8,
