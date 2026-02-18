@@ -1,6 +1,7 @@
+// src/pages/organizer/EventManagement/CreateEvent.jsx
 import React, { useState, useEffect } from 'react';
 import { useOutletContext, useNavigate } from 'react-router-dom';
-import { Steps, Button, Card, Space, theme, Modal } from 'antd';
+import { Steps, Button, Card, Space, Modal, message } from 'antd';
 import {
     InfoCircleOutlined,
     ClockCircleOutlined,
@@ -8,12 +9,10 @@ import {
     CreditCardOutlined,
     ExclamationCircleOutlined
 } from '@ant-design/icons';
-import { toast } from 'react-toastify';
 import dayjs from 'dayjs';
 
-// Import APIs - Đã refactor sang Named Export
+// Import APIs
 import { eventApi } from '@apis/eventApi';
-import { eventImageApi } from '@apis/eventImageApi';
 
 import Step1Info from './Step1Info';
 import Step2Showtimes from './Step2Showtimes';
@@ -31,13 +30,11 @@ const CreateEvent = () => {
     const [loading, setLoading] = useState(false);
 
     // 1. STATE MANAGEMENT
-    // Khôi phục bước hiện tại từ LocalStorage
     const [localCurrentStep, setLocalCurrentStep] = useState(() => {
         const savedStep = localStorage.getItem(STORAGE_KEY_STEP);
         return savedStep ? Number(savedStep) : 1;
     });
 
-    // Khôi phục dữ liệu form (Data Hydration)
     const [formData, setFormData] = useState(() => {
         const savedData = localStorage.getItem(STORAGE_KEY_DATA);
         return savedData
@@ -51,16 +48,15 @@ const CreateEvent = () => {
                   location: '',
                   addressDetail: '',
                   genreId: null,
-                  images: []
+                  images: [],
+                  showTimes: []
               };
     });
 
-    // Cập nhật bước hiện tại lên Layout chính
     useEffect(() => {
         setCurrentStep(localCurrentStep);
     }, [localCurrentStep, setCurrentStep]);
 
-    // Tự động lưu dữ liệu vào LocalStorage khi có thay đổi (Auto-save)
     useEffect(() => {
         localStorage.setItem(STORAGE_KEY_DATA, JSON.stringify(formData));
         localStorage.setItem(STORAGE_KEY_STEP, localCurrentStep);
@@ -75,95 +71,120 @@ const CreateEvent = () => {
     const handlePrev = () => {
         if (localCurrentStep > 1) {
             setLocalCurrentStep(prev => prev - 1);
-            // Quan trọng: Reset action của bước trước đó để tránh chạy nhầm validate
             if (setOnNextAction) setOnNextAction(null);
         }
     };
 
-    // --- LOGIC XỬ LÝ HOÀN TẤT (CALL API CREATE) ---
-
+    // --- LOGIC XỬ LÝ HOÀN TẤT (MAP DATA FE -> BE) ---
     const handleFinish = async () => {
+        setLoading(true);
         try {
             console.log('>>> [Final Submit] Preparing payload...');
 
             // 1. Ghép địa chỉ thành chuỗi location duy nhất
-            const fullLocation = `${formData.addressDetail}, ${formData.wardName}, ${formData.districtName}, ${formData.provinceName}`;
+            // Loại bỏ các phần tử rỗng nếu người dùng không nhập đủ xã/huyện
+            const parts = [
+                formData.addressDetail,
+                formData.wardName,
+                formData.districtName,
+                formData.provinceName
+            ].filter(Boolean);
+            const fullLocation = parts.join(', ');
 
-            // 2. Format lại ShowTimes và Tickets
-            const formattedShowTimes = formData.showTimes.map(st => ({
-                startTime: dayjs(st.startTime).format('YYYY-MM-DDTHH:mm:ss'),
-                endTime: dayjs(st.endTime).format('YYYY-MM-DDTHH:mm:ss'),
-                tickets: st.tickets.map(t => ({
-                    name: t.name,
-                    price: t.price,
-                    total: t.total,
-                    minPerOrder: t.minPerOrder,
-                    maxPerOrder: t.maxPerOrder,
-                    description: t.description,
-                    saleStart: dayjs(t.saleStart).format('YYYY-MM-DDTHH:mm:ss'),
-                    saleEnd: dayjs(t.saleEnd).format('YYYY-MM-DDTHH:mm:ss')
-                }))
-            }));
+            // 2. Lấy thông tin thời gian từ suất diễn ĐẦU TIÊN (Do BE chỉ hỗ trợ 1 suất diễn)
+            // Nếu không có suất diễn nào, dùng thời gian hiện tại hoặc để trống (sẽ bị lỗi validate BE)
+            const firstShow =
+                formData.showTimes && formData.showTimes.length > 0
+                    ? formData.showTimes[0]
+                    : {};
 
-            // 3. Format lại Images (Poster và Logo)
-            // Lưu ý: OrganizerLogo trong DTO là String, images là List<ImageInnerDTO>
-            const payloadImages = [{ url: formData.poster, isPoster: true }];
+            const startDate = firstShow.startTime
+                ? dayjs(firstShow.startTime).format('YYYY-MM-DD')
+                : '';
+            const startTime = firstShow.startTime
+                ? dayjs(firstShow.startTime).format('HH:mm')
+                : '';
+            const endDate = firstShow.endTime
+                ? dayjs(firstShow.endTime).format('YYYY-MM-DD')
+                : '';
+            const endTime = firstShow.endTime
+                ? dayjs(firstShow.endTime).format('HH:mm')
+                : '';
 
-            // 4. Tạo Payload cuối cùng khớp hoàn toàn với ReqEventDTO.java
+            // 3. Tạo Payload chuẩn khớp 100% với ReqEventDTO.java
             const finalPayload = {
                 name: formData.name,
-                location: fullLocation, // Gộp từ các trường địa chỉ
                 description: formData.description,
                 permitNumber: formData.permitNumber,
+                // Format ngày cấp phép
+                permitIssuedAt: formData.permitIssuedAt
+                    ? dayjs(formData.permitIssuedAt).format('YYYY-MM-DD')
+                    : '',
                 permitIssuedBy: formData.permitIssuedBy,
-                permitIssuedAt: dayjs(formData.permitIssuedAt).format(
-                    'YYYY-MM-DD'
-                ),
-                organizerName: formData.organizerName,
-                organizerLogo: formData.organizerLogo, // Link ảnh logo
-                genre: { id: formData.genreId }, // Gửi object thay vì id đơn thuần
-                showTimes: formattedShowTimes,
-                images: payloadImages,
-                confirmationMessage: formData.confirmationMessage
+                location: fullLocation,
+
+                // Các trường bắt buộc mà BE đang báo thiếu (Array(4))
+                startDate: startDate,
+                startTime: startTime,
+                endDate: endDate,
+                endTime: endTime,
+
+                // Gửi genreId trực tiếp (Long) thay vì object
+                genreId: formData.genreId
             };
 
             console.log('>>> Sending payload to Backend:', finalPayload);
 
             const res = await eventApi.create(finalPayload);
 
-            if (res.statusCode === 201 || res.data) {
+            // Kiểm tra kết quả trả về
+            if (res.data || res.statusCode === 201 || res.id) {
                 message.success('Tạo sự kiện thành công!');
-                // Chuyển hướng hoặc xử lý tiếp...
+                // Xóa dữ liệu tạm
+                localStorage.removeItem(STORAGE_KEY_DATA);
+                localStorage.removeItem(STORAGE_KEY_STEP);
+                // Chuyển hướng
+                navigate('/organizer/events');
+            } else {
+                // Trường hợp thành công nhưng không khớp điều kiện trên, vẫn thông báo
+                message.success('Đã gửi yêu cầu tạo sự kiện.');
+                navigate('/organizer/events');
             }
         } catch (error) {
             console.error('Submit Error:', error.response?.data || error);
-            const serverError = error.response?.data?.message;
-            if (Array.isArray(serverError)) {
-                message.error(`Lỗi: ${serverError.join(', ')}`);
+
+            // Xử lý hiển thị lỗi từ Backend trả về
+            const responseData = error.response?.data;
+            if (responseData && responseData.message) {
+                const msgs = responseData.message;
+                if (Array.isArray(msgs)) {
+                    // Hiển thị danh sách lỗi (VD: thiếu startDate, endTime...)
+                    msgs.forEach(msg => message.error(msg));
+                } else {
+                    message.error(msgs);
+                }
             } else {
-                message.error('Có lỗi xảy ra khi tạo sự kiện!');
+                message.error('Có lỗi xảy ra khi kết nối đến server!');
             }
+        } finally {
+            setLoading(false);
         }
     };
 
     // --- XỬ LÝ NÚT TIẾP TỤC ---
     const handleNext = async () => {
-        // Nếu Component con có đăng ký hàm validate
         if (onNextAction) {
             try {
-                // Thực thi closure function (onNextAction trả về hàm async)
-                // Phải gọi 2 lần: onNextAction() để lấy hàm, và () để thực thi hàm đó
                 const isStepValid = await onNextAction()();
-                if (!isStepValid) return; // Nếu validate fail, dừng lại
+                if (!isStepValid) return;
             } catch (error) {
-                console.warn('Validation error in step component');
+                console.warn('Validation error in step component', error);
                 return;
             }
         }
 
-        // Kiểm tra nếu là bước cuối cùng thì submit, ngược lại thì chuyển trang
         if (localCurrentStep === stepItems.length) {
-            await handleFinish(formData);
+            await handleFinish();
         } else {
             nextStep();
         }
@@ -185,7 +206,6 @@ const CreateEvent = () => {
         });
     };
 
-    // Định nghĩa nội dung các bước
     const stepItems = [
         {
             title: 'Thông tin',
@@ -195,7 +215,6 @@ const CreateEvent = () => {
                     setOnNextAction={setOnNextAction}
                     formData={formData}
                     setFormData={setFormData}
-                    nextStep={null}
                 />
             )
         },
@@ -207,7 +226,6 @@ const CreateEvent = () => {
                     setOnNextAction={setOnNextAction}
                     formData={formData}
                     setFormData={setFormData}
-                    nextStep={null}
                 />
             )
         },
@@ -219,7 +237,6 @@ const CreateEvent = () => {
                     setOnNextAction={setOnNextAction}
                     formData={formData}
                     setFormData={setFormData}
-                    nextStep={null}
                 />
             )
         },
@@ -238,9 +255,9 @@ const CreateEvent = () => {
 
     return (
         <div style={{ maxWidth: 1200, margin: '0 auto', paddingBottom: 100 }}>
-            {/* Thanh tiến trình */}
+            {/* Sửa bordered -> variant để fix warning Antd */}
             <Card
-                bordered={false}
+                variant='borderless'
                 style={{
                     marginBottom: 24,
                     borderRadius: 8,
@@ -256,14 +273,12 @@ const CreateEvent = () => {
                 />
             </Card>
 
-            {/* Nội dung từng bước */}
             <div style={{ minHeight: '400px', marginBottom: 24 }}>
                 {stepItems[localCurrentStep - 1]?.content}
             </div>
 
-            {/* Thanh tác vụ dưới cùng (Sticky) */}
             <Card
-                bordered={false}
+                variant='borderless'
                 style={{
                     borderRadius: 0,
                     position: 'fixed',
@@ -307,7 +322,12 @@ const CreateEvent = () => {
                             onClick={handleNext}
                             size='large'
                             loading={loading}
-                            style={{ minWidth: 140, fontWeight: 600 }}
+                            style={{
+                                minWidth: 140,
+                                fontWeight: 600,
+                                background: '#2dc275',
+                                borderColor: '#2dc275'
+                            }}
                         >
                             {localCurrentStep === stepItems.length
                                 ? 'Hoàn tất & Tạo'
