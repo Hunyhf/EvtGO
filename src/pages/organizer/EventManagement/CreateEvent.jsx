@@ -129,7 +129,7 @@ const CreateEvent = () => {
                 startTime: startTime,
                 endDate: endDate,
                 endTime: endTime,
-                genreId: formData.genreId,
+                genreId: Number(formData.genreId),
                 organizerName: formData.organizerName,
                 // Logo nếu là Base64 dài quá có thể gây lỗi, tốt nhất nên upload riêng như poster
                 organizerLogo:
