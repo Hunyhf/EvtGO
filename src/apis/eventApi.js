@@ -32,6 +32,16 @@ const toggleActive = id => {
 const togglePublished = id => {
     return axios.patch(`/api/v1/events/${id}/published`);
 };
+const approve = id => {
+    // Gọi API duyệt sự kiện.
+    // Nếu BE dùng chung logic publish thì có thể gọi: return togglePublished(id);
+    return axios.patch(`/api/v1/events/${id}/approve`);
+};
+
+const reject = (id, reason) => {
+    // Gọi API từ chối (gửi kèm lý do)
+    return axios.patch(`/api/v1/events/${id}/reject`, { reason });
+};
 
 // 2. Export gom nhóm (Named Export) để khớp với import { eventApi } bên Genre.jsx
 export const eventApi = {
@@ -41,5 +51,7 @@ export const eventApi = {
     remove, // map với callDeleteEvent
     getAll, // map với callFetchAllEvents
     toggleActive, // map với callToggleEventActive
-    togglePublished // map với callToggleEventPublished
+    togglePublished, // map với callToggleEventPublished
+    approve, // Thêm vào đây
+    reject
 };
