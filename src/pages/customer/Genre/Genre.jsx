@@ -80,14 +80,12 @@ function Genre() {
     }, []);
 
     // Hàm gọi API lấy sự kiện
-
     const fetchEvents = async () => {
         setLoading(true);
         try {
             const now = dayjs();
 
-            // 1. LOGIC FILTER THEO BE:
-            // Giữ nguyên filter isPublished:true để lấy các sự kiện đã được duyệt
+            // 1. LOGIC FILTER: Chỉ lấy sự kiện đã duyệt
             let filterString = `isPublished:true`;
 
             if (filters.genreId) {
@@ -120,29 +118,34 @@ function Genre() {
                 res?.data ||
                 (Array.isArray(res) ? res : []);
 
-            // 2. MAPPING DỮ LIỆU (Thay đổi quan trọng ở đây)
-            // Loại bỏ .filter() để giữ lại các sự kiện đã qua
+            // 2. VIRTUAL LOGIC (TẠO TRƯỜNG ẢO TRỰC TIẾP TẠI ĐÂY)
             const mappedRealData = rawData.map(e => {
                 const posterObj =
                     e.images?.find(img => img.isCover) || e.images?.[0];
-                const startDateObj = dayjs(e.startDate);
 
-                // KIỂM TRA SỰ KIỆN ĐÃ QUA CHƯA
-                // Ưu tiên kiểm tra theo endTime, nếu không có thì dùng startTime
-                const eventEndTime = e.endTime
-                    ? dayjs(e.endTime)
-                    : dayjs(e.startTime);
-                const isPast = eventEndTime.isBefore(now);
+                // Kết hợp ngày và giờ để tính toán chính xác
+                const startEvent = dayjs(e.startTime || e.startDate);
+                const endEvent = dayjs(e.endTime || e.endDate);
+
+                // --- TẠO TRƯỜNG ẢO isAutoActive (Thay cho isActive từ DB) ---
+                const isAutoActive =
+                    e.isPublished &&
+                    now.isAfter(startEvent) &&
+                    now.isBefore(endEvent);
+
+                // --- TẠO TRƯỜNG ẢO isPast (Dùng cho nhãn "Đã diễn ra") ---
+                const isPast = now.isAfter(endEvent);
 
                 return {
                     ...e,
                     title: e.name,
-                    isPast: isPast, // Gửi flag này xuống EventCard để hiển thị nhãn
-                    date: startDateObj.isValid()
-                        ? startDateObj.format('DD/MM/YYYY')
+                    isAutoActive: isAutoActive, // Trường này FE tự sinh ra
+                    isPast: isPast, // Trường này FE tự sinh ra
+                    date: startEvent.isValid()
+                        ? startEvent.format('DD/MM/YYYY')
                         : 'Sắp diễn ra',
-                    month: startDateObj.isValid()
-                        ? startDateObj.format('MMM').toUpperCase()
+                    month: startEvent.isValid()
+                        ? startEvent.format('MMM').toUpperCase()
                         : 'UP',
                     url: posterObj?.url
                         ? `${BASE_URL_IMAGE}/${posterObj.url}`
