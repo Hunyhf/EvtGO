@@ -59,7 +59,7 @@ function Genre() {
 
     const [tempFilters, setTempFilters] = useState({ ...filters });
 
-    // Khi URL thay đổi (VD: bấm từ Navbar) -> Reset về trang 1
+    // Khi URL thay đổi -> Reset về trang 1
     useEffect(() => {
         if (urlGenreId) {
             setFilters(prev => ({ ...prev, genreId: urlGenreId }));
@@ -83,18 +83,17 @@ function Genre() {
     const fetchEvents = async () => {
         setLoading(true);
         try {
-            // 1. Xây dựng chuỗi filter cho Backend (Specification)
-            // LƯU Ý QUAN TRỌNG: Dùng tên field trong Java Entity (published, active)
-            // Không dùng tên trong DB (is_published) hay DTO (isPublished)
-            // Boolean value không cần dấu nháy đơn '
-            let filterString = `published:true and active:true`;
+            // SỬA LỖI TÊN TRƯỜNG ĐỂ KHỚP VỚI EVENT.JAVA
+            // Entity: private boolean isActive; private boolean isPublished;
+            // Cú pháp filter: FieldName:Value (Boolean không cần nháy đơn)
+            let filterString = `isPublished:true and isActive:true`;
 
-            // Lọc theo thể loại (ID là số, không cần nháy đơn)
+            // Lọc theo thể loại (genre.id là số)
             if (filters.genreId) {
                 filterString += ` and genre.id:${filters.genreId}`;
             }
 
-            // Lọc theo tên (Tìm kiếm - String cần nháy đơn và toán tử like ~~)
+            // Lọc theo tên (Tìm kiếm)
             if (urlSearchQuery) {
                 filterString += ` and name ~~ '%${urlSearchQuery}%'`;
             }
@@ -104,18 +103,16 @@ function Genre() {
                 filterString += ` and location ~~ '%${filters.location}%'`;
             }
 
-            // DEBUG: Xem chuỗi filter gửi đi là gì
-            console.log('>>> [Genre] Sending Filter:', filterString);
+            console.log('>>> [Genre] Filter String gửi đi:', filterString);
 
             const params = {
-                page: currentPage - 1, // Spring Boot dùng page 0
+                page: currentPage - 1, // Backend dùng index 0
                 size: pageSize,
                 filter: filterString
             };
 
             const res = await eventApi.getAll(params);
 
-            // Cập nhật Meta phân trang
             if (res?.meta) {
                 setTotalItems(res.meta.total);
             }
@@ -126,7 +123,6 @@ function Genre() {
                 res?.data ||
                 (Array.isArray(res) ? res : []);
 
-            // 2. Map dữ liệu để hiển thị
             const mappedRealData = rawData.map(e => {
                 const posterObj =
                     e.images?.find(img => img.isCover) || e.images?.[0];
@@ -156,7 +152,6 @@ function Genre() {
         }
     };
 
-    // Gọi lại API khi filter, search, hoặc page thay đổi
     useEffect(() => {
         fetchEvents();
     }, [filters, urlSearchQuery, currentPage]);
@@ -249,7 +244,6 @@ function Genre() {
                             </div>
                         )}
 
-                        {/* Pagination Component - Chỉ hiện khi có data */}
                         {!loading && events.length > 0 && (
                             <div
                                 style={{
