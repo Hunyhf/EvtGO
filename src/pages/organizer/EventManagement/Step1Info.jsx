@@ -13,32 +13,28 @@ import {
     message,
     Card,
     Typography,
-    DatePicker // Đảm bảo đã import DatePicker
+    DatePicker
 } from 'antd';
 import { InboxOutlined, PlusOutlined } from '@ant-design/icons';
 import dayjs from 'dayjs';
-
 import { genresApi } from '@apis/genresApi';
 
-// Helper: Chuyển ảnh sang base64 để preview
+const { Title } = Typography;
+const { Option } = Select;
+const { Dragger } = Upload;
+
 const getBase64 = (img, callback) => {
     const reader = new FileReader();
     reader.addEventListener('load', () => callback(reader.result));
     reader.readAsDataURL(img);
 };
 
-const { Title } = Typography;
-const { Option } = Select;
-const { Dragger } = Upload;
-
 const Step1Info = ({
     setOnNextAction,
     formData: parentFormData,
-    setFormData: setParentFormData,
-    nextStep
+    setFormData: setParentFormData
 }) => {
     const [form] = Form.useForm();
-
     const [categories, setCategories] = useState([]);
     const [loadingCategories, setLoadingCategories] = useState(false);
     const [provinces, setProvinces] = useState([]);
@@ -51,90 +47,81 @@ const Step1Info = ({
     );
 
     // ----------------------------------------------------------------------
-    // LOGIC: XỬ LÝ KHI BẤM TIẾP TỤC (Đăng ký vào Parent)
+    // LOGIC: ĐĂNG KÝ HÀM VALIDATE CHO CHA (CreateEvent)
     // ----------------------------------------------------------------------
     useEffect(() => {
-        setOnNextAction(() => () => {
-            return form
-                .validateFields()
-                .then(values => {
-                    // Normalize dữ liệu: File thực tế từ state cha + Text từ form hiện tại
-                    const currentPosterFile = parentFormData.posterFile;
-                    const currentLogoFile = parentFormData.logoFile;
+        // Cha sẽ thực thi hàm này khi nhấn "Tiếp tục"
+        setOnNextAction(() => async () => {
+            try {
+                // 1. Chạy validate của Ant Design Form
+                const values = await form.validateFields();
 
-                    if (!currentPosterFile && !parentFormData.poster) {
-                        message.error('Vui lòng tải lên ảnh nền sự kiện!');
-                        throw new Error('Missing poster file');
-                    }
+                // 2. Normalize dữ liệu ảnh (Poster index 0, Logo index 1)
+                const currentPoster =
+                    parentFormData.posterFile || parentFormData.images?.[0];
+                const currentLogo =
+                    parentFormData.logoFile || parentFormData.images?.[1];
 
-                    const imagesArr = [];
-                    // Index 0: Poster, Index 1: Logo
-                    if (currentPosterFile) imagesArr.push(currentPosterFile);
-                    else if (parentFormData.images?.[0])
-                        imagesArr.push(parentFormData.images[0]);
-
-                    if (currentLogoFile) imagesArr.push(currentLogoFile);
-                    else if (parentFormData.images?.[1])
-                        imagesArr.push(parentFormData.images[1]);
-
-                    // Đồng bộ state cha
-                    setParentFormData(prev => ({
-                        ...prev,
-                        ...values,
-                        images: imagesArr
-                    }));
-
-                    if (nextStep) nextStep();
-                    return true;
-                })
-                .catch(info => {
-                    console.error('Validate Failed:', info);
+                if (!currentPoster && !parentFormData.poster) {
+                    message.error('Vui lòng tải lên ảnh nền sự kiện!');
                     return false;
-                });
+                }
+
+                const imagesArr = [];
+                if (currentPoster) imagesArr.push(currentPoster);
+                if (currentLogo) imagesArr.push(currentLogo);
+
+                // 3. Cập nhật state Cha.
+                // Quan trọng: Không gọi nextStep() ở đây, để Cha tự gọi sau khi validate trả về true
+                setParentFormData(prev => ({
+                    ...prev,
+                    ...values,
+                    images: imagesArr
+                }));
+
+                return true; // Báo cho Cha là dữ liệu hợp lệ
+            } catch (error) {
+                console.error('Validation Step 1 Failed:', error);
+                return false; // Chặn không cho qua bước tiếp theo
+            }
         });
-    }, [form, setOnNextAction, setParentFormData, nextStep, parentFormData]);
+
+        // Cleanup khi unmount
+        return () => setOnNextAction(null);
+    }, [form, parentFormData, setParentFormData, setOnNextAction]);
 
     // ----------------------------------------------------------------------
-    // LOGIC: KHỞI TẠO DỮ LIỆU (Hydration)
+    // LOGIC: KHỞI TẠO DỮ LIỆU & HYDRATION
     // ----------------------------------------------------------------------
     useEffect(() => {
         const fetchInitialData = async () => {
             try {
                 setLoadingCategories(true);
-                const res = await genresApi.getAll();
-                const list =
-                    res?.result || res?.data || (Array.isArray(res) ? res : []);
-                setCategories(list);
+                const [genresRes, provRes] = await Promise.all([
+                    genresApi.getAll(),
+                    axios.get('https://provinces.open-api.vn/api/p/')
+                ]);
+                setCategories(genresRes?.result || genresRes?.data || []);
+                setProvinces(provRes.data);
             } catch (err) {
-                console.error('Lỗi tải danh mục:', err);
+                console.error('Lỗi tải dữ liệu:', err);
             } finally {
                 setLoadingCategories(false);
-            }
-
-            try {
-                const res = await axios.get(
-                    'https://provinces.open-api.vn/api/p/'
-                );
-                setProvinces(res.data);
-            } catch (err) {
-                console.error('Lỗi tải tỉnh thành:', err);
             }
         };
 
         fetchInitialData();
 
-        // FIX LỖI: Hydrate permitIssuedAt từ string sang dayjs
+        // FIX date4.isValid: Chuyển string sang dayjs object trước khi nạp vào Form
         if (parentFormData) {
-            const initialValues = {
+            form.setFieldsValue({
                 ...parentFormData,
-                // Chuyển đổi string sang object dayjs cho DatePicker
                 permitIssuedAt: parentFormData.permitIssuedAt
                     ? dayjs(parentFormData.permitIssuedAt)
                     : null
-            };
+            });
 
-            form.setFieldsValue(initialValues);
-
+            // Re-load danh sách địa lý nếu đã có dữ liệu cũ (khi quay lại bước 1)
             if (parentFormData.province)
                 handleProvinceChange(parentFormData.province, false);
             if (parentFormData.district)
@@ -142,34 +129,39 @@ const Step1Info = ({
         }
     }, []);
 
-    // Logic địa lý
+    // ----------------------------------------------------------------------
+    // XỬ LÝ ĐỊA LÝ: LƯU CẢ TÊN ĐỂ CHA GHÉP CHUỖI LOCATION
+    // ----------------------------------------------------------------------
     const handleProvinceChange = async (value, resetChildren = true) => {
+        const province = provinces.find(p => p.code === value);
         if (resetChildren) {
             form.setFieldsValue({ district: undefined, ward: undefined });
             setDistricts([]);
             setWards([]);
+            setParentFormData(prev => ({
+                ...prev,
+                provinceName: province?.name
+            }));
         }
         try {
             const res = await axios.get(
                 `https://provinces.open-api.vn/api/p/${value}?depth=2`
             );
             setDistricts(res.data.districts);
-            if (resetChildren) {
-                const province = provinces.find(p => p.code === value);
-                setParentFormData(prev => ({
-                    ...prev,
-                    provinceName: province?.name
-                }));
-            }
         } catch (error) {
             console.error(error);
         }
     };
 
     const handleDistrictChange = async (value, resetChildren = true) => {
+        const district = districts.find(d => d.code === value);
         if (resetChildren) {
             form.setFieldsValue({ ward: undefined });
             setWards([]);
+            setParentFormData(prev => ({
+                ...prev,
+                districtName: district?.name
+            }));
         }
         try {
             const res = await axios.get(
@@ -181,17 +173,19 @@ const Step1Info = ({
         }
     };
 
-    const handleUpload = (file, type) => {
-        const isImage = file.type.startsWith('image/');
-        if (!isImage) {
-            message.error('Bạn chỉ được upload file ảnh!');
-            return Upload.LIST_IGNORE;
-        }
-        if (file.size / 1024 / 1024 >= 5) {
-            message.error('Ảnh phải nhỏ hơn 5MB!');
-            return Upload.LIST_IGNORE;
-        }
+    const handleWardChange = value => {
+        const ward = wards.find(w => w.code === value);
+        setParentFormData(prev => ({ ...prev, wardName: ward?.name }));
+    };
 
+    // ----------------------------------------------------------------------
+    // UPLOAD LOGIC
+    // ----------------------------------------------------------------------
+    const handleUpload = (file, type) => {
+        if (!file.type.startsWith('image/')) {
+            message.error('Chỉ được upload ảnh!');
+            return Upload.LIST_IGNORE;
+        }
         getBase64(file, url => {
             if (type === 'poster') {
                 setPosterUrl(url);
@@ -211,12 +205,12 @@ const Step1Info = ({
                 }));
             }
         });
-        return false;
+        return false; // Ngăn auto upload
     };
 
     return (
         <Form form={form} layout='vertical'>
-            {/* ẢNH BÌA */}
+            {/* --- ẢNH BÌA --- */}
             <Card
                 style={{
                     marginBottom: 24,
@@ -227,10 +221,7 @@ const Step1Info = ({
                 <Form.Item
                     name='poster'
                     rules={[
-                        {
-                            required: true,
-                            message: 'Vui lòng tải lên ảnh nền sự kiện'
-                        }
+                        { required: true, message: 'Vui lòng tải ảnh bìa' }
                     ]}
                     style={{ marginBottom: 0 }}
                 >
@@ -258,16 +249,11 @@ const Step1Info = ({
                             <div
                                 style={{ padding: '40px 0', color: '#9ca6b0' }}
                             >
-                                <p className='ant-upload-drag-icon'>
-                                    <InboxOutlined
-                                        style={{
-                                            color: '#2dc275',
-                                            fontSize: 48
-                                        }}
-                                    />
-                                </p>
-                                <p className='ant-upload-text'>
-                                    Kéo thả hoặc chọn Ảnh Bìa (Cover)
+                                <InboxOutlined
+                                    style={{ color: '#2dc275', fontSize: 48 }}
+                                />
+                                <p style={{ marginTop: 16 }}>
+                                    Kéo thả hoặc chọn Ảnh Bìa (1280x720)
                                 </p>
                             </div>
                         )}
@@ -276,7 +262,7 @@ const Step1Info = ({
             </Card>
 
             <Row gutter={24}>
-                {/* BTC */}
+                {/* --- BAN TỔ CHỨC --- */}
                 <Col span={24} lg={8}>
                     <Card
                         style={{
@@ -294,8 +280,7 @@ const Step1Info = ({
                         <div
                             style={{
                                 display: 'flex',
-                                flexDirection: 'column',
-                                alignItems: 'center',
+                                justifyContent: 'center',
                                 marginBottom: 20
                             }}
                         >
@@ -310,7 +295,7 @@ const Step1Info = ({
                                     {logoUrl ? (
                                         <img
                                             src={logoUrl}
-                                            alt='avatar'
+                                            alt='logo'
                                             style={{
                                                 width: '100%',
                                                 height: '100%',
@@ -319,12 +304,9 @@ const Step1Info = ({
                                             }}
                                         />
                                     ) : (
-                                        <div>
-                                            <PlusOutlined />
-                                            <div style={{ marginTop: 8 }}>
-                                                Upload Logo
-                                            </div>
-                                        </div>
+                                        <PlusOutlined
+                                            style={{ color: '#fff' }}
+                                        />
                                     )}
                                 </Upload>
                             </Form.Item>
@@ -345,7 +327,7 @@ const Step1Info = ({
                     </Card>
                 </Col>
 
-                {/* THÔNG TIN SỰ KIỆN */}
+                {/* --- THÔNG TIN SỰ KIỆN --- */}
                 <Col span={24} lg={16}>
                     <Card
                         style={{
@@ -360,6 +342,7 @@ const Step1Info = ({
                         >
                             Thông tin sự kiện
                         </Title>
+
                         <Form.Item
                             name='name'
                             label={
@@ -368,10 +351,7 @@ const Step1Info = ({
                                 </span>
                             }
                             rules={[
-                                {
-                                    required: true,
-                                    message: 'Vui lòng nhập tên sự kiện'
-                                }
+                                { required: true, message: 'Nhập tên sự kiện' }
                             ]}
                         >
                             <Input
@@ -380,7 +360,6 @@ const Step1Info = ({
                             />
                         </Form.Item>
 
-                        {/* GIẤY PHÉP */}
                         <Row gutter={16}>
                             <Col span={8}>
                                 <Form.Item
@@ -393,7 +372,7 @@ const Step1Info = ({
                                     rules={[
                                         {
                                             required: true,
-                                            message: 'Nhập số giấy phép'
+                                            message: 'Nhập số GP'
                                         }
                                     ]}
                                 >
@@ -409,14 +388,10 @@ const Step1Info = ({
                                         </span>
                                     }
                                     rules={[
-                                        {
-                                            required: true,
-                                            message: 'Chọn ngày cấp'
-                                        }
+                                        { required: true, message: 'Chọn ngày' }
                                     ]}
                                 >
                                     <DatePicker
-                                        placeholder='Chọn ngày'
                                         size='large'
                                         style={{ width: '100%' }}
                                     />
@@ -437,7 +412,10 @@ const Step1Info = ({
                                         }
                                     ]}
                                 >
-                                    <Input placeholder='Nơi cấp' size='large' />
+                                    <Input
+                                        placeholder='Sở VH-TT'
+                                        size='large'
+                                    />
                                 </Form.Item>
                             </Col>
                         </Row>
@@ -461,7 +439,6 @@ const Step1Info = ({
                                     <Select
                                         placeholder='Chọn thể loại'
                                         size='large'
-                                        allowClear
                                         loading={loadingCategories}
                                     >
                                         {categories.map(c => (
@@ -477,7 +454,7 @@ const Step1Info = ({
                                     name='location'
                                     label={
                                         <span style={{ color: '#fff' }}>
-                                            Tên địa điểm
+                                            Tên địa điểm (Sân vận động,...)
                                         </span>
                                     }
                                     rules={[
@@ -495,7 +472,6 @@ const Step1Info = ({
                             </Col>
                         </Row>
 
-                        {/* ĐỊA LÝ */}
                         <Row gutter={16}>
                             <Col span={8}>
                                 <Form.Item
@@ -506,21 +482,18 @@ const Step1Info = ({
                                         </span>
                                     }
                                     rules={[
-                                        { required: true, message: 'Chọn Tỉnh' }
+                                        { required: true, message: 'Chọn tỉnh' }
                                     ]}
                                 >
                                     <Select
                                         placeholder='Tỉnh'
                                         size='large'
-                                        onChange={val =>
-                                            handleProvinceChange(val)
-                                        }
+                                        onChange={handleProvinceChange}
                                         showSearch
                                         filterOption={(input, option) =>
                                             option.children
                                                 .toLowerCase()
-                                                .indexOf(input.toLowerCase()) >=
-                                            0
+                                                .includes(input.toLowerCase())
                                         }
                                     >
                                         {provinces.map(p => (
@@ -536,30 +509,22 @@ const Step1Info = ({
                                     name='district'
                                     label={
                                         <span style={{ color: '#fff' }}>
-                                            Huyện
+                                            Quận/Huyện
                                         </span>
                                     }
                                     rules={[
                                         {
                                             required: true,
-                                            message: 'Chọn Huyện'
+                                            message: 'Chọn huyện'
                                         }
                                     ]}
                                 >
                                     <Select
                                         placeholder='Huyện'
                                         size='large'
-                                        onChange={val =>
-                                            handleDistrictChange(val)
-                                        }
+                                        onChange={handleDistrictChange}
                                         disabled={!districts.length}
                                         showSearch
-                                        filterOption={(input, option) =>
-                                            option.children
-                                                .toLowerCase()
-                                                .indexOf(input.toLowerCase()) >=
-                                            0
-                                        }
                                     >
                                         {districts.map(d => (
                                             <Option key={d.code} value={d.code}>
@@ -574,24 +539,19 @@ const Step1Info = ({
                                     name='ward'
                                     label={
                                         <span style={{ color: '#fff' }}>
-                                            Xã
+                                            Phường/Xã
                                         </span>
                                     }
                                     rules={[
-                                        { required: true, message: 'Chọn Xã' }
+                                        { required: true, message: 'Chọn xã' }
                                     ]}
                                 >
                                     <Select
                                         placeholder='Xã'
                                         size='large'
+                                        onChange={handleWardChange}
                                         disabled={!wards.length}
                                         showSearch
-                                        filterOption={(input, option) =>
-                                            option.children
-                                                .toLowerCase()
-                                                .indexOf(input.toLowerCase()) >=
-                                            0
-                                        }
                                     >
                                         {wards.map(w => (
                                             <Option key={w.code} value={w.code}>
@@ -607,10 +567,15 @@ const Step1Info = ({
                             name='addressDetail'
                             label={
                                 <span style={{ color: '#fff' }}>
-                                    Địa chỉ chi tiết
+                                    Địa chỉ chi tiết (Số nhà, tên đường)
                                 </span>
                             }
-                            rules={[{ required: true, message: 'Nhập số nhà' }]}
+                            rules={[
+                                {
+                                    required: true,
+                                    message: 'Nhập địa chỉ cụ thể'
+                                }
+                            ]}
                         >
                             <Input
                                 placeholder='VD: Số 123, Đường Nguyễn Huệ'
@@ -621,6 +586,7 @@ const Step1Info = ({
                 </Col>
             </Row>
 
+            {/* --- MÔ TẢ --- */}
             <Card
                 style={{
                     marginTop: 24,
