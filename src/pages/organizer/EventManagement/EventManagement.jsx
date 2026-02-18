@@ -26,8 +26,36 @@ import { eventApi } from '@apis/eventApi';
 
 const { Title } = Typography;
 
-// Cấu hình URL từ môi trường
+// Base URL từ môi trường, FE giao tiếp qua API Endpoint
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080';
+
+/**
+ * 🟢 SMART COMPONENT: EventImage
+ * Xử lý hiển thị ảnh và tự động đổi ảnh fallback nếu xảy ra lỗi 404/500
+ */
+const EventImage = ({ src, alt, eventId }) => {
+    const FALLBACK = 'https://placehold.co/300x400?text=No+Image';
+    const [imgSrc, setImgSrc] = useState(src);
+
+    useEffect(() => {
+        setImgSrc(src);
+    }, [src]);
+
+    return (
+        <img
+            src={imgSrc || FALLBACK}
+            alt={alt || 'Event image'}
+            style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+            onError={() => {
+                console.warn(
+                    `>>> [EventImage] Lỗi tải ảnh Event ID: ${eventId}`
+                );
+                setImgSrc(FALLBACK);
+            }}
+            loading='lazy'
+        />
+    );
+};
 
 const styles = {
     container: {
@@ -93,41 +121,34 @@ const EventManagement = () => {
     const pageSize = 6;
 
     /**
-     * Helper: Lấy ảnh đầu tiên làm ảnh bìa (KISS)
+     * 🛠 Helper: Ghép URL ảnh theo cấu trúc 3 tham số mới
+     * URL mong muốn: /api/v1/files/events/{eventId}/{fileName}
      */
-    const getFirstImagePoster = images => {
-        const PLACEHOLDER = 'https://placehold.co/300x400?text=No+Image';
-
-        // Luôn lấy phần tử đầu tiên của mảng
+    const getFirstImagePoster = (images, eventId) => {
         const firstImage = images?.[0];
+        if (!firstImage?.url) return null;
 
-        if (!firstImage?.url) return PLACEHOLDER;
+        // Nếu là URL tuyệt đối dùng luôn
+        if (firstImage.url.startsWith('http')) return firstImage.url;
 
-        // Nếu là URL tuyệt đối dùng luôn, nếu là file cục bộ thì ghép đường dẫn chuẩn
-        return firstImage.url.startsWith('http')
-            ? firstImage.url
-            : `${API_URL}/api/v1/files/events/${firstImage.url}`;
+        // ✅ KHÔNG DÙNG encodeURIComponent. Để dấu "/" tự nhiên cho 3 tham số PathVariable.
+        return `${API_URL}/api/v1/files/events/${eventId}/${firstImage.url}`;
     };
 
     /**
-     * Fetch và Mapping dữ liệu
+     * Fetch và chuẩn hóa dữ liệu
      */
     const fetchEvents = useCallback(async () => {
         setLoading(true);
         try {
             const response = await eventApi.getAll();
-            // Fallback linh hoạt cho các cấu trúc JSON khác nhau
-            const rawData =
-                response?.data?.result ||
-                response?.result ||
-                response?.data ||
-                [];
+            const rawData = response?.data?.result || response?.result || [];
 
             const mappedData = (Array.isArray(rawData) ? rawData : []).map(
                 e => ({
                     ...e,
-                    // Áp dụng logic lấy ảnh đầu tiên
-                    posterUrl: getFirstImagePoster(e.images),
+                    // Tạo URL ảnh chuẩn cho từng Event
+                    posterUrl: getFirstImagePoster(e.images, e.id),
                     fullStartTime: e.startDate
                         ? `${e.startDate} ${e.startTime || '00:00:00'}`
                         : null,
@@ -148,7 +169,7 @@ const EventManagement = () => {
     }, [fetchEvents]);
 
     /**
-     * Logic lọc danh sách (Sử dụng useMemo để tối ưu performance)
+     * Lọc danh sách (Performance: useMemo)
      */
     const filteredEvents = useMemo(() => {
         const now = dayjs();
@@ -186,7 +207,6 @@ const EventManagement = () => {
 
     return (
         <div style={styles.container}>
-            {/* Toolbar */}
             <div style={styles.searchContainer}>
                 <div
                     style={{
@@ -257,7 +277,6 @@ const EventManagement = () => {
                 </Space>
             </div>
 
-            {/* Event Cards Grid */}
             <Row gutter={[24, 24]}>
                 {loading ? (
                     <div
@@ -268,7 +287,7 @@ const EventManagement = () => {
                             padding: '40px'
                         }}
                     >
-                        Đang tải...
+                        Đang tải dữ liệu...
                     </div>
                 ) : currentData.length === 0 ? (
                     <div
@@ -279,7 +298,7 @@ const EventManagement = () => {
                             padding: '40px'
                         }}
                     >
-                        Không có dữ liệu.
+                        Không có dữ liệu phù hợp.
                     </div>
                 ) : (
                     currentData.map(event => {
@@ -298,7 +317,6 @@ const EventManagement = () => {
                                             height: '180px'
                                         }}
                                     >
-                                        {/* Ảnh bìa - Lấy file đầu tiên */}
                                         <div
                                             style={{
                                                 width: '180px',
@@ -306,19 +324,11 @@ const EventManagement = () => {
                                                 position: 'relative'
                                             }}
                                         >
-                                            <img
+                                            {/* ✅ Hiển thị ảnh thông qua Smart Component */}
+                                            <EventImage
                                                 src={event.posterUrl}
                                                 alt={event.name}
-                                                style={{
-                                                    width: '100%',
-                                                    height: '100%',
-                                                    objectFit: 'cover'
-                                                }}
-                                                onError={e => {
-                                                    e.target.onerror = null;
-                                                    e.target.src =
-                                                        'https://placehold.co/300x400?text=Image+Error';
-                                                }}
+                                                eventId={event.id}
                                             />
                                             <div
                                                 style={{
@@ -338,7 +348,6 @@ const EventManagement = () => {
                                             </div>
                                         </div>
 
-                                        {/* Nội dung */}
                                         <div
                                             style={{
                                                 padding: '16px',
@@ -360,9 +369,11 @@ const EventManagement = () => {
                                                 >
                                                     {event.name}
                                                 </Title>
+                                                {/* Fix Warning: dùng orientation thay cho direction nếu antd yêu cầu */}
                                                 <Space
                                                     direction='vertical'
                                                     size={2}
+                                                    style={{ display: 'flex' }}
                                                 >
                                                     <div
                                                         style={{
@@ -415,7 +426,6 @@ const EventManagement = () => {
                                         </div>
                                     </div>
 
-                                    {/* Actions */}
                                     <div
                                         style={{
                                             display: 'flex',
@@ -468,7 +478,6 @@ const EventManagement = () => {
                 )}
             </Row>
 
-            {/* Pagination */}
             <div style={{ marginTop: '32px', textAlign: 'right' }}>
                 <Pagination
                     current={currentPage}
