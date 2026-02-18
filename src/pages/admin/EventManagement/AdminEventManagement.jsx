@@ -17,7 +17,7 @@ import {
     CheckCircleOutlined,
     CloseCircleOutlined,
     SearchOutlined,
-    EnvironmentOutlined // <-- Đã bổ sung import này
+    EnvironmentOutlined
 } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import { eventApi } from '@apis/eventApi';
@@ -38,32 +38,24 @@ function AdminEventManagement() {
 
     const [isRejectModalOpen, setIsRejectModalOpen] = useState(false);
     const [currentEventId, setCurrentEventId] = useState(null);
-    const [rejectReason, setRejectReason] = useState('');
 
     // === 1. FETCH DATA & MAPPING ===
     const fetchEvents = async () => {
         setLoading(true);
         try {
-            // Gọi API lấy tất cả sự kiện (Giả sử BE trả về List ResEventDTO)
             const res = await eventApi.getAll();
 
-            console.log('API Response:', res);
+            // Xử lý lấy mảng dữ liệu từ ResEventDTO
+            let rawEvents =
+                res?.result ||
+                res?.content ||
+                res?.data ||
+                (Array.isArray(res) ? res : []);
 
-            // Xử lý lấy mảng dữ liệu gốc tùy theo cấu trúc trả về của axiosClient
-            let rawEvents = [];
-            if (res.result && Array.isArray(res.result)) {
-                rawEvents = res.result;
-            } else if (res.content && Array.isArray(res.content)) {
-                rawEvents = res.content;
-            } else if (Array.isArray(res)) {
-                rawEvents = res;
-            } else if (res.data && Array.isArray(res.data)) {
-                rawEvents = res.data;
-            }
+            const now = dayjs();
 
-            // --- QUAN TRỌNG: Map dữ liệu từ ResEventDTO sang cấu trúc hiển thị ---
             const mappedData = rawEvents.map(event => {
-                // 1. Xử lý ảnh (Giống logic Organizer)
+                // Xử lý ảnh bìa
                 const posterObj =
                     event.images?.find(img => img.isCover === true) ||
                     event.images?.[0];
@@ -71,27 +63,33 @@ function AdminEventManagement() {
                     ? `${BASE_URL_IMAGE}/${posterObj.url}`
                     : 'https://placehold.co/150x100?text=No+Image';
 
-                // 2. Xử lý trạng thái dựa trên isPublished
-                // BE trả về isPublished: true/false. Ta quy ước True = APPROVED, False = PENDING
-                const status = event.isPublished ? 'APPROVED' : 'PENDING';
-
-                // 3. Xử lý thời gian (Ghép Date và Time chuỗi từ BE)
-                // ResEventDTO trả về: startDate (String), startTime (String)
+                // Ghép Date và Time chuỗi từ BE
                 const fullStartTime = event.startDate
-                    ? `${event.startDate} ${event.startTime || ''}`
+                    ? `${event.startDate} ${event.startTime || '00:00:00'}`
                     : null;
                 const fullEndTime = event.endDate
-                    ? `${event.endDate} ${event.endTime || ''}`
+                    ? `${event.endDate} ${event.endTime || '23:59:59'}`
                     : null;
+
+                // --- LOGIC TRẠNG THÁI GIỐNG ORGANIZER ---
+                let derivedStatus = 'PENDING'; // Mặc định là Chờ duyệt
+                if (event.published) {
+                    // Nếu đã duyệt (isPublished = true)
+                    if (fullStartTime && dayjs(fullStartTime).isAfter(now)) {
+                        derivedStatus = 'UPCOMING'; // Sắp tới
+                    } else {
+                        derivedStatus = 'PAST'; // Đã qua
+                    }
+                }
 
                 return {
                     ...event,
-                    key: event.id, // Yêu cầu của Antd Table
+                    key: event.id,
                     posterUrl: posterUrl,
-                    derivedStatus: status, // Dùng trường này để filter/hiển thị
+                    derivedStatus: derivedStatus,
                     fullStartTime: fullStartTime,
                     fullEndTime: fullEndTime,
-                    organizerName: event.createdBy || 'N/A' // ResEventDTO có createdBy
+                    organizerName: event.createdBy || 'N/A'
                 };
             });
 
@@ -111,52 +109,40 @@ function AdminEventManagement() {
     // === 2. ACTIONS ===
     const handleApprove = async id => {
         try {
-            // Gọi API approve
+            // Gọi API approve (đã map với togglePublished trong eventApi.js)
             await eventApi.approve(id);
             message.success('Đã duyệt sự kiện thành công!');
             fetchEvents();
         } catch (error) {
-            console.error(error);
-            message.error('Lỗi khi duyệt sự kiện.');
+            message.error(
+                error.response?.data?.message || 'Lỗi khi duyệt sự kiện.'
+            );
         }
-    };
-
-    const openRejectModal = id => {
-        setCurrentEventId(id);
-        setRejectReason('');
-        setIsRejectModalOpen(true);
     };
 
     const handleRejectConfirm = async () => {
-        if (!rejectReason.trim()) {
-            message.warning('Vui lòng nhập lý do!');
-            return;
-        }
         try {
-            await eventApi.reject(currentEventId, rejectReason);
-            message.info('Đã từ chối sự kiện.');
+            // Gọi API reject (đã map với remove trong eventApi.js vì BE không có reject)
+            await eventApi.reject(currentEventId);
+            message.success('Đã xóa (từ chối) sự kiện.');
             setIsRejectModalOpen(false);
             fetchEvents();
         } catch (error) {
-            console.error(error);
             message.error('Lỗi khi từ chối sự kiện.');
         }
     };
 
     // === 3. FILTER CLIENT-SIDE ===
     const filteredData = dataSource.filter(item => {
-        // Lọc theo Status (Dùng derivedStatus đã map ở trên)
         const matchStatus =
             filterStatus === 'ALL' || item.derivedStatus === filterStatus;
-
-        // Lọc theo Search Text (Tên sự kiện hoặc BTC)
-        const eventName = item.name || '';
-        const organizer = item.organizerName || '';
-
         const matchSearch =
-            eventName.toLowerCase().includes(searchText.toLowerCase()) ||
-            organizer.toLowerCase().includes(searchText.toLowerCase());
-
+            (item.name || '')
+                .toLowerCase()
+                .includes(searchText.toLowerCase()) ||
+            (item.organizerName || '')
+                .toLowerCase()
+                .includes(searchText.toLowerCase());
         return matchStatus && matchSearch;
     });
 
@@ -164,49 +150,41 @@ function AdminEventManagement() {
     const columns = [
         {
             title: 'Sự kiện',
-            dataIndex: 'name', // Khớp với ResEventDTO.name
+            dataIndex: 'name',
             key: 'name',
             width: 350,
-            render: (text, record) => {
-                return (
-                    <div
-                        className={styles.eventInfo}
+            render: (text, record) => (
+                <div
+                    style={{
+                        display: 'flex',
+                        gap: '12px',
+                        alignItems: 'center'
+                    }}
+                >
+                    <img
+                        src={record.posterUrl}
+                        alt='cover'
                         style={{
-                            display: 'flex',
-                            gap: '12px',
-                            alignItems: 'center'
+                            width: '80px',
+                            height: '60px',
+                            objectFit: 'cover',
+                            borderRadius: '4px'
                         }}
-                    >
-                        <img
-                            src={record.posterUrl}
-                            alt='cover'
-                            className={styles.thumbnail}
-                            style={{
-                                width: '80px',
-                                height: '60px',
-                                objectFit: 'cover',
-                                borderRadius: '4px'
-                            }}
-                        />
-                        <div className={styles.name}>
-                            <div
-                                style={{ fontWeight: 'bold', fontSize: '15px' }}
-                            >
-                                {text}
-                            </div>
-                            <div style={{ fontSize: '12px', color: '#888' }}>
-                                ID: {record.id}
-                            </div>
-                            <div style={{ fontSize: '12px', color: '#1677ff' }}>
-                                <EnvironmentOutlined
-                                    style={{ marginRight: 4 }}
-                                />
-                                {record.location}
-                            </div>
+                    />
+                    <div>
+                        <div style={{ fontWeight: 'bold', fontSize: '15px' }}>
+                            {text}
+                        </div>
+                        <div style={{ fontSize: '12px', color: '#888' }}>
+                            ID: {record.id}
+                        </div>
+                        <div style={{ fontSize: '12px', color: '#1677ff' }}>
+                            <EnvironmentOutlined style={{ marginRight: 4 }} />
+                            {record.location}
                         </div>
                     </div>
-                );
-            }
+                </div>
+            )
         },
         {
             title: 'Ban tổ chức',
@@ -241,90 +219,77 @@ function AdminEventManagement() {
         },
         {
             title: 'Trạng thái',
-            dataIndex: 'derivedStatus', // Sử dụng trường đã map
+            dataIndex: 'derivedStatus',
             key: 'status',
             width: 120,
             render: status => {
-                let color = 'default';
-                let text = 'Khác';
-
-                if (status === 'APPROVED') {
-                    color = 'success';
-                    text = 'Đã duyệt';
-                } else if (status === 'PENDING') {
-                    color = 'warning';
-                    text = 'Chờ duyệt';
-                } else if (status === 'REJECTED') {
-                    color = 'error';
-                    text = 'Đã từ chối';
-                }
-
-                return <Tag color={color}>{text}</Tag>;
+                const statusConfig = {
+                    PENDING: { color: 'warning', text: 'Chờ duyệt' },
+                    UPCOMING: { color: 'processing', text: 'Sắp tới' },
+                    PAST: { color: 'default', text: 'Đã qua' }
+                };
+                const config = statusConfig[status] || {
+                    color: 'default',
+                    text: 'Khác'
+                };
+                return <Tag color={config.color}>{config.text}</Tag>;
             }
         },
         {
             title: 'Hành động',
             key: 'action',
-            render: (_, record) => {
-                // Chỉ hiển thị nút duyệt nếu trạng thái là PENDING
-                const isPending = record.derivedStatus === 'PENDING';
+            render: (_, record) => (
+                <Space size='small'>
+                    <Tooltip title='Xem chi tiết'>
+                        <Button
+                            icon={<EyeOutlined />}
+                            onClick={() =>
+                                message.info(
+                                    `Xem chi tiết sự kiện: ${record.name}`
+                                )
+                            }
+                        />
+                    </Tooltip>
 
-                return (
-                    <Space size='small'>
-                        <Tooltip title='Xem chi tiết'>
-                            <Button
-                                icon={<EyeOutlined />}
-                                onClick={() =>
-                                    message.info(
-                                        `Xem chi tiết sự kiện ID: ${record.id}`
-                                    )
-                                }
-                            />
-                        </Tooltip>
-
-                        {isPending && (
-                            <>
-                                <Popconfirm
-                                    title='Duyệt sự kiện này?'
-                                    description='Sự kiện sẽ được hiển thị công khai ngay lập tức.'
-                                    onConfirm={() => handleApprove(record.id)}
-                                    okText='Duyệt'
-                                    cancelText='Hủy'
-                                >
-                                    <Button
-                                        type='primary'
-                                        ghost
-                                        icon={<CheckCircleOutlined />}
-                                    >
-                                        Duyệt
-                                    </Button>
-                                </Popconfirm>
-
+                    {record.derivedStatus === 'PENDING' && (
+                        <>
+                            <Popconfirm
+                                title='Duyệt sự kiện này?'
+                                onConfirm={() => handleApprove(record.id)}
+                                okText='Duyệt'
+                                cancelText='Hủy'
+                            >
                                 <Button
-                                    danger
-                                    icon={<CloseCircleOutlined />}
-                                    onClick={() => openRejectModal(record.id)}
+                                    type='primary'
+                                    ghost
+                                    icon={<CheckCircleOutlined />}
                                 >
-                                    Từ chối
+                                    Duyệt
                                 </Button>
-                            </>
-                        )}
-                    </Space>
-                );
-            }
+                            </Popconfirm>
+
+                            <Button
+                                danger
+                                icon={<CloseCircleOutlined />}
+                                onClick={() => {
+                                    setCurrentEventId(record.id);
+                                    setIsRejectModalOpen(true);
+                                }}
+                            >
+                                Từ chối
+                            </Button>
+                        </>
+                    )}
+                </Space>
+            )
         }
     ];
 
     return (
         <div className={styles.content}>
             <div className={styles.header}>
-                <Title level={3} className={styles.title}>
-                    Quản lý sự kiện
-                </Title>
-                <div
-                    className={styles.actions}
-                    style={{ display: 'flex', gap: 10 }}
-                >
+                <Title level={3}>Quản lý sự kiện</Title>
+                <div style={{ display: 'flex', gap: 10 }}>
                     <Input
                         placeholder='Tìm tên sự kiện, BTC...'
                         prefix={<SearchOutlined />}
@@ -334,16 +299,17 @@ function AdminEventManagement() {
                     <Select
                         defaultValue='ALL'
                         style={{ width: 150 }}
-                        onChange={value => setFilterStatus(value)}
+                        onChange={setFilterStatus}
                     >
                         <Option value='ALL'>Tất cả</Option>
                         <Option value='PENDING'>Chờ duyệt</Option>
-                        <Option value='APPROVED'>Đã duyệt</Option>
+                        <Option value='UPCOMING'>Sắp tới</Option>
+                        <Option value='PAST'>Đã qua</Option>
                     </Select>
                 </div>
             </div>
 
-            <div className={styles.tableContainer} style={{ marginTop: 20 }}>
+            <div style={{ marginTop: 20 }}>
                 <Table
                     columns={columns}
                     dataSource={filteredData}
@@ -354,21 +320,18 @@ function AdminEventManagement() {
             </div>
 
             <Modal
-                title='Từ chối sự kiện'
+                title='Xác nhận từ chối sự kiện'
                 open={isRejectModalOpen}
                 onOk={handleRejectConfirm}
                 onCancel={() => setIsRejectModalOpen(false)}
-                okText='Xác nhận từ chối'
+                okText='Xóa sự kiện'
                 okButtonProps={{ danger: true }}
                 cancelText='Hủy'
             >
-                <p>Nhập lý do từ chối (bắt buộc):</p>
-                <Input.TextArea
-                    rows={4}
-                    value={rejectReason}
-                    onChange={e => setRejectReason(e.target.value)}
-                    placeholder='Ví dụ: Hình ảnh không phù hợp, nội dung vi phạm...'
-                />
+                <p>
+                    Bạn có chắc chắn muốn từ chối sự kiện này? Hành động này sẽ{' '}
+                    <b>xóa vĩnh viễn</b> sự kiện khỏi hệ thống.
+                </p>
             </Modal>
         </div>
     );
