@@ -1,7 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
-// 1. Import thêm Pagination từ antd
-import { Modal, Radio, Switch, Tag, Button, Spin, Pagination } from 'antd';
+import {
+    Modal,
+    Radio,
+    Switch,
+    Tag,
+    Button,
+    Spin,
+    Pagination,
+    Empty
+} from 'antd';
 import {
     CalendarOutlined,
     FilterOutlined,
@@ -37,10 +45,10 @@ function Genre() {
     const [loading, setLoading] = useState(false);
     const [isModalOpen, setIsModalOpen] = useState(false);
 
-    // 2. Thêm State quản lý phân trang
+    // State quản lý phân trang
     const [currentPage, setCurrentPage] = useState(1);
     const [totalItems, setTotalItems] = useState(0);
-    const pageSize = 12; // Cố định 12 sản phẩm theo yêu cầu
+    const pageSize = 12;
 
     const [filters, setFilters] = useState({
         location: 'Toàn quốc',
@@ -51,14 +59,16 @@ function Genre() {
 
     const [tempFilters, setTempFilters] = useState({ ...filters });
 
+    // Khi URL thay đổi (VD: bấm từ Navbar) -> Reset về trang 1
     useEffect(() => {
         if (urlGenreId) {
             setFilters(prev => ({ ...prev, genreId: urlGenreId }));
             setTempFilters(prev => ({ ...prev, genreId: urlGenreId }));
-            setCurrentPage(1); // Reset về trang 1 khi đổi thể loại
+            setCurrentPage(1);
         }
     }, [urlGenreId]);
 
+    // Load danh sách thể loại
     useEffect(() => {
         const loadGenres = async () => {
             const res = await genresApi.getAll();
@@ -69,24 +79,43 @@ function Genre() {
         loadGenres();
     }, []);
 
+    // Hàm gọi API lấy sự kiện
     const fetchEvents = async () => {
         setLoading(true);
         try {
-            const now = dayjs();
+            // 1. Xây dựng chuỗi filter cho Backend (Specification)
+            // LƯU Ý QUAN TRỌNG: Dùng tên field trong Java Entity (published, active)
+            // Không dùng tên trong DB (is_published) hay DTO (isPublished)
+            // Boolean value không cần dấu nháy đơn '
+            let filterString = `published:true and active:true`;
 
-            // 3. Cập nhật params gửi lên Server
-            // Lưu ý: Spring Data JPA thường dùng page 0-indexed,
-            // nhưng Responese của bạn trả về page+1.
-            // Nếu API client chưa xử lý -1, hãy kiểm tra lại tại đây.
+            // Lọc theo thể loại (ID là số, không cần nháy đơn)
+            if (filters.genreId) {
+                filterString += ` and genre.id:${filters.genreId}`;
+            }
+
+            // Lọc theo tên (Tìm kiếm - String cần nháy đơn và toán tử like ~~)
+            if (urlSearchQuery) {
+                filterString += ` and name ~~ '%${urlSearchQuery}%'`;
+            }
+
+            // Lọc theo địa điểm
+            if (filters.location && filters.location !== 'Toàn quốc') {
+                filterString += ` and location ~~ '%${filters.location}%'`;
+            }
+
+            // DEBUG: Xem chuỗi filter gửi đi là gì
+            console.log('>>> [Genre] Sending Filter:', filterString);
+
             const params = {
-                page: currentPage,
+                page: currentPage - 1, // Spring Boot dùng page 0
                 size: pageSize,
-                search: urlSearchQuery
+                filter: filterString
             };
 
             const res = await eventApi.getAll(params);
 
-            // Lấy thông tin meta để hiển thị phân trang
+            // Cập nhật Meta phân trang
             if (res?.meta) {
                 setTotalItems(res.meta.total);
             }
@@ -97,64 +126,44 @@ function Genre() {
                 res?.data ||
                 (Array.isArray(res) ? res : []);
 
-            // Giữ logic lọc hiện tại của bạn
-            const realDataFiltered = rawData.filter(e => {
-                const isApproved = e.published === true;
-                const matchGenre =
-                    !filters.genreId ||
-                    String(e.genreId) === String(filters.genreId);
-                const eventStartTime = dayjs(
-                    `${e.startDate} ${e.startTime || '00:00:00'}`
-                );
+            // 2. Map dữ liệu để hiển thị
+            const mappedRealData = rawData.map(e => {
+                const posterObj =
+                    e.images?.find(img => img.isCover) || e.images?.[0];
+                const startDateObj = dayjs(e.startDate);
 
-                return isApproved && matchGenre && eventStartTime.isAfter(now);
+                return {
+                    ...e,
+                    title: e.name,
+                    date: startDateObj.isValid()
+                        ? startDateObj.format('DD/MM/YYYY')
+                        : 'Sắp diễn ra',
+                    month: startDateObj.isValid()
+                        ? startDateObj.format('MMM').toUpperCase()
+                        : 'UP',
+                    url: posterObj?.url
+                        ? `${BASE_URL_IMAGE}/${posterObj.url}`
+                        : 'https://placehold.co/400x600?text=No+Image'
+                };
             });
 
-            if (realDataFiltered.length > 0) {
-                const mappedRealData = realDataFiltered.map(e => {
-                    const posterObj =
-                        e.images?.find(img => img.isCover) || e.images?.[0];
-                    const startDateObj = dayjs(e.startDate);
-
-                    return {
-                        ...e,
-                        title: e.name,
-                        date: startDateObj.format('DD/MM/YYYY'),
-                        month: startDateObj.format('MMM').toUpperCase(),
-                        url: posterObj?.url
-                            ? `${BASE_URL_IMAGE}/${posterObj.url}`
-                            : 'https://placehold.co/400x600?text=No+Image'
-                    };
-                });
-                setEvents(mappedRealData);
-            } else {
-                // Nếu không có data thật, hiện mock data (chỉ hiện 12 cái)
-                setEvents(
-                    Array.from({ length: pageSize }, (_, i) => ({
-                        id: `mock-${i}`,
-                        title: `Sự kiện ${genresList.find(g => String(g.id) === String(filters.genreId))?.name || 'Trải nghiệm'} #${i + 1}`,
-                        date: '20/03/2026',
-                        month: 'MAR',
-                        url: `https://picsum.photos/400/250?random=${i + 50}`,
-                        price: filters.isFree ? 0 : 450000 + i * 20000
-                    }))
-                );
-            }
+            setEvents(mappedRealData);
         } catch (e) {
             console.error('>>> [Genre] Error:', e);
+            setEvents([]);
         } finally {
             setLoading(false);
         }
     };
 
-    // 4. Lắng nghe sự thay đổi của currentPage
+    // Gọi lại API khi filter, search, hoặc page thay đổi
     useEffect(() => {
         fetchEvents();
-    }, [filters, urlSearchQuery, genresList, currentPage]);
+    }, [filters, urlSearchQuery, currentPage]);
 
     const handleApply = () => {
         setFilters({ ...tempFilters });
-        setCurrentPage(1); // Reset về trang 1 khi áp dụng bộ lọc mới
+        setCurrentPage(1);
         setIsModalOpen(false);
     };
 
@@ -228,15 +237,28 @@ function Genre() {
                     </div>
                 ) : (
                     <>
-                        <div className={cx('eventsGrid')}>
-                            {events.map(event => (
-                                <EventCard key={event.id} data={event} />
-                            ))}
-                        </div>
+                        {events.length > 0 ? (
+                            <div className={cx('eventsGrid')}>
+                                {events.map(event => (
+                                    <EventCard key={event.id} data={event} />
+                                ))}
+                            </div>
+                        ) : (
+                            <div style={{ padding: '50px 0' }}>
+                                <Empty description='Không tìm thấy sự kiện nào phù hợp' />
+                            </div>
+                        )}
 
-                        {/* 5. Thêm Pagination Component */}
+                        {/* Pagination Component - Chỉ hiện khi có data */}
                         {!loading && events.length > 0 && (
-                            <div className={cx('paginationContainer')}>
+                            <div
+                                style={{
+                                    marginTop: '40px',
+                                    display: 'flex',
+                                    justifyContent: 'center',
+                                    paddingBottom: '40px'
+                                }}
+                            >
                                 <Pagination
                                     current={currentPage}
                                     total={totalItems}
@@ -248,7 +270,7 @@ function Genre() {
                                             behavior: 'smooth'
                                         });
                                     }}
-                                    showSizeChanger={false} // Cố định 12 sản phẩm
+                                    showSizeChanger={false}
                                 />
                             </div>
                         )}
@@ -256,7 +278,6 @@ function Genre() {
                 )}
             </div>
 
-            {/* Modal giữ nguyên... */}
             <Modal
                 title={<span className={cx('modalTitle')}>Bộ lọc sự kiện</span>}
                 open={isModalOpen}
@@ -266,7 +287,6 @@ function Genre() {
                 centered
                 className={cx('customModal')}
             >
-                {/* ... nội dung modal ... */}
                 <div className={cx('modalBody')}>
                     <div className={cx('filterSection')}>
                         <h4>Vị trí</h4>
