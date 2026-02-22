@@ -2,18 +2,20 @@
 import React, { useState, useEffect } from 'react';
 import classNames from 'classnames';
 
+// Component dùng chung cho input + label + hiển thị lỗi
 const FormGroup = ({
     label,
     type = 'text',
     className,
     error,
     trigger,
-    maxLength, // Nhận thêm maxLength
-    value = '', // Nhận giá trị để đếm
+    maxLength, // Giới hạn số ký tự (nếu có)
+    value = '', // Giá trị input để hỗ trợ đếm ký tự
     ...props
 }) => {
     const [localError, setLocalError] = useState(error);
 
+    // Đồng bộ và tự động ẩn lỗi sau 2 giây
     useEffect(() => {
         setLocalError(error);
         if (error) {
@@ -26,6 +28,7 @@ const FormGroup = ({
 
     return (
         <div className={classNames('formGroupContainer', className)}>
+            {/* Label + bộ đếm ký tự */}
             <div
                 style={{
                     display: 'flex',
@@ -35,13 +38,16 @@ const FormGroup = ({
                 }}
             >
                 <label style={{ margin: 0 }}>{label}</label>
-                {/* Hiển thị bộ đếm nếu có maxLength */}
+
+                {/* Hiển thị số ký tự hiện tại / maxLength */}
                 {maxLength && (
                     <span style={{ fontSize: '12px', color: '#8c8c8c' }}>
                         {String(value || '').length}/{maxLength}
                     </span>
                 )}
             </div>
+
+            {/* Input chính */}
             <input
                 type={type}
                 value={value}
@@ -49,6 +55,8 @@ const FormGroup = ({
                 {...props}
                 className={classNames({ errorInput: !!localError })}
             />
+
+            {/* Thông báo lỗi */}
             {localError && (
                 <span
                     style={{

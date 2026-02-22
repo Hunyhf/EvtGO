@@ -74,7 +74,7 @@ export const AuthProvider = ({ children }) => {
     };
 
     const updateUserContext = updatedData => {
-        const actualUser = extractUserData(updatedData); // SỬA LỖI: Tránh object lồng nhau
+        const actualUser = extractUserData(updatedData);
 
         setUser(prev => {
             const newRoleId = getRoleId(actualUser) || prev.role_id;

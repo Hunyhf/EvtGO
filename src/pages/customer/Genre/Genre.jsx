@@ -148,7 +148,7 @@ function Genre() {
                         ? startEvent.format('MMM').toUpperCase()
                         : 'UP',
                     url: posterObj?.url
-                        ? `${BASE_URL_IMAGE}/${posterObj.url}`
+                        ? `${BASE_URL_IMAGE}/events/${e.id}/${posterObj.url}`
                         : 'https://placehold.co/400x600?text=No+Image'
                 };
             });

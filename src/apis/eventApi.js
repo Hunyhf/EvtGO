@@ -49,6 +49,6 @@ export const eventApi = {
     getAll,
     toggleActive,
     togglePublished,
-    approve, // Đã map vào togglePublished
-    reject // Đã map vào remove
+    approve,
+    reject
 };

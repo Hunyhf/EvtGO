@@ -1,6 +1,7 @@
 @import '@styles/variables';
 @import '@styles/mixins';
 
+// Lớp phủ toàn màn hình khi mở modal
 .wrapper {
     position: fixed;
     top: 0;
@@ -14,6 +15,7 @@
     z-index: 1000;
 }
 
+// Khung nội dung modal
 .container {
     background: $white-color;
     padding: 30px;
@@ -23,8 +25,8 @@
     animation: fadeIn 0.3s ease;
 }
 
+// Nút đóng modal (icon góc phải)
 .closeBtn {
-    // Đổi từ close-btn
     position: absolute;
     top: 12px;
     right: 12px;
@@ -44,33 +46,34 @@
     }
 }
 
+// Form đăng nhập / đăng ký
 .form {
     display: flex;
     flex-direction: column;
     gap: 15px;
     margin-top: 20px;
 
+    // Nhóm input + message lỗi
     .inputGroup {
-        // Đổi từ input-group
         width: 100%;
         margin-bottom: 5px;
         display: flex;
         flex-direction: column;
     }
 
+    // Wrapper cho input password và icon ẩn/hiện
     .passwordWrapper {
-        // Đổi từ password-wrapper
         position: relative;
         display: flex;
         align-items: center;
 
         .input {
             width: 100%;
-            padding-right: 40px; // Chừa khoảng trống để text không đè lên icon
+            padding-right: 40px;
         }
 
+        // Icon toggle hiển thị mật khẩu
         .toggleIcon {
-            // Đổi từ toggle-icon
             position: absolute;
             right: 12px;
             display: flex;
@@ -90,6 +93,7 @@
         }
     }
 
+    // Input chung
     .input {
         padding: 10px;
         border: 1px solid #ddd;
@@ -101,14 +105,14 @@
             border-color: $primary-color;
         }
 
+        // Trạng thái lỗi
         &.inputError {
-            // Đổi từ input-error
             border-color: $error-color;
         }
     }
 
+    // Hiển thị thông báo lỗi
     .errorMsg {
-        // Đổi từ error-msg
         color: $error-color;
         font-size: 1.2rem;
         margin-top: 4px;
@@ -120,8 +124,8 @@
         }
     }
 
+    // Nút submit form
     .submitBtn {
-        // Đổi từ submit-btn
         padding: 10px;
         background-color: $primary-color;
         color: white;
@@ -137,6 +141,7 @@
     }
 }
 
+// Footer chuyển đổi giữa login / register
 .footer {
     margin-top: 20px;
     text-align: center;
@@ -145,11 +150,13 @@
     strong {
         color: $primary-color;
         cursor: pointer;
+
         &:hover {
             text-decoration: underline;
         }
     }
 
+    // Link đăng ký Organizer
     .organizerLink {
         margin-bottom: 12px;
         padding-bottom: 12px;
@@ -158,6 +165,7 @@
     }
 }
 
+// Hiệu ứng xuất hiện modal
 @keyframes fadeIn {
     from {
         opacity: 0;

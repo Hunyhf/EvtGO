@@ -16,12 +16,14 @@ import { useSearch } from '@hooks/useSearch';
 
 const cx = classNames.bind(styles);
 
+// Header chính của website (logo, search, user, mobile nav)
 function Header() {
     const [showAuthModal, setShowAuthModal] = useState(false);
     const { pathname } = useLocation();
     const { isAuthenticated, logoutContext } = useContext(AuthContext);
     const searchRef = useRef(null);
 
+    // Custom hook quản lý logic tìm kiếm + lịch sử
     const {
         searchTerm,
         setSearchTerm,
@@ -36,6 +38,7 @@ function Header() {
 
     const isHomePage = pathname === '/';
 
+    // Ẩn dropdown search khi click ra ngoài
     useEffect(() => {
         const handleClickOutside = event => {
             if (
@@ -50,6 +53,7 @@ function Header() {
             document.removeEventListener('mousedown', handleClickOutside);
     }, [setShowHistory]);
 
+    // Xử lý đăng xuất
     const handleLogout = async () => {
         try {
             await callLogout();
@@ -62,8 +66,10 @@ function Header() {
 
     return (
         <>
+            {/* ===== Header Desktop ===== */}
             <header className={cx('header')}>
                 <div className={cx('headerInner')}>
+                    {/* Logo + link về trang chủ */}
                     <div className={cx('headerLogo')}>
                         <Link to='/'>
                             <img
@@ -82,8 +88,9 @@ function Header() {
                     </div>
 
                     <div className={cx('headerRight')}>
-                        {/* Search Bar */}
+                        {/* ===== Search Bar ===== */}
                         <div className={cx('headerSearch')} ref={searchRef}>
+                            {/* Icon search (mở mobile search hoặc submit) */}
                             <div
                                 className={cx('headerSearchIcon')}
                                 onClick={() =>
@@ -94,6 +101,8 @@ function Header() {
                             >
                                 <SearchIcon />
                             </div>
+
+                            {/* Input tìm kiếm */}
                             <input
                                 className={cx('headerSearchInput')}
                                 placeholder='Search...'
@@ -105,7 +114,7 @@ function Header() {
                                 }
                             />
 
-                            {/* Dropdown History */}
+                            {/* Dropdown lịch sử tìm kiếm */}
                             {showHistory && searchHistory.length > 0 && (
                                 <div className={cx('searchHistory')}>
                                     <div className={cx('searchHistoryTitle')}>
@@ -143,6 +152,8 @@ function Header() {
                             )}
 
                             <span className={cx('headerDivider')}>|</span>
+
+                            {/* Nút tìm kiếm */}
                             <button
                                 type='button'
                                 className={cx('headerSearchBtn')}
@@ -152,7 +163,9 @@ function Header() {
                             </button>
                         </div>
 
+                        {/* ===== Khu vực user / guest ===== */}
                         <div className={cx('headerActions')}>
+                            {/* Link vé của tôi */}
                             <Link
                                 to='/my-tickets'
                                 className={cx('headerTickets')}
@@ -164,6 +177,7 @@ function Header() {
                             </Link>
 
                             {isAuthenticated ? (
+                                // ===== Dropdown tài khoản =====
                                 <div className={cx('headerUser')}>
                                     <img
                                         className={cx('userAvatar')}
@@ -176,6 +190,7 @@ function Header() {
                                     <div className={cx('userToggle')}>
                                         <DropDownIcon />
                                     </div>
+
                                     <div className={cx('userDropdown')}>
                                         <Link
                                             to='/my-tickets'
@@ -186,6 +201,7 @@ function Header() {
                                             />
                                             Vé của tôi
                                         </Link>
+
                                         <Link
                                             to='/profile'
                                             className={cx('dropdownItem')}
@@ -198,6 +214,7 @@ function Header() {
                                             />
                                             Thông tin cá nhân
                                         </Link>
+
                                         <div
                                             className={cx('dropdownItem')}
                                             onClick={handleLogout}
@@ -213,6 +230,7 @@ function Header() {
                                     </div>
                                 </div>
                             ) : (
+                                // ===== Trạng thái chưa đăng nhập =====
                                 <div
                                     className={cx('headerGuest')}
                                     onClick={() => setShowAuthModal(true)}
@@ -229,7 +247,7 @@ function Header() {
                 </div>
             </header>
 
-            {/* Mobile Search Overlay */}
+            {/* ===== Mobile Search Overlay ===== */}
             {isMobileSearchOpen && (
                 <div className={cx('mobileSearchOverlay')}>
                     <div className={cx('mobileSearchHeader')}>
@@ -239,6 +257,7 @@ function Header() {
                         >
                             ←
                         </button>
+
                         <input
                             autoFocus
                             className={cx('mobileSearchInput')}
@@ -248,10 +267,13 @@ function Header() {
                             onKeyDown={e => e.key === 'Enter' && handleSearch()}
                         />
                     </div>
+
+                    {/* Lịch sử tìm kiếm mobile */}
                     <div className={cx('mobileSearchBody')}>
                         <div className={cx('searchHistoryTitle')}>
                             Tìm kiếm gần đây
                         </div>
+
                         {searchHistory.length > 0 ? (
                             <ul className={cx('searchHistoryList')}>
                                 {searchHistory.map((item, index) => (
@@ -283,7 +305,7 @@ function Header() {
                 </div>
             )}
 
-            {/* Bottom Nav Mobile */}
+            {/* ===== Bottom Navigation (Mobile) ===== */}
             <nav className={cx('bottomNav')}>
                 <Link
                     to='/'
@@ -294,6 +316,7 @@ function Header() {
                     <HomeIcon />
                     <span>Trang chủ</span>
                 </Link>
+
                 <Link
                     to='/my-tickets'
                     className={cx('bottomNavItem', {
@@ -303,6 +326,7 @@ function Header() {
                     <TicketIcon />
                     <span>Vé của tôi</span>
                 </Link>
+
                 <Link
                     to='/profile'
                     className={cx('bottomNavItem', {
@@ -314,6 +338,7 @@ function Header() {
                 </Link>
             </nav>
 
+            {/* Modal đăng nhập / đăng ký */}
             <AuthModal
                 isOpen={showAuthModal}
                 onClose={() => setShowAuthModal(false)}

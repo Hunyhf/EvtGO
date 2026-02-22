@@ -75,7 +75,6 @@ function Nav() {
                 {genres.map(item => (
                     <li key={item.id} className={cx('navItem')}>
                         <NavLink
-                            // SỬA TẠI ĐÂY: Đổi '/category' thành '/genre' và thêm tham số id
                             to={`/genre?id=${item.id}&name=${slugify(item.name)}`}
                             className={({ isActive }) =>
                                 cx('navLink', { active: isActive })
