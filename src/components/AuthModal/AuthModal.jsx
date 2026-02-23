@@ -1,5 +1,6 @@
 import { useState, useContext, useEffect } from 'react';
-import { toast } from 'react-toastify';
+// Thay thế toast bằng App của antd
+import { App as AntdApp } from 'antd';
 import classNames from 'classnames/bind';
 import styles from './AuthModal.module.scss';
 import CloseBtnIcon from '@icons/svgs/closeBtnIcon.svg?react';
@@ -16,6 +17,9 @@ const cx = classNames.bind(styles);
 function AuthModal({ isOpen, onClose }) {
     const { loginContext } = useContext(AuthContext);
     const navigate = useNavigate();
+
+    // Sử dụng hook useApp để lấy message instance (đã được bọc bởi AntdApp trong App.jsx)
+    const { message } = AntdApp.useApp();
 
     // State điều khiển mode hiển thị
     const [isLoginMode, setIsLoginMode] = useState(true);
@@ -120,7 +124,8 @@ function AuthModal({ isOpen, onClose }) {
                 );
 
                 if (res) {
-                    toast.success(
+                    // Thay thế toast.success bằng message.success của Ant Design
+                    message.success(
                         'Đăng ký tài khoản thành công! Vui lòng đăng nhập để tiếp tục.'
                     );
                     setIsLoginMode(true);

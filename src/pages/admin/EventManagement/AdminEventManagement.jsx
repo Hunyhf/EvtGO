@@ -28,6 +28,7 @@ import styles from './AdminEventManagement.module.scss';
 const { Title } = Typography;
 const { Option } = Select;
 
+// Base URL để lấy file từ Backend
 const BASE_URL_IMAGE = 'http://localhost:8080/api/v1/files';
 
 function AdminEventManagement() {
@@ -53,13 +54,15 @@ function AdminEventManagement() {
             const now = dayjs();
 
             const mappedData = rawEvents.map(event => {
-                // Xử lý ảnh bìa
+                // --- XỬ LÝ ẢNH BÌA (Cập nhật đường dẫn khớp với Organizer) ---
                 const posterObj =
                     event.images?.find(img => img.isCover === true) ||
                     event.images?.[0];
+
+                // Cấu trúc URL chuẩn: /api/v1/files/events/{eventId}/{fileName}
                 const posterUrl = posterObj?.url
-                    ? `${BASE_URL_IMAGE}/${posterObj.url}`
-                    : 'https://placehold.co/150x100?text=No+Image';
+                    ? `${BASE_URL_IMAGE}/events/${event.id}/${posterObj.url}`
+                    : 'https://placehold.co/200x120?text=No+Image';
 
                 // Ghép Date và Time để so sánh
                 const fullStartTimeStr = event.startDate
@@ -72,14 +75,13 @@ function AdminEventManagement() {
                 const isPublished = event.isPublished || event.published;
                 const isPast = eventStartTime && eventStartTime.isBefore(now);
 
-                // --- ĐỊNH NGHĨA TRẠNG THÁI THEO YÊU CẦU ---
                 let derivedStatus = 'PENDING';
                 if (isPast) {
-                    derivedStatus = 'PAST'; // Ưu tiên hiển thị Đã qua nếu hết giờ
+                    derivedStatus = 'PAST';
                 } else if (isPublished) {
-                    derivedStatus = 'APPROVED'; // Hiển thị Đã duyệt nếu chưa hết giờ
+                    derivedStatus = 'APPROVED';
                 } else {
-                    derivedStatus = 'PENDING'; // Còn lại là Chờ duyệt
+                    derivedStatus = 'PENDING';
                 }
 
                 return {
@@ -151,23 +153,30 @@ function AdminEventManagement() {
             title: 'Sự kiện',
             dataIndex: 'name',
             key: 'name',
-            width: 350,
+            width: 400,
             render: (text, record) => (
                 <div
                     style={{
                         display: 'flex',
-                        gap: '12px',
+                        gap: '15px',
                         alignItems: 'center'
                     }}
                 >
+                    {/* Hiển thị ảnh sự kiện */}
                     <img
                         src={record.posterUrl}
                         alt='cover'
                         style={{
-                            width: '80px',
-                            height: '60px',
+                            width: '120px',
+                            height: '80px',
                             objectFit: 'cover',
-                            borderRadius: '4px'
+                            borderRadius: '6px',
+                            backgroundColor: '#333'
+                        }}
+                        // Xử lý nếu ảnh chính bị lỗi thì hiện ảnh dự phòng
+                        onError={e => {
+                            e.target.src =
+                                'https://placehold.co/200x120?text=Error+Image';
                         }}
                     />
                     <div>
@@ -194,7 +203,7 @@ function AdminEventManagement() {
         {
             title: 'Thời gian tổ chức',
             key: 'time',
-            width: 200,
+            width: 180,
             render: (_, record) => (
                 <div style={{ fontSize: '12px' }}>
                     <ClockCircleOutlined
@@ -227,6 +236,7 @@ function AdminEventManagement() {
         {
             title: 'Hành động',
             key: 'action',
+            width: 200,
             render: (_, record) => (
                 <Space size='small'>
                     <Tooltip title='Xem chi tiết'>
@@ -238,7 +248,6 @@ function AdminEventManagement() {
                         />
                     </Tooltip>
 
-                    {/* CHỈ HIỂN THỊ NÚT DUYỆT NẾU: Chưa qua giờ VÀ Chưa được duyệt */}
                     {record.derivedStatus === 'PENDING' && (
                         <>
                             <Popconfirm

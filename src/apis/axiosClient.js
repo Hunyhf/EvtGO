@@ -1,7 +1,7 @@
 // src/apis/axiosClient.js
 import axios from 'axios';
 import Cookies from 'js-cookie';
-import { toast } from 'react-toastify';
+import { message } from 'antd'; 
 
 const instance = axios.create({
     baseURL: import.meta.env.VITE_API_URL || 'http://localhost:8080',
@@ -109,7 +109,7 @@ instance.interceptors.response.use(
                 case 403:
                     // Nếu thuộc silentPaths (như login), sẽ không hiện toast
                     if (!isSilent) {
-                        toast.error(errorMessage);
+                        message.error(errorMessage); // Đã sửa thành message của antd
                     }
                     break;
                 case 404:
@@ -118,18 +118,20 @@ instance.interceptors.response.use(
                     }
                     break;
                 case 500:
-                    toast.error(
+                    message.error(
+                        // Đã sửa thành message của antd
                         'Lỗi hệ thống từ phía Server, vui lòng thử lại sau!'
                     );
                     break;
                 default:
                     if (!isSilent) {
-                        toast.error(errorMessage);
+                        message.error(errorMessage); // Đã sửa thành message của antd
                     }
                     break;
             }
         } else {
-            toast.error(
+            message.error(
+                // Đã sửa thành message của antd
                 'Không thể kết nối đến máy chủ. Vui lòng kiểm tra Internet!'
             );
         }

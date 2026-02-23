@@ -314,12 +314,12 @@ const EventManagement = () => {
                                     <div
                                         style={{
                                             display: 'flex',
-                                            height: '180px'
+                                            height: '165px'
                                         }}
                                     >
                                         <div
                                             style={{
-                                                width: '180px',
+                                                width: '300px',
                                                 flexShrink: 0,
                                                 position: 'relative'
                                             }}

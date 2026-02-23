@@ -142,7 +142,7 @@ function Genre() {
                     isAutoActive: isAutoActive, // Trường này FE tự sinh ra
                     isPast: isPast, // Trường này FE tự sinh ra
                     date: startEvent.isValid()
-                        ? startEvent.format('DD/MM/YYYY')
+                        ? startEvent.format('HH:mm - DD/MM/YYYY')
                         : 'Sắp diễn ra',
                     month: startEvent.isValid()
                         ? startEvent.format('MMM').toUpperCase()
