@@ -129,8 +129,9 @@ function Genre() {
                         now.isAfter(startEvent) &&
                         now.isBefore(dayjs(e.endTime)),
                     isPast: now.isAfter(dayjs(e.endTime)),
+                    // Cập nhật định dạng ngày ở đây: chỉ hiển thị Ngày/Tháng/Năm
                     date: startEvent.isValid()
-                        ? startEvent.format('HH:mm - DD/MM/YYYY')
+                        ? startEvent.format('DD/MM/YYYY')
                         : 'Sắp diễn ra',
                     url: posterObj?.url
                         ? `${BASE_URL_IMAGE}/events/${e.id}/${posterObj.url}`
