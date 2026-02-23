@@ -14,7 +14,10 @@
     justify-content: center;
     z-index: 1000;
 }
-
+h2 {
+    color: $secondary-color;
+    font-size: 2rem;
+}
 // Khung nội dung modal
 .container {
     background: $white-color;
@@ -146,7 +149,9 @@
     margin-top: 20px;
     text-align: center;
     font-size: 1.4rem;
-
+    .switchModeBtn {
+        color: $secondary-color;
+    }
     strong {
         color: $primary-color;
         cursor: pointer;

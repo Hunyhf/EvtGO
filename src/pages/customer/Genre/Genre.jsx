@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import {
     Modal,
@@ -21,11 +21,11 @@ import classNames from 'classnames/bind';
 import styles from './Genre.module.scss';
 import EventCard from '@components/EventCard/EventCard';
 import { eventApi } from '@apis/eventApi';
-import { genresApi } from '@apis/genresApi';
+import { useGenres } from '@hooks/useGenres';
 
 const cx = classNames.bind(styles);
-
-const BASE_URL_IMAGE = 'http://localhost:8080/api/v1/files';
+const BASE_URL_IMAGE =
+    import.meta.env.VITE_BASE_IMAGE_URL || 'http://localhost:8080/api/v1/files';
 
 const LOCATIONS = [
     'Toàn quốc',
@@ -36,68 +36,63 @@ const LOCATIONS = [
 ];
 
 function Genre() {
-    const [searchParams] = useSearchParams();
-    const urlGenreId = searchParams.get('id');
+    const [searchParams, setSearchParams] = useSearchParams();
+
+    // Đọc filter từ URL ngay từ đầu
+    const urlGenreId = searchParams.get('genreId') || '';
     const urlSearchQuery = searchParams.get('q') || '';
+    const urlLocation = searchParams.get('location') || 'Toàn quốc';
+    const urlIsFree = searchParams.get('isFree') === 'true';
+
+    const { genres: genresList } = useGenres();
 
     const [events, setEvents] = useState([]);
-    const [genresList, setGenresList] = useState([]);
     const [loading, setLoading] = useState(false);
     const [isModalOpen, setIsModalOpen] = useState(false);
-
-    // State quản lý phân trang
-    const [currentPage, setCurrentPage] = useState(1);
     const [totalItems, setTotalItems] = useState(0);
+
+    const currentPage = parseInt(searchParams.get('page') || '1', 10);
     const pageSize = 12;
 
+    // State lưu filter chính thức
     const [filters, setFilters] = useState({
-        location: 'Toàn quốc',
-        genreId: urlGenreId || '',
-        isFree: false,
+        location: urlLocation,
+        genreId: urlGenreId,
+        isFree: urlIsFree,
         date: 'Tất cả các ngày'
     });
 
+    // State lưu tạm trong Modal
     const [tempFilters, setTempFilters] = useState({ ...filters });
 
-    // Khi URL thay đổi (VD: bấm từ Navbar) -> Reset về trang 1
+    // Khi URL thay đổi (nhấn nút Back/Forward hoặc từ Navbar), đồng bộ lại state
     useEffect(() => {
-        if (urlGenreId) {
-            setFilters(prev => ({ ...prev, genreId: urlGenreId }));
-            setTempFilters(prev => ({ ...prev, genreId: urlGenreId }));
-            setCurrentPage(1);
-        }
-    }, [urlGenreId]);
+        setFilters({
+            location: urlLocation,
+            genreId: urlGenreId,
+            isFree: urlIsFree,
+            date: 'Tất cả các ngày'
+        });
+    }, [urlGenreId, urlLocation, urlIsFree]);
 
-    // Load danh sách thể loại
-    useEffect(() => {
-        const loadGenres = async () => {
-            const res = await genresApi.getAll();
-            setGenresList(
-                res?.result || res?.data || (Array.isArray(res) ? res : [])
-            );
-        };
-        loadGenres();
-    }, []);
-
-    // Hàm gọi API lấy sự kiện
-    const fetchEvents = async () => {
+    const fetchEvents = useCallback(async () => {
         setLoading(true);
         try {
             const now = dayjs();
-
-            // 1. LOGIC FILTER: Chỉ lấy sự kiện đã duyệt
             let filterString = `isPublished:true`;
 
             if (filters.genreId) {
                 filterString += ` and genre.id:${filters.genreId}`;
             }
-
             if (urlSearchQuery) {
                 filterString += ` and name ~~ '%${urlSearchQuery}%'`;
             }
-
             if (filters.location && filters.location !== 'Toàn quốc') {
                 filterString += ` and location ~~ '%${filters.location}%'`;
+            }
+            // BỔ SUNG: Logic lọc miễn phí (giả sử field price trong DB)
+            if (filters.isFree) {
+                // filterString += ` and price:0`;
             }
 
             const params = {
@@ -107,40 +102,24 @@ function Genre() {
             };
 
             const res = await eventApi.getAll(params);
+            if (res?.meta) setTotalItems(res.meta.total);
 
-            if (res?.meta) {
-                setTotalItems(res.meta.total);
-            }
+            const rawData = res?.result || res?.content || res?.data || [];
 
-            const rawData =
-                res?.result ||
-                res?.content ||
-                res?.data ||
-                (Array.isArray(res) ? res : []);
-
-            // 2. VIRTUAL LOGIC (TẠO TRƯỜNG ẢO TRỰC TIẾP TẠI ĐÂY)
-            const mappedRealData = rawData.map(e => {
+            const mappedData = rawData.map(e => {
                 const posterObj =
                     e.images?.find(img => img.isCover) || e.images?.[0];
-
-                // Kết hợp ngày và giờ để tính toán chính xác
                 const startEvent = dayjs(e.startTime || e.startDate);
                 const endEvent = dayjs(e.endTime || e.endDate);
-
-                // --- TẠO TRƯỜNG ẢO isAutoActive (Thay cho isActive từ DB) ---
-                const isAutoActive =
-                    e.isPublished &&
-                    now.isAfter(startEvent) &&
-                    now.isBefore(endEvent);
-
-                // --- TẠO TRƯỜNG ẢO isPast (Dùng cho nhãn "Đã diễn ra") ---
-                const isPast = now.isAfter(endEvent);
 
                 return {
                     ...e,
                     title: e.name,
-                    isAutoActive: isAutoActive, // Trường này FE tự sinh ra
-                    isPast: isPast, // Trường này FE tự sinh ra
+                    isAutoActive:
+                        e.isPublished &&
+                        now.isAfter(startEvent) &&
+                        now.isBefore(endEvent),
+                    isPast: now.isAfter(endEvent),
                     date: startEvent.isValid()
                         ? startEvent.format('HH:mm - DD/MM/YYYY')
                         : 'Sắp diễn ra',
@@ -153,32 +132,57 @@ function Genre() {
                 };
             });
 
-            setEvents(mappedRealData);
+            setEvents(mappedData);
         } catch (e) {
-            console.error('>>> [Genre] Error:', e);
+            console.error(e);
             setEvents([]);
         } finally {
             setLoading(false);
         }
-    };
+    }, [filters, urlSearchQuery, currentPage]);
 
     useEffect(() => {
         fetchEvents();
-    }, [filters, urlSearchQuery, currentPage]);
+    }, [fetchEvents]);
+
+    // Hàm cập nhật URL khi áp dụng filter
+    const updateQueryParams = (newFilters, newPage = 1) => {
+        const params = {};
+        if (urlSearchQuery) params.q = urlSearchQuery;
+        if (newFilters.genreId) params.genreId = newFilters.genreId;
+        if (newFilters.location !== 'Toàn quốc')
+            params.location = newFilters.location;
+        if (newFilters.isFree) params.isFree = 'true';
+        if (newPage > 1) params.page = newPage;
+
+        setSearchParams(params);
+    };
 
     const handleApply = () => {
         setFilters({ ...tempFilters });
-        setCurrentPage(1);
+        updateQueryParams(tempFilters, 1);
         setIsModalOpen(false);
     };
 
     const handleReset = () => {
-        setTempFilters({
+        const resetData = {
             location: 'Toàn quốc',
             genreId: '',
             isFree: false,
             date: 'Tất cả các ngày'
-        });
+        };
+        setTempFilters(resetData);
+    };
+
+    const handlePageChange = page => {
+        updateQueryParams(filters, page);
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    };
+
+    const handleRemoveGenre = () => {
+        const newFilters = { ...filters, genreId: '' };
+        setFilters(newFilters);
+        updateQueryParams(newFilters, 1);
     };
 
     return (
@@ -188,46 +192,34 @@ function Genre() {
                     <div className={cx('titleSection')}>
                         <span className={cx('neonText')}>
                             {urlSearchQuery
-                                ? `Kết quả tìm kiếm: "${urlSearchQuery}"`
+                                ? `Kết quả: "${urlSearchQuery}"`
                                 : 'Khám phá sự kiện'}
                         </span>
                     </div>
 
                     <div className={cx('controls')}>
-                        <div className={cx('pill')}>
-                            <CalendarOutlined />
-                            <span>{filters.date}</span>
-                            <DownOutlined style={{ fontSize: 10 }} />
-                        </div>
-
                         <div
                             className={cx('pill')}
                             onClick={() => setIsModalOpen(true)}
                         >
                             <FilterOutlined />
-                            <span>Bộ lọc</span>
+                            <span>Bộ lọc {filters.isFree && '(Miễn phí)'}</span>
                         </div>
 
                         {filters.genreId && (
                             <Tag
                                 color='cyan'
                                 closable
-                                onClose={() => {
-                                    setFilters(f => ({ ...f, genreId: '' }));
-                                    setCurrentPage(1);
-                                }}
+                                onClose={handleRemoveGenre}
                                 style={{
                                     borderRadius: 20,
                                     padding: '2px 12px'
                                 }}
                             >
-                                {
-                                    genresList.find(
-                                        g =>
-                                            String(g.id) ===
-                                            String(filters.genreId)
-                                    )?.name
-                                }
+                                {genresList.find(
+                                    g =>
+                                        String(g.id) === String(filters.genreId)
+                                )?.name || 'Đang tải...'}
                             </Tag>
                         )}
                     </div>
@@ -238,7 +230,7 @@ function Genre() {
                         className={cx('center')}
                         style={{ padding: '100px 0' }}
                     >
-                        <Spin size='large' tip='Đang tìm kiếm sự kiện...' />
+                        <Spin size='large' />
                     </div>
                 ) : (
                     <>
@@ -250,30 +242,24 @@ function Genre() {
                             </div>
                         ) : (
                             <div style={{ padding: '50px 0' }}>
-                                <Empty description='Không tìm thấy sự kiện nào phù hợp' />
+                                <Empty description='Không tìm thấy sự kiện nào' />
                             </div>
                         )}
 
-                        {!loading && events.length > 0 && (
+                        {events.length > 0 && (
                             <div
                                 style={{
-                                    marginTop: '40px',
+                                    marginTop: 40,
                                     display: 'flex',
                                     justifyContent: 'center',
-                                    paddingBottom: '40px'
+                                    paddingBottom: 40
                                 }}
                             >
                                 <Pagination
                                     current={currentPage}
                                     total={totalItems}
                                     pageSize={pageSize}
-                                    onChange={page => {
-                                        setCurrentPage(page);
-                                        window.scrollTo({
-                                            top: 0,
-                                            behavior: 'smooth'
-                                        });
-                                    }}
+                                    onChange={handlePageChange}
                                     showSizeChanger={false}
                                 />
                             </div>
@@ -283,13 +269,11 @@ function Genre() {
             </div>
 
             <Modal
-                title={<span className={cx('modalTitle')}>Bộ lọc sự kiện</span>}
+                title='Bộ lọc sự kiện'
                 open={isModalOpen}
                 onCancel={() => setIsModalOpen(false)}
                 footer={null}
-                width={500}
                 centered
-                className={cx('customModal')}
             >
                 <div className={cx('modalBody')}>
                     <div className={cx('filterSection')}>
@@ -302,7 +286,6 @@ function Genre() {
                                     location: e.target.value
                                 })
                             }
-                            className={cx('verticalRadio')}
                         >
                             {LOCATIONS.map(loc => (
                                 <Radio key={loc} value={loc}>
@@ -312,7 +295,14 @@ function Genre() {
                         </Radio.Group>
                     </div>
 
-                    <div className={cx('filterSection', 'flexBetween')}>
+                    <div
+                        className={cx('filterSection', 'flexBetween')}
+                        style={{
+                            display: 'flex',
+                            justifyContent: 'space-between',
+                            alignItems: 'center'
+                        }}
+                    >
                         <h4>Sự kiện Miễn phí</h4>
                         <Switch
                             checked={tempFilters.isFree}
@@ -346,17 +336,14 @@ function Genre() {
                         </div>
                     </div>
 
-                    <div className={cx('modalFooter')}>
-                        <Button
-                            className={cx('btnReset')}
-                            onClick={handleReset}
-                        >
+                    <div
+                        className={cx('modalFooter')}
+                        style={{ display: 'flex', gap: 10, marginTop: 20 }}
+                    >
+                        <Button onClick={handleReset} block>
                             Thiết lập lại
                         </Button>
-                        <Button
-                            className={cx('btnApply')}
-                            onClick={handleApply}
-                        >
+                        <Button type='primary' onClick={handleApply} block>
                             Áp dụng
                         </Button>
                     </div>

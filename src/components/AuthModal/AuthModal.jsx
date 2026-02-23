@@ -295,7 +295,7 @@ function AuthModal({ isOpen, onClose }) {
                             </div>
                         )}
 
-                        <span>
+                        <span className={cx('switchModeBtn')}>
                             {isLoginMode
                                 ? 'Chưa có tài khoản? '
                                 : 'Đã có tài khoản? '}
