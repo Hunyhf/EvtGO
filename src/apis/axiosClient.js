@@ -1,8 +1,15 @@
 // src/apis/axiosClient.js
 import axios from 'axios';
 import Cookies from 'js-cookie';
-import { message } from 'antd'; 
+import { message } from 'antd';
 
+// Instance dùng riêng cho refresh token (không gắn interceptor chính)
+const authInstance = axios.create({
+    baseURL: import.meta.env.VITE_API_URL || 'http://localhost:8080',
+    withCredentials: true
+});
+
+// Instance chính dùng cho toàn bộ request API
 const instance = axios.create({
     baseURL: import.meta.env.VITE_API_URL || 'http://localhost:8080',
     withCredentials: true
@@ -11,6 +18,9 @@ const instance = axios.create({
 let isRefreshing = false;
 let failedQueue = [];
 
+/**
+ * Xử lý các request đang chờ khi refresh token hoàn tất
+ */
 const processQueue = (error, token = null) => {
     failedQueue.forEach(prom => {
         if (error) prom.reject(error);
@@ -19,19 +29,32 @@ const processQueue = (error, token = null) => {
     failedQueue = [];
 };
 
+/**
+ * Interceptor request
+ * Tự động gắn access token vào header Authorization nếu tồn tại
+ */
 instance.interceptors.request.use(
     config => {
         const token = Cookies.get('access_token');
+
         if (token && token !== 'undefined' && token !== 'null') {
+            config.headers = config.headers || {};
             config.headers.Authorization = `Bearer ${token}`;
-        } else {
+        } else if (config.headers?.Authorization) {
             delete config.headers.Authorization;
         }
+
         return config;
     },
     error => Promise.reject(error)
 );
 
+/**
+ * Interceptor response
+ * - Chuẩn hóa dữ liệu trả về
+ * - Xử lý refresh token khi gặp lỗi 401
+ * - Xử lý lỗi toàn cục
+ */
 instance.interceptors.response.use(
     response => {
         return response.data?.data !== undefined
@@ -40,29 +63,31 @@ instance.interceptors.response.use(
     },
 
     async error => {
-        const originalRequest = error.config;
+        const originalRequest = error.config || {};
         const status = error.response?.status;
-        const url = originalRequest.url;
+        const url = originalRequest?.url || '';
 
         const errorMessage =
             error.response?.data?.message ||
             error.message ||
             'Đã có lỗi xảy ra';
 
-        // 1. Cập nhật danh sách Silent Paths
+        // Các endpoint không hiển thị thông báo lỗi toàn cục
         const silentPaths = [
             '/api/v1/auth/account',
             '/api/v1/auth/refresh',
-            '/api/v1/auth/login', // Thêm login vào đây để không hiện toast khi sai pass
+            '/api/v1/auth/login',
             '/api/v1/genres'
         ];
+
         const isSilent = silentPaths.some(path => url.includes(path));
 
-        // 2. Xử lý lỗi 401 - Refresh Token
-        // Chỉ chạy refresh token nếu KHÔNG phải API login
+        // Xử lý lỗi 401 - Tự động refresh access token
+
         if (
             status === 401 &&
             !url.includes('/api/v1/auth/login') &&
+            !url.includes('/api/v1/auth/refresh') &&
             !originalRequest._retry
         ) {
             if (isRefreshing) {
@@ -80,58 +105,56 @@ instance.interceptors.response.use(
             isRefreshing = true;
 
             try {
-                const res = await instance.get('/api/v1/auth/refresh');
-                const newAccessToken = res.data?.accessToken;
+                // Gọi API refresh token
+                const res = await authInstance.get('/api/v1/auth/refresh');
+
+                // Lấy accessToken từ response
+                const newAccessToken =
+                    res.data?.data?.accessToken || res.data?.accessToken;
 
                 if (newAccessToken) {
-                    Cookies.set('access_token', newAccessToken, { expires: 1 });
+                    Cookies.set('access_token', newAccessToken, {
+                        expires: 1,
+                        path: '/'
+                    });
+
                     processQueue(null, newAccessToken);
+
                     originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
                     return instance(originalRequest);
                 }
             } catch (refreshError) {
                 processQueue(refreshError, null);
-                Cookies.remove('access_token');
+                Cookies.remove('access_token', { path: '/' });
+
                 if (window.location.pathname !== '/' && !isSilent) {
-                    window.location.href = '/';
+                    window.location.replace('/');
                 }
+
                 return Promise.reject(refreshError);
             } finally {
                 isRefreshing = false;
             }
         }
 
-        // 3. Global Error Handling (Dựa trên biến isSilent)
+        // Xử lý lỗi toàn cục
+
         if (status) {
-            switch (status) {
-                case 400:
-                case 401:
-                case 403:
-                    // Nếu thuộc silentPaths (như login), sẽ không hiện toast
-                    if (!isSilent) {
-                        message.error(errorMessage); // Đã sửa thành message của antd
-                    }
-                    break;
-                case 404:
+            if (!isSilent) {
+                if (status === 404) {
                     if (window.location.pathname !== '/404') {
-                        window.location.href = '/404';
+                        window.location.replace('/404');
                     }
-                    break;
-                case 500:
+                } else if (status === 500) {
                     message.error(
-                        // Đã sửa thành message của antd
                         'Lỗi hệ thống từ phía Server, vui lòng thử lại sau!'
                     );
-                    break;
-                default:
-                    if (!isSilent) {
-                        message.error(errorMessage); // Đã sửa thành message của antd
-                    }
-                    break;
+                } else {
+                    message.error(errorMessage);
+                }
             }
         } else {
             message.error(
-                // Đã sửa thành message của antd
                 'Không thể kết nối đến máy chủ. Vui lòng kiểm tra Internet!'
             );
         }

@@ -1,7 +1,9 @@
-import { useState, useContext, useEffect } from 'react';
+// src/hooks/useProfileLogic.js
+import { useState, useContext, useEffect, useCallback } from 'react';
+import { message } from 'antd'; // Tích hợp thông báo
 import { AuthContext } from '@contexts/AuthContext';
 import { userService } from '@services/userService';
-import { callGetUserById } from '@apis/userApi'; // Import API lấy chi tiết user
+import { callGetUserById } from '@apis/userApi';
 
 export const useProfileLogic = () => {
     const { user, updateUserContext } = useContext(AuthContext);
@@ -17,88 +19,98 @@ export const useProfileLogic = () => {
         address: ''
     });
 
-    // EFFECT: Gọi API lấy dữ liệu mới nhất khi vào trang
+    // EFFECT: Lấy dữ liệu chi tiết từ server để đồng bộ Form
     useEffect(() => {
-        const fetchFullUserProfile = async () => {
-            if (user && user.id) {
-                try {
-                    // Gọi API để đảm bảo lấy dữ liệu age, address từ DB
-                    const res = await callGetUserById(user.id);
+        let isMounted = true; // Chống memory leak khi component unmount
 
-                    // Kiểm tra cấu trúc data trả về (thường là res.data hoặc res)
+        const fetchFullUserProfile = async () => {
+            if (user?.id) {
+                try {
+                    const res = await callGetUserById(user.id);
                     const userData = res.data || res;
 
-                    setFormData({
-                        id: user.id,
-                        // Ưu tiên dữ liệu từ API mới gọi, nếu không có thì lấy từ Context
-                        name: userData.name || user.name || '',
-                        email: userData.email || user.email || '',
-                        phone: userData.phone || user.phone || '',
+                    if (isMounted) {
+                        const syncedData = {
+                            id: user.id,
+                            name: userData.name || user.name || '',
+                            email: userData.email || user.email || '',
+                            phone: userData.phone || user.phone || '',
+                            age: userData.age ?? user.age ?? '',
+                            gender: userData.gender || user.gender || 'OTHER',
+                            address: userData.address || user.address || ''
+                        };
+                        setFormData(syncedData);
 
-                        // Dùng ?? để giữ giá trị 0 nếu tuổi là 0
-                        age: userData.age ?? '',
-
-                        // Xử lý giới tính: Nếu API trả về số (0,1), bạn có thể cần map sang String tại đây
-                        gender: userData.gender || 'OTHER',
-
-                        address: userData.address || ''
-                    });
+                        // Tùy chọn: Đồng bộ ngược lại Context nếu dữ liệu API mới hơn
+                        // updateUserContext(syncedData);
+                    }
                 } catch (error) {
                     console.error(
                         'Lỗi khi tải thông tin chi tiết user:',
                         error
                     );
-                    // Fallback: Nếu lỗi API thì dùng tạm dữ liệu từ context
-                    setFormData({
-                        id: user.id || '',
-                        name: user.name || '',
-                        email: user.email || '',
-                        phone: user.phone || '',
-                        age: user.age ?? '',
-                        gender: user.gender || 'OTHER',
-                        address: user.address || ''
-                    });
+                    if (isMounted) {
+                        setFormData({
+                            id: user.id || '',
+                            name: user.name || '',
+                            email: user.email || '',
+                            phone: user.phone || '',
+                            age: user.age ?? '',
+                            gender: user.gender || 'OTHER',
+                            address: user.address || ''
+                        });
+                    }
                 }
             }
         };
 
         fetchFullUserProfile();
-    }, [user?.id]); // Chỉ chạy lại khi ID thay đổi
+        return () => {
+            isMounted = false;
+        };
+    }, [user?.id]);
 
-    const handleChange = e => {
+    // Tối ưu: Chỉ định nghĩa lại hàm khi cần thiết
+    const handleChange = useCallback(e => {
         const { name, value } = e.target;
         if (name === 'age') {
-            // Cho phép xóa trắng hoặc nhập số >= 0
             const val = value === '' ? '' : Math.max(0, parseInt(value, 10));
             setFormData(prev => ({ ...prev, age: val }));
         } else {
             setFormData(prev => ({ ...prev, [name]: value }));
         }
-    };
+    }, []);
 
-    const submitUpdate = async e => {
-        e.preventDefault();
-        setIsUpdating(true);
+    const submitUpdate = useCallback(
+        async e => {
+            if (e) e.preventDefault();
+            if (isUpdating) return;
 
-        // Chuẩn bị payload: Đảm bảo age là số
-        const payload = { ...formData, age: Number(formData.age) || 0 };
+            setIsUpdating(true);
+            const payload = { ...formData, age: Number(formData.age) || 0 };
 
-        try {
-            const updatedData = await userService.updateProfile(
-                payload,
-                user.id
-            );
+            try {
+                const updatedData = await userService.updateProfile(
+                    payload,
+                    user.id
+                );
 
-            if (updatedData) {
-                // Cập nhật lại Context để các phần khác của Web cũng nhận được tên/avatar mới
-                updateUserContext(updatedData);
+                if (updatedData) {
+                    updateUserContext(updatedData);
+                    message.success('Cập nhật thông tin thành công!');
+                }
+            } catch (error) {
+                console.error('Update Profile Error:', error);
+                message.error(
+                    error?.message ||
+                        'Không thể cập nhật thông tin. Vui lòng thử lại!'
+                );
+            } finally {
+                setIsUpdating(false);
             }
-        } catch (error) {
-            console.error(error);
-        } finally {
-            setIsUpdating(false);
-        }
-    };
+        },
+        [formData, user.id, isUpdating, updateUserContext]
+    );
 
     return { formData, isUpdating, handleChange, submitUpdate };
 };
