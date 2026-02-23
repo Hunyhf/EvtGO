@@ -1,14 +1,21 @@
 // src/hooks/useProfileLogic.js
 import { useState, useContext, useEffect, useCallback } from 'react';
-import { message } from 'antd'; // Tích hợp thông báo
+import { message } from 'antd';
 import { AuthContext } from '@contexts/AuthContext';
 import { userService } from '@services/userService';
 import { callGetUserById } from '@apis/userApi';
 
+/**
+ * Hook quản lý logic trang Profile
+ * - Đồng bộ dữ liệu người dùng từ server
+ * - Quản lý state form chỉnh sửa thông tin cá nhân
+ * - Xử lý cập nhật thông tin người dùng
+ */
 export const useProfileLogic = () => {
     const { user, updateUserContext } = useContext(AuthContext);
     const [isUpdating, setIsUpdating] = useState(false);
 
+    // State lưu trữ dữ liệu form
     const [formData, setFormData] = useState({
         id: '',
         name: '',
@@ -19,9 +26,12 @@ export const useProfileLogic = () => {
         address: ''
     });
 
-    // EFFECT: Lấy dữ liệu chi tiết từ server để đồng bộ Form
+    /**
+     * Khi user thay đổi (hoặc mount lần đầu),
+     * gọi API lấy thông tin chi tiết để đồng bộ form
+     */
     useEffect(() => {
-        let isMounted = true; // Chống memory leak khi component unmount
+        let isMounted = true;
 
         const fetchFullUserProfile = async () => {
             if (user?.id) {
@@ -30,7 +40,7 @@ export const useProfileLogic = () => {
                     const userData = res.data || res;
 
                     if (isMounted) {
-                        const syncedData = {
+                        setFormData({
                             id: user.id,
                             name: userData.name || user.name || '',
                             email: userData.email || user.email || '',
@@ -38,17 +48,15 @@ export const useProfileLogic = () => {
                             age: userData.age ?? user.age ?? '',
                             gender: userData.gender || user.gender || 'OTHER',
                             address: userData.address || user.address || ''
-                        };
-                        setFormData(syncedData);
-
-                        // Tùy chọn: Đồng bộ ngược lại Context nếu dữ liệu API mới hơn
-                        // updateUserContext(syncedData);
+                        });
                     }
                 } catch (error) {
                     console.error(
                         'Lỗi khi tải thông tin chi tiết user:',
                         error
                     );
+
+                    // Fallback: sử dụng dữ liệu từ context nếu API lỗi
                     if (isMounted) {
                         setFormData({
                             id: user.id || '',
@@ -65,14 +73,19 @@ export const useProfileLogic = () => {
         };
 
         fetchFullUserProfile();
+
         return () => {
             isMounted = false;
         };
     }, [user?.id]);
 
-    // Tối ưu: Chỉ định nghĩa lại hàm khi cần thiết
+    /**
+     * Cập nhật giá trị input khi người dùng thay đổi form
+     * - Kiểm soát age không âm
+     */
     const handleChange = useCallback(e => {
         const { name, value } = e.target;
+
         if (name === 'age') {
             const val = value === '' ? '' : Math.max(0, parseInt(value, 10));
             setFormData(prev => ({ ...prev, age: val }));
@@ -81,13 +94,23 @@ export const useProfileLogic = () => {
         }
     }, []);
 
+    /**
+     * Gửi request cập nhật thông tin người dùng
+     * - Validate cơ bản
+     * - Gọi API update
+     * - Đồng bộ lại AuthContext
+     */
     const submitUpdate = useCallback(
         async e => {
             if (e) e.preventDefault();
             if (isUpdating) return;
 
             setIsUpdating(true);
-            const payload = { ...formData, age: Number(formData.age) || 0 };
+
+            const payload = {
+                ...formData,
+                age: Number(formData.age) || 0
+            };
 
             try {
                 const updatedData = await userService.updateProfile(
