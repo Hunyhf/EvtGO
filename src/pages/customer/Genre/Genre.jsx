@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import {
     Modal,
@@ -21,7 +21,7 @@ import classNames from 'classnames/bind';
 import styles from './Genre.module.scss';
 import EventCard from '@components/EventCard/EventCard';
 import { eventApi } from '@apis/eventApi';
-import { useGenres } from '@hooks/useGenres';
+import { genresApi } from '@apis/genresApi';
 
 const cx = classNames.bind(styles);
 const BASE_URL_IMAGE =
@@ -37,153 +37,117 @@ const LOCATIONS = [
 
 function Genre() {
     const [searchParams, setSearchParams] = useSearchParams();
-
-    // Đọc filter từ URL ngay từ đầu
-    const urlGenreId = searchParams.get('genreId') || '';
-    const urlSearchQuery = searchParams.get('q') || '';
-    const urlLocation = searchParams.get('location') || 'Toàn quốc';
-    const urlIsFree = searchParams.get('isFree') === 'true';
-
-    const { genres: genresList } = useGenres();
-
+    const [genresList, setGenresList] = useState([]);
     const [events, setEvents] = useState([]);
     const [loading, setLoading] = useState(false);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [totalItems, setTotalItems] = useState(0);
 
-    const currentPage = parseInt(searchParams.get('page') || '1', 10);
     const pageSize = 12;
 
-    // State lưu filter chính thức
-    const [filters, setFilters] = useState({
-        location: urlLocation,
-        genreId: urlGenreId,
-        isFree: urlIsFree,
-        date: 'Tất cả các ngày'
-    });
-
-    // State lưu tạm trong Modal
-    const [tempFilters, setTempFilters] = useState({ ...filters });
-
-    // Khi URL thay đổi (nhấn nút Back/Forward hoặc từ Navbar), đồng bộ lại state
-    useEffect(() => {
-        setFilters({
-            location: urlLocation,
-            genreId: urlGenreId,
-            isFree: urlIsFree,
+    const currentFilters = useMemo(
+        () => ({
+            genreId: searchParams.get('id') || '',
+            genreName: searchParams.get('name') || '',
+            q: searchParams.get('q') || '',
+            location: searchParams.get('location') || 'Toàn quốc',
+            isFree: searchParams.get('isFree') === 'true',
+            page: parseInt(searchParams.get('page') || '1', 10),
             date: 'Tất cả các ngày'
-        });
-    }, [urlGenreId, urlLocation, urlIsFree]);
+        }),
+        [searchParams]
+    );
+
+    const [tempFilters, setTempFilters] = useState({ ...currentFilters });
+
+    useEffect(() => {
+        const loadGenres = async () => {
+            try {
+                const res = await genresApi.getAll();
+                setGenresList(
+                    res?.result || res?.data || (Array.isArray(res) ? res : [])
+                );
+            } catch (err) {
+                console.error('Lỗi tải thể loại', err);
+            }
+        };
+        loadGenres();
+    }, []);
+
+    const updateQueryParams = (newFilters, newPage = 1) => {
+        const params = new URLSearchParams();
+        if (newFilters.q) params.set('q', newFilters.q);
+
+        if (newFilters.genreId) {
+            params.set('id', newFilters.genreId);
+            const genreObj = genresList.find(
+                g => String(g.id) === String(newFilters.genreId)
+            );
+            const slugName = genreObj
+                ? genreObj.name.toLowerCase().replace(/\s+/g, '-')
+                : newFilters.genreName;
+            params.set('name', slugName);
+        }
+
+        if (newFilters.location !== 'Toàn quốc')
+            params.set('location', newFilters.location);
+        if (newFilters.isFree) params.set('isFree', 'true');
+        if (newPage > 1) params.set('page', newPage.toString());
+
+        setSearchParams(params);
+    };
 
     const fetchEvents = useCallback(async () => {
         setLoading(true);
         try {
             const now = dayjs();
             let filterString = `isPublished:true`;
+            if (currentFilters.genreId)
+                filterString += ` and genre.id:${currentFilters.genreId}`;
+            if (currentFilters.q)
+                filterString += ` and name ~~ '%${currentFilters.q}%'`;
+            if (currentFilters.location !== 'Toàn quốc')
+                filterString += ` and location ~~ '%${currentFilters.location}%'`;
 
-            if (filters.genreId) {
-                filterString += ` and genre.id:${filters.genreId}`;
-            }
-            if (urlSearchQuery) {
-                filterString += ` and name ~~ '%${urlSearchQuery}%'`;
-            }
-            if (filters.location && filters.location !== 'Toàn quốc') {
-                filterString += ` and location ~~ '%${filters.location}%'`;
-            }
-            // BỔ SUNG: Logic lọc miễn phí (giả sử field price trong DB)
-            if (filters.isFree) {
-                // filterString += ` and price:0`;
-            }
-
-            const params = {
-                page: currentPage - 1,
+            const res = await eventApi.getAll({
+                page: currentFilters.page - 1,
                 size: pageSize,
                 filter: filterString
-            };
+            });
 
-            const res = await eventApi.getAll(params);
             if (res?.meta) setTotalItems(res.meta.total);
 
-            const rawData = res?.result || res?.content || res?.data || [];
-
-            const mappedData = rawData.map(e => {
+            const mappedData = (res?.result || res?.content || []).map(e => {
                 const posterObj =
                     e.images?.find(img => img.isCover) || e.images?.[0];
                 const startEvent = dayjs(e.startTime || e.startDate);
-                const endEvent = dayjs(e.endTime || e.endDate);
-
                 return {
                     ...e,
                     title: e.name,
                     isAutoActive:
                         e.isPublished &&
                         now.isAfter(startEvent) &&
-                        now.isBefore(endEvent),
-                    isPast: now.isAfter(endEvent),
+                        now.isBefore(dayjs(e.endTime)),
+                    isPast: now.isAfter(dayjs(e.endTime)),
                     date: startEvent.isValid()
                         ? startEvent.format('HH:mm - DD/MM/YYYY')
                         : 'Sắp diễn ra',
-                    month: startEvent.isValid()
-                        ? startEvent.format('MMM').toUpperCase()
-                        : 'UP',
                     url: posterObj?.url
                         ? `${BASE_URL_IMAGE}/events/${e.id}/${posterObj.url}`
                         : 'https://placehold.co/400x600?text=No+Image'
                 };
             });
-
             setEvents(mappedData);
         } catch (e) {
-            console.error(e);
             setEvents([]);
         } finally {
             setLoading(false);
         }
-    }, [filters, urlSearchQuery, currentPage]);
+    }, [currentFilters]);
 
     useEffect(() => {
         fetchEvents();
     }, [fetchEvents]);
-
-    // Hàm cập nhật URL khi áp dụng filter
-    const updateQueryParams = (newFilters, newPage = 1) => {
-        const params = {};
-        if (urlSearchQuery) params.q = urlSearchQuery;
-        if (newFilters.genreId) params.genreId = newFilters.genreId;
-        if (newFilters.location !== 'Toàn quốc')
-            params.location = newFilters.location;
-        if (newFilters.isFree) params.isFree = 'true';
-        if (newPage > 1) params.page = newPage;
-
-        setSearchParams(params);
-    };
-
-    const handleApply = () => {
-        setFilters({ ...tempFilters });
-        updateQueryParams(tempFilters, 1);
-        setIsModalOpen(false);
-    };
-
-    const handleReset = () => {
-        const resetData = {
-            location: 'Toàn quốc',
-            genreId: '',
-            isFree: false,
-            date: 'Tất cả các ngày'
-        };
-        setTempFilters(resetData);
-    };
-
-    const handlePageChange = page => {
-        updateQueryParams(filters, page);
-        window.scrollTo({ top: 0, behavior: 'smooth' });
-    };
-
-    const handleRemoveGenre = () => {
-        const newFilters = { ...filters, genreId: '' };
-        setFilters(newFilters);
-        updateQueryParams(newFilters, 1);
-    };
 
     return (
         <div className={cx('genrePage')}>
@@ -191,46 +155,54 @@ function Genre() {
                 <div className={cx('toolbar')}>
                     <div className={cx('titleSection')}>
                         <span className={cx('neonText')}>
-                            {urlSearchQuery
-                                ? `Kết quả: "${urlSearchQuery}"`
+                            {currentFilters.q
+                                ? `Kết quả: "${currentFilters.q}"`
                                 : 'Khám phá sự kiện'}
                         </span>
                     </div>
 
                     <div className={cx('controls')}>
+                        <div className={cx('pill')}>
+                            <CalendarOutlined />{' '}
+                            <span>{currentFilters.date}</span>{' '}
+                            <DownOutlined style={{ fontSize: 10 }} />
+                        </div>
                         <div
                             className={cx('pill')}
-                            onClick={() => setIsModalOpen(true)}
+                            onClick={() => {
+                                setTempFilters({ ...currentFilters });
+                                setIsModalOpen(true);
+                            }}
                         >
-                            <FilterOutlined />
-                            <span>Bộ lọc {filters.isFree && '(Miễn phí)'}</span>
+                            <FilterOutlined /> <span>Bộ lọc</span>
                         </div>
 
-                        {filters.genreId && (
+                        {currentFilters.genreId && (
                             <Tag
+                                className={cx('genreTag')}
                                 color='cyan'
                                 closable
-                                onClose={handleRemoveGenre}
-                                style={{
-                                    borderRadius: 20,
-                                    padding: '2px 12px'
-                                }}
+                                onClose={() =>
+                                    updateQueryParams(
+                                        { ...currentFilters, genreId: '' },
+                                        1
+                                    )
+                                }
                             >
                                 {genresList.find(
                                     g =>
-                                        String(g.id) === String(filters.genreId)
-                                )?.name || 'Đang tải...'}
+                                        String(g.id) ===
+                                        String(currentFilters.genreId)
+                                )?.name ||
+                                    currentFilters.genreName.replace(/-/g, ' ')}
                             </Tag>
                         )}
                     </div>
                 </div>
 
                 {loading ? (
-                    <div
-                        className={cx('center')}
-                        style={{ padding: '100px 0' }}
-                    >
-                        <Spin size='large' />
+                    <div className={cx('loadingContainer')}>
+                        <Spin size='large' tip='Đang tìm kiếm...' />
                     </div>
                 ) : (
                     <>
@@ -241,25 +213,20 @@ function Genre() {
                                 ))}
                             </div>
                         ) : (
-                            <div style={{ padding: '50px 0' }}>
+                            <div className={cx('emptyContainer')}>
                                 <Empty description='Không tìm thấy sự kiện nào' />
                             </div>
                         )}
 
                         {events.length > 0 && (
-                            <div
-                                style={{
-                                    marginTop: 40,
-                                    display: 'flex',
-                                    justifyContent: 'center',
-                                    paddingBottom: 40
-                                }}
-                            >
+                            <div className={cx('paginationContainer')}>
                                 <Pagination
-                                    current={currentPage}
+                                    current={currentFilters.page}
                                     total={totalItems}
                                     pageSize={pageSize}
-                                    onChange={handlePageChange}
+                                    onChange={p =>
+                                        updateQueryParams(currentFilters, p)
+                                    }
                                     showSizeChanger={false}
                                 />
                             </div>
@@ -274,6 +241,7 @@ function Genre() {
                 onCancel={() => setIsModalOpen(false)}
                 footer={null}
                 centered
+                width={500}
             >
                 <div className={cx('modalBody')}>
                     <div className={cx('filterSection')}>
@@ -295,14 +263,7 @@ function Genre() {
                         </Radio.Group>
                     </div>
 
-                    <div
-                        className={cx('filterSection', 'flexBetween')}
-                        style={{
-                            display: 'flex',
-                            justifyContent: 'space-between',
-                            alignItems: 'center'
-                        }}
-                    >
+                    <div className={cx('filterSection', 'flexBetween')}>
                         <h4>Sự kiện Miễn phí</h4>
                         <Switch
                             checked={tempFilters.isFree}
@@ -336,14 +297,27 @@ function Genre() {
                         </div>
                     </div>
 
-                    <div
-                        className={cx('modalFooter')}
-                        style={{ display: 'flex', gap: 10, marginTop: 20 }}
-                    >
-                        <Button onClick={handleReset} block>
+                    <div className={cx('modalFooter')}>
+                        <Button
+                            className={cx('btnReset')}
+                            onClick={() =>
+                                setTempFilters({
+                                    location: 'Toàn quốc',
+                                    genreId: '',
+                                    isFree: false,
+                                    q: currentFilters.q
+                                })
+                            }
+                        >
                             Thiết lập lại
                         </Button>
-                        <Button type='primary' onClick={handleApply} block>
+                        <Button
+                            className={cx('btnApply')}
+                            onClick={() => {
+                                updateQueryParams(tempFilters, 1);
+                                setIsModalOpen(false);
+                            }}
+                        >
                             Áp dụng
                         </Button>
                     </div>
