@@ -14,6 +14,7 @@ import dayjs from 'dayjs';
 // Import APIs
 import { eventApi } from '@apis/eventApi';
 import { eventImageApi } from '@apis/eventImageApi';
+import { ticketApi } from '@apis/ticketApi'; // Đã thêm import ticketApi
 
 import Step1Info from './Step1Info';
 import Step2Showtimes from './Step2Showtimes';
@@ -38,8 +39,6 @@ const CreateEvent = () => {
 
     const [formData, setFormData] = useState(() => {
         const savedData = localStorage.getItem(STORAGE_KEY_DATA);
-        // Lưu ý: posterFile (File object) không thể lưu trong localStorage
-        // Nên khi F5 trang, file sẽ mất, người dùng cần chọn lại ảnh.
         return savedData
             ? JSON.parse(savedData)
             : {
@@ -51,8 +50,8 @@ const CreateEvent = () => {
                   location: '',
                   addressDetail: '',
                   genreId: null,
-                  poster: null, // URL preview (Base64)
-                  posterFile: null, // File gốc (quan trọng để upload)
+                  poster: null,
+                  posterFile: null,
                   organizerLogo: null,
                   showTimes: []
               };
@@ -63,7 +62,6 @@ const CreateEvent = () => {
     }, [localCurrentStep, setCurrentStep]);
 
     useEffect(() => {
-        // Lọc bỏ posterFile trước khi lưu vào localStorage vì JSON không stringify được File Object
         const { posterFile, ...dataToSave } = formData;
         localStorage.setItem(STORAGE_KEY_DATA, JSON.stringify(dataToSave));
         localStorage.setItem(STORAGE_KEY_STEP, localCurrentStep);
@@ -97,7 +95,7 @@ const CreateEvent = () => {
             ].filter(Boolean);
             const fullLocation = parts.join(', ');
 
-            // 2. Format thời gian
+            // 2. Format thời gian (lấy từ suất diễn đầu tiên)
             const firstShow =
                 formData.showTimes && formData.showTimes.length > 0
                     ? formData.showTimes[0]
@@ -131,7 +129,6 @@ const CreateEvent = () => {
                 endTime: endTime,
                 genreId: Number(formData.genreId),
                 organizerName: formData.organizerName,
-                // Logo nếu là Base64 dài quá có thể gây lỗi, tốt nhất nên upload riêng như poster
                 organizerLogo:
                     formData.organizerLogo &&
                     formData.organizerLogo.length < 255
@@ -144,59 +141,77 @@ const CreateEvent = () => {
             // GỌI API 1: TẠO SỰ KIỆN
             const res = await eventApi.create(finalPayload);
 
-            // Nếu tạo thành công
             if (res.data || res.statusCode === 201 || res.id) {
                 const newEventId = res.data?.id || res.id;
                 message.success('Thông tin sự kiện đã được lưu!');
 
-                // GỌI API 2: UPLOAD ẢNH POSTER (Nếu có file gốc)
+                // --- GỌI API 2: TẠO VÉ (Đã thêm logic này) ---
+                console.log(
+                    '>>> 2. Preparing Tickets for Event ID:',
+                    newEventId
+                );
+
+                const allTickets = [];
+                if (formData.showTimes && formData.showTimes.length > 0) {
+                    formData.showTimes.forEach(st => {
+                        if (st.tickets && st.tickets.length > 0) {
+                            st.tickets.forEach(ticket => {
+                                allTickets.push({
+                                    totalQuantity: ticket.totalQuantity,
+                                    ticketType: ticket.ticketType,
+                                    ticketStatus: ticket.ticketStatus,
+                                    eventId: newEventId
+                                });
+                            });
+                        }
+                    });
+                }
+
+                if (allTickets.length > 0) {
+                    try {
+                        // Gọi API tạo từng loại vé
+                        await Promise.all(
+                            allTickets.map(t => ticketApi.create(t))
+                        );
+                        message.success(
+                            `Đã phát hành thành công ${allTickets.length} loại vé!`
+                        );
+                    } catch (ticketError) {
+                        console.error('Lỗi khi tạo vé:', ticketError);
+                        message.warning(
+                            'Sự kiện đã tạo nhưng gặp lỗi khi khởi tạo danh sách vé.'
+                        );
+                    }
+                }
+
+                // GỌI API 3: UPLOAD ẢNH POSTER (Nếu có file gốc)
                 if (formData.posterFile && newEventId) {
                     try {
                         console.log(
-                            '>>> 2. Uploading Poster File for Event ID:',
+                            '>>> 3. Uploading Poster File for Event ID:',
                             newEventId
                         );
-
-                        // Tạo FormData để gửi file
                         const uploadData = new FormData();
-
-                        // 1. Sửa 'file' thành 'files' để khớp với @RequestParam("files") của BE
                         uploadData.append('files', formData.posterFile);
-
-                        // 2. Thay 'isPoster' bằng 'coverIndex'
-                        // Vì ta chỉ gửi 1 file (poster), nên index của nó là 0
                         uploadData.append('coverIndex', '0');
 
-                        // Gọi hàm upload
                         await eventImageApi.uploadEventImages(
                             newEventId,
                             uploadData
                         );
-
-                        console.log('>>> Poster uploaded successfully');
                         message.success('Đã tải lên ảnh bìa thành công!');
                     } catch (imgError) {
                         console.error('Lỗi lưu ảnh:', imgError);
-                        if (imgError.response) {
-                            console.error('Data:', imgError.response.data);
-                            console.error('Status:', imgError.response.status);
-                        }
                         message.warning(
-                            'Sự kiện đã tạo nhưng tải ảnh thất bại (Lỗi 500/400).'
+                            'Sự kiện đã tạo nhưng tải ảnh bìa thất bại.'
                         );
                     }
-                } else if (!formData.posterFile && formData.poster) {
-                    // Trường hợp user có ảnh (base64 từ local storage) nhưng mất file object do reload trang
-                    message.warning(
-                        'Không tìm thấy file gốc ảnh bìa. Vui lòng chọn lại ảnh để tải lên.'
-                    );
                 }
 
-                // Dọn dẹp và chuyển trang
+                // Dọn dẹp dữ liệu tạm thời
                 localStorage.removeItem(STORAGE_KEY_DATA);
                 localStorage.removeItem(STORAGE_KEY_STEP);
 
-                // Đợi 1 chút để user đọc thông báo
                 setTimeout(() => {
                     navigate('/organizer/events');
                 }, 1500);
@@ -302,7 +317,6 @@ const CreateEvent = () => {
 
     return (
         <div style={{ maxWidth: 1200, margin: '0 auto', paddingBottom: 100 }}>
-            {/* Sửa bordered -> variant để fix warning Antd */}
             <Card
                 variant='borderless'
                 style={{

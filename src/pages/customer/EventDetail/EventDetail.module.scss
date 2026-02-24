@@ -5,7 +5,7 @@
     min-height: 100vh;
     background: #0f0c29;
     background: linear-gradient(135deg, #0f0c29 0%, #1a1a2e 50%, #0f2e1f 100%);
-    color: #fff;
+    color: $white-color;
     padding-bottom: 80px;
 
     .wrapper {
@@ -19,6 +19,12 @@
         border-radius: 16px;
         overflow: hidden;
         box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+        display: flex;
+
+        :global(.ant-row) {
+            width: 100%;
+            align-items: stretch;
+        }
 
         .infoCard {
             background: #161b22;
@@ -30,7 +36,7 @@
             border-right: 1px solid rgba(255, 255, 255, 0.05);
 
             .eventTitle {
-                color: #fff !important;
+                color: $white-color !important;
                 font-weight: 800;
                 font-size: 28px;
                 margin-bottom: 30px;
@@ -44,7 +50,7 @@
                     gap: 15px;
                     align-items: flex-start;
                     .icon {
-                        color: #2dc275;
+                        color: $primary-color;
                         font-size: 20px;
                         margin-top: 3px;
                     }
@@ -54,7 +60,7 @@
                     }
                     .locName {
                         display: block;
-                        color: #fff;
+                        color: $white-color;
                         font-size: 16px;
                         margin-bottom: 4px;
                     }
@@ -75,14 +81,14 @@
                     letter-spacing: 1px;
                 }
                 .priceValue {
-                    color: #2dc275 !important;
+                    color: $primary-color !important;
                     margin: 0 !important;
                     font-size: 32px;
                 }
             }
 
             .ctaBtn {
-                background: #2dc275;
+                background: $primary-color;
                 border: none;
                 height: 55px;
                 font-weight: 700;
@@ -95,17 +101,15 @@
             }
         }
 
-        .posterWrapper {
+        .posterContainer {
             width: 100%;
             height: 100%;
             background: #000;
-            display: flex;
-            align-items: center;
-            justify-content: center;
+            overflow: hidden;
 
             .heroPoster {
-                width: 813px; // Cố định chiều rộng theo yêu cầu
-                height: 458px; // Cố định chiều cao theo yêu cầu
+                width: 100%;
+                height: 100%;
                 object-fit: cover;
                 display: block;
             }
@@ -122,13 +126,13 @@
         :global(.ant-card-head) {
             border-bottom: 1px solid rgba(255, 255, 255, 0.08);
             .ant-card-head-title {
-                color: #fff;
+                color: $white-color;
                 font-weight: 600;
                 font-size: 18px;
             }
         }
         .cardIcon {
-            color: #2dc275;
+            color: $primary-color;
         }
     }
 
@@ -150,11 +154,11 @@
             width: 100%;
             padding-right: 10px;
             .stDate {
-                color: #fff;
+                color: $white-color;
                 font-size: 15px;
             }
             .headerPrice {
-                color: #2dc275;
+                color: $primary-color;
                 font-weight: 600;
             }
         }
@@ -171,17 +175,17 @@
                     border: none;
                 }
                 .tierLabel {
-                    color: #fff;
+                    color: $white-color;
                     font-weight: 500;
                 }
                 .tierPrice {
-                    color: #2dc275;
+                    color: $primary-color;
                     font-weight: 700;
                     font-size: 16px;
                 }
                 .buyBtn {
-                    border-color: #2dc275;
-                    color: #2dc275;
+                    border-color: $primary-color;
+                    color: $primary-color;
                 }
             }
         }
@@ -190,19 +194,19 @@
     .miniCalendar {
         background: transparent;
         :global(.ant-picker-calendar-date-value) {
-            color: #fff;
+            color: $white-color;
         }
         :global(
             .ant-picker-cell-in-view.ant-picker-cell-selected
                 .ant-picker-calendar-date-value
         ) {
-            background: #2dc275;
-            border-color: #2dc275;
+            background: $primary-color;
+            border-color: $primary-color;
         }
         .activeDateIndicator {
             width: 6px;
             height: 6px;
-            background: #2dc275;
+            background: $primary-color;
             border-radius: 50%;
             position: absolute;
             bottom: 4px;
@@ -220,10 +224,10 @@
             height: 80px;
             border-radius: 50%;
             object-fit: cover;
-            border: 2px solid #2dc275;
+            border: 2px solid $primary-color;
         }
         .orgName {
-            color: #fff !important;
+            color: $white-color !important;
             margin: 0 !important;
         }
         .orgSub {
@@ -236,12 +240,19 @@
 
 // Mobile Optimization
 @media (max-width: 992px) {
-    .eventDetail .hero .posterWrapper .heroPoster {
-        width: 100%;
+    .eventDetail .hero .posterContainer {
         height: auto;
-        aspect-ratio: 813 / 458;
+        aspect-ratio: 16 / 9;
     }
+
+    .eventDetail .hero .posterContainer .heroPoster {
+        height: auto;
+        aspect-ratio: 16 / 9;
+    }
+
     .eventDetail .hero .infoCard {
         padding: 25px;
+        border-right: none;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.05);
     }
 }

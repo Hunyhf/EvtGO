@@ -15,13 +15,13 @@ import {
     Space,
     Card,
     Tag,
+    Select,
     message,
     theme
 } from 'antd';
 import {
     PlusOutlined,
     CalendarOutlined,
-    CopyOutlined,
     DeleteOutlined,
     EditOutlined
 } from '@ant-design/icons';
@@ -30,6 +30,7 @@ import dayjs from 'dayjs';
 const { Title, Text } = Typography;
 const { Panel } = Collapse;
 const { TextArea } = Input;
+const { Option } = Select;
 
 const Step2Showtimes = ({
     setOnNextAction,
@@ -129,6 +130,11 @@ const Step2Showtimes = ({
             setIsFreeTicket(ticket.price === 0);
         } else {
             ticketForm.resetFields();
+            // Default giá trị khi mở Modal mới
+            ticketForm.setFieldsValue({
+                ticketType: 'STANDARD',
+                ticketStatus: 'PUBLISHED'
+            });
             setIsFreeTicket(false);
         }
         setIsTicketModalOpen(true);
@@ -344,7 +350,10 @@ const Step2Showtimes = ({
                                                 style={{ color: '#fff' }}
                                                 ellipsis
                                             >
-                                                {ticket.name}
+                                                {/* Hiển thị Ticket Type thay vì name để người dùng thấy rõ hạng vé */}
+                                                {ticket.ticketType === 'VIP'
+                                                    ? 'Vé VIP'
+                                                    : 'Vé Phổ Thông'}
                                             </Text>
                                             <Space>
                                                 <EditOutlined
@@ -392,7 +401,15 @@ const Step2Showtimes = ({
                                                     marginTop: 4
                                                 }}
                                             >
-                                                SL: {ticket.total}
+                                                SL: {ticket.totalQuantity} |
+                                                Trạng thái:{' '}
+                                                {ticket.ticketStatus ===
+                                                'PUBLISHED'
+                                                    ? 'Mở bán'
+                                                    : ticket.ticketStatus ===
+                                                        'STOPPED'
+                                                      ? 'Tạm ngưng'
+                                                      : 'Hết vé'}
                                             </div>
                                         </div>
                                     </Card>
@@ -464,18 +481,24 @@ const Step2Showtimes = ({
                 >
                     <Row gutter={16}>
                         <Col span={12}>
+                            {/* ĐỔI TỪ name SANG ticketType (Khớp BE) */}
                             <Form.Item
-                                name='name'
+                                name='ticketType'
                                 label={
                                     <span style={{ color: '#fff' }}>
-                                        Tên loại vé
+                                        Hạng vé (Ticket Type)
                                     </span>
                                 }
                                 rules={[
-                                    { required: true, message: 'Nhập tên' }
+                                    { required: true, message: 'Chọn hạng vé' }
                                 ]}
                             >
-                                <Input placeholder='VD: VIP' size='large' />
+                                <Select placeholder='Chọn hạng vé' size='large'>
+                                    <Option value='STANDARD'>
+                                        Phổ thông (Standard)
+                                    </Option>
+                                    <Option value='VIP'>Cao cấp (VIP)</Option>
+                                </Select>
                             </Form.Item>
                         </Col>
                         <Col span={12}>
@@ -536,13 +559,15 @@ const Step2Showtimes = ({
                             </Form.Item>
                         </Col>
                     </Row>
+
                     <Row gutter={16}>
                         <Col span={12}>
+                            {/* ĐỔI TỪ total SANG totalQuantity (Khớp BE) */}
                             <Form.Item
-                                name='total'
+                                name='totalQuantity'
                                 label={
                                     <span style={{ color: '#fff' }}>
-                                        Số lượng
+                                        Số lượng vé
                                     </span>
                                 }
                                 rules={[{ required: true, message: 'Nhập SL' }]}
@@ -578,6 +603,39 @@ const Step2Showtimes = ({
                             </Form.Item>
                         </Col>
                     </Row>
+
+                    <Row gutter={16}>
+                        <Col span={12}>
+                            {/* THÊM TRƯỜNG ticketStatus (Khớp BE) */}
+                            <Form.Item
+                                name='ticketStatus'
+                                label={
+                                    <span style={{ color: '#fff' }}>
+                                        Trạng thái vé
+                                    </span>
+                                }
+                                rules={[
+                                    {
+                                        required: true,
+                                        message: 'Chọn trạng thái'
+                                    }
+                                ]}
+                            >
+                                <Select size='large'>
+                                    <Option value='PUBLISHED'>
+                                        Mở bán (Published)
+                                    </Option>
+                                    <Option value='STOPPED'>
+                                        Tạm ngưng (Stopped)
+                                    </Option>
+                                    <Option value='SOLD_OUT'>
+                                        Hết vé (Sold Out)
+                                    </Option>
+                                </Select>
+                            </Form.Item>
+                        </Col>
+                    </Row>
+
                     <Form.Item
                         name='description'
                         label={<span style={{ color: '#fff' }}>Mô tả</span>}
