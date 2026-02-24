@@ -22,10 +22,9 @@ import styles from './Genre.module.scss';
 import EventCard from '@components/EventCard/EventCard';
 import { eventApi } from '@apis/eventApi';
 import { genresApi } from '@apis/genresApi';
+import { getEventImageUrl } from '@utils/imageHelper';
 
 const cx = classNames.bind(styles);
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080';
-const BASE_URL_IMAGE = `${API_URL}/storage`;
 
 const LOCATIONS = [
     'Toàn quốc',
@@ -116,8 +115,6 @@ function Genre() {
                 filter: filterString
             };
 
-            // Nếu không chọn thể loại (genreId trống), thêm tham số sắp xếp theo startTime
-            // Bạn có thể chọn 'startTime,asc' (tăng dần) hoặc 'startTime,desc' (giảm dần)
             if (!currentFilters.genreId) {
                 apiParams.sort = 'startTime,asc';
             }
@@ -141,9 +138,7 @@ function Genre() {
                     date: startEvent.isValid()
                         ? startEvent.format('DD/MM/YYYY')
                         : 'Sắp diễn ra',
-                    url: posterObj?.url
-                        ? `${BASE_URL_IMAGE}/events/${e.id}/${posterObj.url}`
-                        : 'https://placehold.co/400x600?text=No+Image'
+                    url: getEventImageUrl(e.id, posterObj?.url)
                 };
             });
             setEvents(mappedData);

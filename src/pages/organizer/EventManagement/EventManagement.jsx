@@ -22,11 +22,8 @@ import {
 } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import { eventApi } from '@apis/eventApi';
-
+import { getEventImageUrl } from '@utils/imageHelper';
 const { Title } = Typography;
-
-// Base URL từ môi trường, FE giao tiếp qua API Endpoint
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080';
 
 const EventImage = ({ src, alt, eventId }) => {
     const FALLBACK = 'https://placehold.co/300x400?text=No+Image';
@@ -117,12 +114,7 @@ const EventManagement = () => {
 
     const getFirstImagePoster = (images, eventId) => {
         const firstImage = images?.[0];
-        if (!firstImage?.url) return null;
-
-        // Nếu là URL tuyệt đối dùng luôn
-        if (firstImage.url.startsWith('http')) return firstImage.url;
-
-        return `${API_URL}/storage/events/${eventId}/${firstImage.url}`;
+        return getEventImageUrl(eventId, firstImage?.url);
     };
 
     /**

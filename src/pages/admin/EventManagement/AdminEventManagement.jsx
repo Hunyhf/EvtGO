@@ -23,12 +23,11 @@ import {
 import dayjs from 'dayjs';
 import { eventApi } from '@apis/eventApi';
 import styles from './AdminEventManagement.module.scss';
+import { getEventImageUrl } from '@utils/imageHelper';
 
 const { Title } = Typography;
 const { Option } = Select;
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080';
-const BASE_URL_IMAGE = `${API_URL}/storage`;
 function AdminEventManagement() {
     const [dataSource, setDataSource] = useState([]);
     const [loading, setLoading] = useState(false);
@@ -58,9 +57,7 @@ function AdminEventManagement() {
                     event.images?.[0];
 
                 // Cấu trúc URL chuẩn: /api/v1/files/events/{eventId}/{fileName}
-                const posterUrl = posterObj?.url
-                    ? `${BASE_URL_IMAGE}/events/${event.id}/${posterObj.url}`
-                    : 'https://placehold.co/200x120?text=No+Image';
+                const posterUrl = getEventImageUrl(event.id, posterObj?.url);
 
                 // Ghép Date và Time để so sánh
                 const fullStartTimeStr = event.startDate

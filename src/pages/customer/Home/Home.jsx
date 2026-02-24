@@ -16,11 +16,9 @@ import EventCard from '@components/EventCard/EventCard.jsx';
 import { genresApi } from '@apis/genresApi';
 import { eventApi } from '@apis/eventApi';
 import { BANNER_DATA, TRENDING_DATA } from './constants';
-
+import { getEventImageUrl } from '@utils/imageHelper';
 const cx = classNames.bind(styles);
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080';
-const BASE_URL_IMAGE = `${API_URL}/storage`;
 const createSlug = str => {
     if (!str) return '';
     return str
@@ -61,7 +59,7 @@ function Home() {
 
                 const [genresRes, eventsRes] = await Promise.all([
                     genresApi.getAll(),
-                    eventApi.getAll({ page: 1, size: 200 }) // Lấy số lượng lớn để phân loại
+                    eventApi.getAll({ page: 1, size: 200 })
                 ]);
 
                 const genres = Array.isArray(genresRes)
@@ -97,9 +95,7 @@ function Home() {
                                 date: `${e.startDate} ${e.startTime || '00:00:00'}`,
                                 startTime: null,
                                 price: 0,
-                                url: posterObj?.url
-                                    ? `${BASE_URL_IMAGE}/events/${e.id}/${posterObj.url}`
-                                    : 'https://placehold.co/400x250?text=No+Image'
+                                url: getEventImageUrl(e.id, posterObj?.url)
                             };
                         });
 

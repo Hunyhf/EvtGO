@@ -18,7 +18,8 @@ export default defineConfig({
             '@contexts': path.resolve(__dirname, 'src/contexts'),
             '@hooks': path.resolve(__dirname, 'src/hooks'),
             '@constants': path.resolve(__dirname, 'src/constants'),
-            '@services': path.resolve(__dirname, 'src/services')
+            '@services': path.resolve(__dirname, 'src/services'),
+            '@utils': path.resolve(__dirname, 'src/utils')
         }
     },
     css: {
