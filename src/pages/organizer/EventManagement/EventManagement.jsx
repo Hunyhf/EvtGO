@@ -122,7 +122,7 @@ const EventManagement = () => {
         // Nếu là URL tuyệt đối dùng luôn
         if (firstImage.url.startsWith('http')) return firstImage.url;
 
-        return `${API_URL}/api/v1/files/events/${eventId}/${firstImage.url}`;
+        return `${API_URL}/storage/events/${eventId}/${firstImage.url}`;
     };
 
     /**

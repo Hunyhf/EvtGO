@@ -30,6 +30,9 @@
             height: auto;
             object-fit: cover;
         }
+        &:hover {
+            cursor: pointer;
+        }
     }
 }
 

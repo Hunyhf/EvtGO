@@ -22,15 +22,13 @@ import {
 } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import { eventApi } from '@apis/eventApi';
-// Import styles
 import styles from './AdminEventManagement.module.scss';
 
 const { Title } = Typography;
 const { Option } = Select;
 
-// Base URL để lấy file từ Backend
-const BASE_URL_IMAGE = 'http://localhost:8080/api/v1/files';
-
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080';
+const BASE_URL_IMAGE = `${API_URL}/storage`;
 function AdminEventManagement() {
     const [dataSource, setDataSource] = useState([]);
     const [loading, setLoading] = useState(false);

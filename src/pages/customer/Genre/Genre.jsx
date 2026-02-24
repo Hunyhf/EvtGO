@@ -24,8 +24,8 @@ import { eventApi } from '@apis/eventApi';
 import { genresApi } from '@apis/genresApi';
 
 const cx = classNames.bind(styles);
-const BASE_URL_IMAGE =
-    import.meta.env.VITE_BASE_IMAGE_URL || 'http://localhost:8080/api/v1/files';
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080';
+const BASE_URL_IMAGE = `${API_URL}/storage`;
 
 const LOCATIONS = [
     'Toàn quốc',

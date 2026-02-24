@@ -19,8 +19,8 @@ import { BANNER_DATA, TRENDING_DATA } from './constants';
 
 const cx = classNames.bind(styles);
 
-const BASE_URL_IMAGE = 'http://localhost:8080/api/v1/files';
-
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080';
+const BASE_URL_IMAGE = `${API_URL}/storage`;
 const createSlug = str => {
     if (!str) return '';
     return str
@@ -98,7 +98,7 @@ function Home() {
                                 startTime: null,
                                 price: 0,
                                 url: posterObj?.url
-                                    ? `${BASE_URL_IMAGE}/${posterObj.url}`
+                                    ? `${BASE_URL_IMAGE}/events/${e.id}/${posterObj.url}`
                                     : 'https://placehold.co/400x250?text=No+Image'
                             };
                         });
