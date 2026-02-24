@@ -6,6 +6,7 @@ import svgr from 'vite-plugin-svgr';
 export default defineConfig({
     plugins: [react(), svgr()],
     resolve: {
+        extensions: ['.js', '.jsx', '.ts', '.tsx', '.json'],
         alias: {
             '@': path.resolve(__dirname, 'src'),
             '@components': path.resolve(__dirname, 'src/components'),
@@ -18,6 +19,17 @@ export default defineConfig({
             '@hooks': path.resolve(__dirname, 'src/hooks'),
             '@constants': path.resolve(__dirname, 'src/constants'),
             '@services': path.resolve(__dirname, 'src/services')
+        }
+    },
+    css: {
+        preprocessorOptions: {
+            scss: {
+                // Tự động inject file variables và mixins vào tất cả file .scss
+                additionalData: `
+                    @use "@/assets/styles/variables" as *;
+                    @use "@/assets/styles/mixins" as *;
+                `
+            }
         }
     }
 });

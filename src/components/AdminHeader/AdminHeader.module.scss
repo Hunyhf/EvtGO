@@ -1,5 +1,5 @@
 /* src/components/AdminHeader/AdminHeader.module.scss */
-@import '@styles/variables'; // Import biến dùng chung của hệ thống
+@use '@styles/variables'; // Import biến dùng chung của hệ thống
 
 // Header khu vực admin (thanh trên cùng)
 .header {
