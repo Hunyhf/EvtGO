@@ -59,7 +59,6 @@ function Home() {
                 setLoading(true);
                 const now = dayjs();
 
-                // 1. Gọi API lấy Thể loại và Sự kiện
                 const [genresRes, eventsRes] = await Promise.all([
                     genresApi.getAll(),
                     eventApi.getAll({ page: 1, size: 200 }) // Lấy số lượng lớn để phân loại
@@ -95,7 +94,8 @@ function Home() {
                             return {
                                 ...e,
                                 title: e.name,
-                                date: dayjs(e.startDate).format('DD/MM/YYYY'),
+                                date: `${e.startDate} ${e.startTime || '00:00:00'}`,
+                                startTime: null,
                                 price: 0,
                                 url: posterObj?.url
                                     ? `${BASE_URL_IMAGE}/${posterObj.url}`

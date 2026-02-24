@@ -14,7 +14,11 @@ const EventCard = ({ data }) => {
         'https://via.placeholder.com/400x250?text=No+Image';
 
     const eventName = data.name || data.title || 'Sự kiện không tên';
-    const rawDate = data.startTime || data.date;
+
+    const rawDate =
+        data.startDate && data.startTime
+            ? `${data.startDate} ${data.startTime}`
+            : data.date || data.startTime;
 
     // Format giá hiển thị
     const formatPrice = price => {
@@ -28,7 +32,7 @@ const EventCard = ({ data }) => {
     // Format ngày nếu hợp lệ
     const parsedDate = dayjs(rawDate);
     const displayDate = parsedDate.isValid()
-        ? parsedDate.format('DD/MM/YYYY - HH:mm')
+        ? parsedDate.format('DD/MM/YYYY')
         : rawDate;
 
     return (
