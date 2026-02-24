@@ -1,5 +1,5 @@
-@import '@styles/mixins';
-@import '@styles/variables';
+@use '@styles/mixins';
+@use '@styles/variables';
 .Footer {
     background-color: $third-color;
     @include mobile-width {

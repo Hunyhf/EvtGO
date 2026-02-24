@@ -1,5 +1,4 @@
-@import './variables';
-
+@use './variables' as *;
 @mixin radius-common($radius: 10px) {
     border-radius: $radius;
 }

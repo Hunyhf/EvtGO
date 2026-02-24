@@ -1,7 +1,7 @@
 import { Link, useLocation } from 'react-router-dom';
 import { BREADCRUMB_LABELS } from '@/routes';
 import classNames from 'classnames/bind';
-import styles from './Breadcrumb.module.scss';
+import styles from './BreadCrumb.module.scss';
 
 const cx = classNames.bind(styles);
 

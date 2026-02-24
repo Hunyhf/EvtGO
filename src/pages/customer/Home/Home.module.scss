@@ -1,5 +1,5 @@
-@import '../../../assets/styles/variables';
-@import '../../../assets/styles/mixins';
+@use '@styles/variables';
+@use '@styles/mixins';
 
 .home {
     background-color: $secondary-color;

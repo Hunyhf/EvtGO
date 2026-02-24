@@ -1,5 +1,5 @@
-@import '@styles/variables';
-@import '@styles/mixins';
+@use '@styles/variables';
+@use '@styles/mixins';
 
 // Lớp phủ toàn màn hình khi mở modal
 .wrapper {
