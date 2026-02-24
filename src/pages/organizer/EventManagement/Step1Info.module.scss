@@ -1,16 +1,15 @@
-// src/pages/organizer/EventManagement/Step1Info.module.scss
+@import '@styles/variables';
 
-// Chủ yếu CSS custom cho ReactQuill để nó không bị vỡ giao diện trong Dark Mode
 :global {
     .ql-toolbar {
         border-top-left-radius: 8px;
         border-top-right-radius: 8px;
-        background-color: #f0f2f5;
+        background-color: $border-color;
     }
     .ql-container {
         border-bottom-left-radius: 8px;
         border-bottom-right-radius: 8px;
-        font-size: 16px;
+        font-size: $font-size-md;
         min-height: 250px;
     }
 }

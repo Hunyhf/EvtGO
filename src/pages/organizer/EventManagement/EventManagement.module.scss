@@ -1,6 +1,5 @@
-// src/pages/organizer/EventManagement/EventManagement.module.scss
+@import '@styles/variables';
 
-// Nếu bạn muốn custom thêm scrollbar cho bảng
 :global {
     .ant-table-body {
         &::-webkit-scrollbar {
@@ -8,7 +7,7 @@
             height: 8px;
         }
         &::-webkit-scrollbar-thumb {
-            background-color: #393f4e;
+            background-color: $third-color;
             border-radius: 4px;
         }
         &::-webkit-scrollbar-track {

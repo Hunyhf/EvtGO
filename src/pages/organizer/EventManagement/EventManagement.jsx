@@ -1,4 +1,3 @@
-// src/pages/organizer/EventManagement/EventManagement.jsx
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
@@ -29,10 +28,6 @@ const { Title } = Typography;
 // Base URL từ môi trường, FE giao tiếp qua API Endpoint
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080';
 
-/**
- * 🟢 SMART COMPONENT: EventImage
- * Xử lý hiển thị ảnh và tự động đổi ảnh fallback nếu xảy ra lỗi 404/500
- */
 const EventImage = ({ src, alt, eventId }) => {
     const FALLBACK = 'https://placehold.co/300x400?text=No+Image';
     const [imgSrc, setImgSrc] = useState(src);
@@ -120,10 +115,6 @@ const EventManagement = () => {
     const [currentPage, setCurrentPage] = useState(1);
     const pageSize = 6;
 
-    /**
-     * 🛠 Helper: Ghép URL ảnh theo cấu trúc 3 tham số mới
-     * URL mong muốn: /api/v1/files/events/{eventId}/{fileName}
-     */
     const getFirstImagePoster = (images, eventId) => {
         const firstImage = images?.[0];
         if (!firstImage?.url) return null;
@@ -131,7 +122,6 @@ const EventManagement = () => {
         // Nếu là URL tuyệt đối dùng luôn
         if (firstImage.url.startsWith('http')) return firstImage.url;
 
-        // ✅ KHÔNG DÙNG encodeURIComponent. Để dấu "/" tự nhiên cho 3 tham số PathVariable.
         return `${API_URL}/api/v1/files/events/${eventId}/${firstImage.url}`;
     };
 
@@ -169,12 +159,13 @@ const EventManagement = () => {
     }, [fetchEvents]);
 
     /**
-     * Lọc danh sách (Performance: useMemo)
+     * Lọc danh sách
      */
     const filteredEvents = useMemo(() => {
         const now = dayjs();
-        let result = events;
+        let result = [...events]; // Tạo bản sao để tránh mutate state gốc
 
+        // 1. Lọc theo từ khóa tìm kiếm
         if (searchText) {
             const lowerSearch = searchText.toLowerCase();
             result = result.filter(
@@ -184,20 +175,46 @@ const EventManagement = () => {
             );
         }
 
+        // 2. Lọc theo Tab và Sắp xếp theo ngày
         switch (activeTab) {
             case 'upcoming':
-                return result.filter(
+                result = result.filter(
                     e => e.isApproved && dayjs(e.fullStartTime).isAfter(now)
                 );
+                // Sắp xếp TĂNG DẦN: Ngày gần hiện tại nhất xếp trước
+                result.sort(
+                    (a, b) =>
+                        dayjs(a.fullStartTime).unix() -
+                        dayjs(b.fullStartTime).unix()
+                );
+                break;
             case 'pending':
-                return result.filter(
+                result = result.filter(
                     e => !e.isApproved && dayjs(e.fullStartTime).isAfter(now)
                 );
+                // Sắp xếp TĂNG DẦN
+                result.sort(
+                    (a, b) =>
+                        dayjs(a.fullStartTime).unix() -
+                        dayjs(b.fullStartTime).unix()
+                );
+                break;
             case 'past':
-                return result.filter(e => dayjs(e.fullStartTime).isBefore(now));
+                result = result.filter(e =>
+                    dayjs(e.fullStartTime).isBefore(now)
+                );
+                // Sắp xếp GIẢM DẦN: Sự kiện vừa mới kết thúc xếp trước
+                result.sort(
+                    (a, b) =>
+                        dayjs(b.fullStartTime).unix() -
+                        dayjs(a.fullStartTime).unix()
+                );
+                break;
             default:
-                return result;
+                break;
         }
+
+        return result;
     }, [events, searchText, activeTab]);
 
     const currentData = useMemo(() => {
@@ -239,21 +256,6 @@ const EventManagement = () => {
                         }}
                     >
                         Làm mới
-                    </Button>
-                    <Button
-                        type='dashed'
-                        shape='round'
-                        size='large'
-                        icon={<PlusOutlined />}
-                        onClick={() => navigate('/organizer/create-event')}
-                        style={{
-                            color: '#2dc275',
-                            borderColor: '#2dc275',
-                            background: 'transparent',
-                            fontWeight: 600
-                        }}
-                    >
-                        Tạo sự kiện
                     </Button>
                 </div>
 
@@ -324,7 +326,6 @@ const EventManagement = () => {
                                                 position: 'relative'
                                             }}
                                         >
-                                            {/* ✅ Hiển thị ảnh thông qua Smart Component */}
                                             <EventImage
                                                 src={event.posterUrl}
                                                 alt={event.name}
@@ -369,9 +370,8 @@ const EventManagement = () => {
                                                 >
                                                     {event.name}
                                                 </Title>
-                                                {/* Fix Warning: dùng orientation thay cho direction nếu antd yêu cầu */}
                                                 <Space
-                                                    direction='vertical'
+                                                    orientation='vertical'
                                                     size={2}
                                                     style={{ display: 'flex' }}
                                                 >
