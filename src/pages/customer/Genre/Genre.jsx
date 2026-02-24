@@ -109,11 +109,20 @@ function Genre() {
             if (currentFilters.location !== 'Toàn quốc')
                 filterString += ` and location ~~ '%${currentFilters.location}%'`;
 
-            const res = await eventApi.getAll({
+            // Chuẩn bị tham số cho API
+            const apiParams = {
                 page: currentFilters.page - 1,
                 size: pageSize,
                 filter: filterString
-            });
+            };
+
+            // Nếu không chọn thể loại (genreId trống), thêm tham số sắp xếp theo startTime
+            // Bạn có thể chọn 'startTime,asc' (tăng dần) hoặc 'startTime,desc' (giảm dần)
+            if (!currentFilters.genreId) {
+                apiParams.sort = 'startTime,asc';
+            }
+
+            const res = await eventApi.getAll(apiParams);
 
             if (res?.meta) setTotalItems(res.meta.total);
 
@@ -129,7 +138,6 @@ function Genre() {
                         now.isAfter(startEvent) &&
                         now.isBefore(dayjs(e.endTime)),
                     isPast: now.isAfter(dayjs(e.endTime)),
-                    // Cập nhật định dạng ngày ở đây: chỉ hiển thị Ngày/Tháng/Năm
                     date: startEvent.isValid()
                         ? startEvent.format('DD/MM/YYYY')
                         : 'Sắp diễn ra',
