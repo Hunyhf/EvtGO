@@ -23,13 +23,33 @@ const { Title } = Typography;
 const { Option } = Select;
 const { Dragger } = Upload;
 
-// --- PHẦN THÊM MỚI 1: URL cơ sở để truy cập ảnh từ Backend ---
 const IMAGE_BASE_URL = 'http://localhost:8080/storage/events';
 
 const getBase64 = (img, callback) => {
     const reader = new FileReader();
     reader.addEventListener('load', () => callback(reader.result));
     reader.readAsDataURL(img);
+};
+
+// --- KIỂM TRA KÍCH THƯỚC ẢNH ---
+const checkImageDimensions = (file, targetWidth, targetHeight) => {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.readAsDataURL(file);
+        reader.onload = event => {
+            const img = new Image();
+            img.src = event.target.result;
+            img.onload = () => {
+                if (img.width !== targetWidth || img.height !== targetHeight) {
+                    reject(
+                        `Kích thước ảnh phải chính xác là ${targetWidth}x${targetHeight}px! (Hiện tại: ${img.width}x${img.height}px)`
+                    );
+                } else {
+                    resolve();
+                }
+            };
+        };
+    });
 };
 
 const Step1Info = ({
@@ -47,20 +67,11 @@ const Step1Info = ({
     const [posterUrl, setPosterUrl] = useState(null);
     const [logoUrl, setLogoUrl] = useState(null);
 
-    // ----------------------------------------------------------------------
-    // LOGIC: ĐĂNG KÝ HÀM VALIDATE CHO CHA (CreateEvent) - GIỮ NGUYÊN
-    // ----------------------------------------------------------------------
     useEffect(() => {
         setOnNextAction(() => () => async () => {
             try {
                 const values = await form.validateFields();
-                const currentPoster =
-                    parentFormData.posterFile || parentFormData.images?.[0];
-                const currentLogo =
-                    parentFormData.logoFile || parentFormData.images?.[1];
-
                 if (!posterUrl) {
-                    // Kiểm tra qua state posterUrl thay vì parentFormData
                     message.error('Vui lòng tải lên ảnh nền sự kiện!');
                     return false;
                 }
@@ -85,9 +96,6 @@ const Step1Info = ({
         return () => setOnNextAction(null);
     }, [form, parentFormData, setParentFormData, setOnNextAction, posterUrl]);
 
-    // ----------------------------------------------------------------------
-    // LOGIC: KHỞI TẠO DỮ LIỆU & LẤY ẢNH TỪ DATA (HYDRATION)
-    // ----------------------------------------------------------------------
     useEffect(() => {
         const fetchInitialData = async () => {
             try {
@@ -115,19 +123,16 @@ const Step1Info = ({
                     : null
             });
 
-            // --- PHẦN THÊM MỚI 2: Logic xử lý ảnh từ mảng images của Backend ---
             if (parentFormData.images && parentFormData.images.length > 0) {
-                // 1. Tìm ảnh Poster (isCover = true) trong mảng images
                 const posterData = parentFormData.images.find(
                     img => img.isCover === true
                 );
                 if (posterData) {
                     const fullUrl = `${IMAGE_BASE_URL}/${parentFormData.id}/${posterData.url}`;
                     setPosterUrl(fullUrl);
-                    form.setFieldsValue({ poster: fullUrl }); // Cập nhật form để pass validation
+                    form.setFieldsValue({ poster: fullUrl });
                 }
 
-                // 2. Tìm ảnh Logo (Quy ước: ảnh đầu tiên không phải cover)
                 const logoData = parentFormData.images.find(
                     img => img.isCover === false
                 );
@@ -143,20 +148,27 @@ const Step1Info = ({
             if (parentFormData.district)
                 handleDistrictChange(parentFormData.district, false);
         }
-    }, [parentFormData]); // Thêm parentFormData vào dependency để cập nhật khi data từ API trả về
+    }, [parentFormData]);
 
-    // ----------------------------------------------------------------------
-    // CÁC HÀM XỬ LÝ ĐỊA LÝ & UPLOAD - GIỮ NGUYÊN NHƯ CŨ
-    // ----------------------------------------------------------------------
+    // --- CẬP NHẬT CÁC HÀM THAY ĐỔI ĐỊA CHỈ ĐỂ KHÔNG MẤT DỮ LIỆU ---
     const handleProvinceChange = async (value, resetChildren = true) => {
         const province = provinces.find(p => p.code === value);
         if (resetChildren) {
+            // Lấy toàn bộ dữ liệu đang có trong form
+            const currentValues = form.getFieldsValue();
+
             form.setFieldsValue({ district: undefined, ward: undefined });
             setDistricts([]);
             setWards([]);
+
+            // Cập nhật parentFormData kèm theo các dữ liệu cũ đã nhập
             setParentFormData(prev => ({
                 ...prev,
-                provinceName: province?.name
+                ...currentValues,
+                provinceName: province?.name,
+                province: value,
+                district: undefined,
+                ward: undefined
             }));
         }
         try {
@@ -172,11 +184,17 @@ const Step1Info = ({
     const handleDistrictChange = async (value, resetChildren = true) => {
         const district = districts.find(d => d.code === value);
         if (resetChildren) {
+            const currentValues = form.getFieldsValue();
+
             form.setFieldsValue({ ward: undefined });
             setWards([]);
+
             setParentFormData(prev => ({
                 ...prev,
-                districtName: district?.name
+                ...currentValues,
+                districtName: district?.name,
+                district: value,
+                ward: undefined
             }));
         }
         try {
@@ -191,45 +209,63 @@ const Step1Info = ({
 
     const handleWardChange = value => {
         const ward = wards.find(w => w.code === value);
-        setParentFormData(prev => ({ ...prev, wardName: ward?.name }));
+        const currentValues = form.getFieldsValue();
+
+        setParentFormData(prev => ({
+            ...prev,
+            ...currentValues,
+            wardName: ward?.name,
+            ward: value
+        }));
     };
 
-    const handleUpload = (file, type) => {
+    const handleUpload = async (file, type) => {
         if (!file.type.startsWith('image/')) {
             message.error('Chỉ được upload ảnh!');
             return Upload.LIST_IGNORE;
         }
-        getBase64(file, url => {
+
+        try {
             if (type === 'poster') {
-                setPosterUrl(url);
-                form.setFieldsValue({ poster: url });
-                setParentFormData(prev => ({
-                    ...prev,
-                    posterFile: file,
-                    poster: url
-                }));
-            } else {
-                setLogoUrl(url);
-                form.setFieldsValue({ organizerLogo: url });
-                setParentFormData(prev => ({
-                    ...prev,
-                    logoFile: file,
-                    organizerLogo: url
-                }));
+                await checkImageDimensions(file, 1280, 720);
             }
-        });
+
+            getBase64(file, url => {
+                if (type === 'poster') {
+                    setPosterUrl(url);
+                    form.setFieldsValue({ poster: url });
+                    setParentFormData(prev => ({
+                        ...prev,
+                        posterFile: file,
+                        poster: url
+                    }));
+                } else {
+                    setLogoUrl(url);
+                    form.setFieldsValue({ organizerLogo: url });
+                    setParentFormData(prev => ({
+                        ...prev,
+                        logoFile: file,
+                        organizerLogo: url
+                    }));
+                }
+            });
+        } catch (err) {
+            message.error(err);
+        }
         return false;
     };
 
     return (
         <Form form={form} layout='vertical'>
-            {/* --- ẢNH BÌA --- */}
+            {/* --- CARD ẢNH BÌA VỚI TỶ LỆ 16:9 CHUẨN --- */}
             <Card
                 style={{
                     marginBottom: 24,
                     background: '#2a2d34',
-                    borderColor: '#393f4e'
+                    borderColor: '#393f4e',
+                    overflow: 'hidden'
                 }}
+                bodyStyle={{ padding: 0 }}
             >
                 <Form.Item
                     name='poster'
@@ -244,29 +280,37 @@ const Step1Info = ({
                         beforeUpload={file => handleUpload(file, 'poster')}
                         style={{
                             background: 'rgba(255,255,255,0.02)',
-                            border: '1px dashed #393f4e'
+                            border: 'none'
                         }}
                     >
                         {posterUrl ? (
-                            <img
-                                src={posterUrl}
-                                alt='Poster'
+                            <div
                                 style={{
-                                    maxHeight: 300,
                                     width: '100%',
-                                    objectFit: 'cover',
-                                    borderRadius: 8
+                                    aspectRatio: '16/9', // Giữ tỷ lệ khung hình 16:9
+                                    overflow: 'hidden'
                                 }}
-                            />
+                            >
+                                <img
+                                    src={posterUrl}
+                                    alt='Poster'
+                                    style={{
+                                        width: '100%',
+                                        height: '100%',
+                                        objectFit: 'cover' // Ảnh sẽ phủ kín khung hình
+                                    }}
+                                />
+                            </div>
                         ) : (
                             <div
-                                style={{ padding: '40px 0', color: '#9ca6b0' }}
+                                style={{ padding: '60px 0', color: '#9ca6b0' }}
                             >
                                 <InboxOutlined
                                     style={{ color: '#2dc275', fontSize: 48 }}
                                 />
                                 <p style={{ marginTop: 16 }}>
-                                    Kéo thả hoặc chọn Ảnh Bìa (1280x720)
+                                    Kéo thả hoặc chọn Ảnh Bìa (Yêu cầu:
+                                    1280x720)
                                 </p>
                             </div>
                         )}
@@ -500,11 +544,6 @@ const Step1Info = ({
                                         size='large'
                                         onChange={handleProvinceChange}
                                         showSearch
-                                        filterOption={(input, option) =>
-                                            option.children
-                                                .toLowerCase()
-                                                .includes(input.toLowerCase())
-                                        }
                                     >
                                         {provinces.map(p => (
                                             <Option key={p.code} value={p.code}>
