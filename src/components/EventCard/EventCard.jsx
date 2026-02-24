@@ -1,5 +1,6 @@
 // src/components/EventCard/EventCard.jsx
 import { memo } from 'react';
+import { Link } from 'react-router-dom'; // Thêm import Link
 import classNames from 'classnames/bind';
 import dayjs from 'dayjs';
 import styles from './EventCard.module.scss';
@@ -36,7 +37,12 @@ const EventCard = ({ data }) => {
         : rawDate;
 
     return (
-        <div className={cx('eventCard')}>
+        // Bọc toàn bộ Card bằng Link trỏ đến /event/:id
+        <Link
+            to={`/event/${data.id}`}
+            className={cx('eventCard')}
+            onClick={() => window.scrollTo(0, 0)} // Tự động cuộn lên đầu trang khi chuyển trang
+        >
             <div className={cx('eventImage')}>
                 <img src={imageSrc} alt={eventName} loading='lazy' />
             </div>
@@ -49,7 +55,7 @@ const EventCard = ({ data }) => {
                     <span className={cx('eventDate')}>{displayDate}</span>
                 </div>
             </div>
-        </div>
+        </Link>
     );
 };
 

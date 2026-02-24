@@ -108,7 +108,6 @@ function Genre() {
             if (currentFilters.location !== 'Toàn quốc')
                 filterString += ` and location ~~ '%${currentFilters.location}%'`;
 
-            // Chuẩn bị tham số cho API
             const apiParams = {
                 page: currentFilters.page - 1,
                 size: pageSize,
@@ -116,33 +115,42 @@ function Genre() {
             };
 
             if (!currentFilters.genreId) {
-                apiParams.sort = 'startTime,asc';
+                apiParams.sort = 'startDate,asc';
             }
 
             const res = await eventApi.getAll(apiParams);
-
             if (res?.meta) setTotalItems(res.meta.total);
 
             const mappedData = (res?.result || res?.content || []).map(e => {
                 const posterObj =
                     e.images?.find(img => img.isCover) || e.images?.[0];
-                const startEvent = dayjs(e.startTime || e.startDate);
+
+                // Ghép ngày và giờ để tính toán chính xác
+                const fullStartTime = e.startDate
+                    ? `${e.startDate} ${e.startTime || '00:00:00'}`
+                    : e.startTime;
+                const startEvent = dayjs(fullStartTime);
+                const endEvent = dayjs(e.endTime);
+
                 return {
                     ...e,
                     title: e.name,
+                    // Trạng thái tự động dựa trên thời gian
                     isAutoActive:
                         e.isPublished &&
                         now.isAfter(startEvent) &&
-                        now.isBefore(dayjs(e.endTime)),
-                    isPast: now.isAfter(dayjs(e.endTime)),
+                        now.isBefore(endEvent),
+                    isPast: now.isAfter(endEvent),
                     date: startEvent.isValid()
                         ? startEvent.format('DD/MM/YYYY')
                         : 'Sắp diễn ra',
+                    // Sử dụng Helper ảnh dùng chung
                     url: getEventImageUrl(e.id, posterObj?.url)
                 };
             });
             setEvents(mappedData);
         } catch (e) {
+            console.error('Fetch Events Error:', e);
             setEvents([]);
         } finally {
             setLoading(false);
@@ -239,6 +247,7 @@ function Genre() {
                 )}
             </div>
 
+            {/* Modal Bộ lọc */}
             <Modal
                 title='Bộ lọc sự kiện'
                 open={isModalOpen}

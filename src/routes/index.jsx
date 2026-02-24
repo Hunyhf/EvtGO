@@ -16,11 +16,12 @@ import Genre from '@pages/customer/Genre/Genre';
 import Profile from '@pages/customer/Profile/Profile.jsx';
 import Ticket from '@pages/customer/Ticket/Ticket.jsx';
 import NotFound from '@pages/customer/NotFound/NotFound.jsx';
+// Import trang Chi tiết sự kiện mới
+import EventDetail from '@pages/customer/EventDetail/EventDetail';
 
-// ADMIN PAGES (Đã thêm đầy đủ 3 trang)
+// ADMIN PAGES
 import AdminDashBoard from '@pages/admin/AdminDashBoard/AdminDashBoard.jsx';
 import UserManagement from '@pages/admin/UserManagement/UserManagement.jsx';
-// Lưu ý: Đây là trang mới tạo ở bước trước
 import AdminEventManagement from '@pages/admin/EventManagement/AdminEventManagement.jsx';
 
 // ORGANIZER PAGES
@@ -34,6 +35,8 @@ import { ROLE_ID } from '@constants/roles.js';
 
 export const BREADCRUMB_LABELS = {
     '/': 'Trang chủ',
+    '/genre': 'Thể loại',
+    '/event': 'Chi tiết sự kiện', // Label cho breadcrumb chi tiết
     '/my-tickets': 'Vé của tôi',
     '/profile': 'Hồ sơ cá nhân',
     '/organizer': 'Quản lý sự kiện',
@@ -57,6 +60,7 @@ export const routes = createBrowserRouter([
                 children: [
                     { index: true, element: <Home /> },
                     { path: 'genre', element: <Genre /> },
+                    { path: 'event/:id', element: <EventDetail /> },
                     {
                         path: 'my-tickets',
                         element: (
@@ -94,7 +98,7 @@ export const routes = createBrowserRouter([
                 children: [{ index: true, element: <Staff /> }]
             },
 
-            // --- NHÓM ADMIN (Đã cập nhật đầy đủ) ---
+            // --- NHÓM ADMIN ---
             {
                 path: '/admin',
                 element: (
@@ -103,17 +107,14 @@ export const routes = createBrowserRouter([
                     </ProtectedRoute>
                 ),
                 children: [
-                    // 1. Thống kê (Dashboard) - Trang chủ của Admin
                     {
                         index: true,
                         element: <AdminDashBoard />
                     },
-                    // 2. Quản lý người dùng
                     {
                         path: 'users',
                         element: <UserManagement />
                     },
-                    // 3. Quản lý sự kiện
                     {
                         path: 'events',
                         element: <AdminEventManagement />

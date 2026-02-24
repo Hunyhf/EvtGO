@@ -1,0 +1,247 @@
+@use '@styles/variables';
+@use '@styles/mixins';
+
+.eventDetail {
+    min-height: 100vh;
+    background: #0f0c29;
+    background: linear-gradient(135deg, #0f0c29 0%, #1a1a2e 50%, #0f2e1f 100%);
+    color: #fff;
+    padding-bottom: 80px;
+
+    .wrapper {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 40px 20px;
+    }
+
+    .hero {
+        margin-bottom: 50px;
+        border-radius: 16px;
+        overflow: hidden;
+        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+
+        .infoCard {
+            background: #161b22;
+            height: 100%;
+            padding: 40px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            border-right: 1px solid rgba(255, 255, 255, 0.05);
+
+            .eventTitle {
+                color: #fff !important;
+                font-weight: 800;
+                font-size: 28px;
+                margin-bottom: 30px;
+                line-height: 1.2;
+            }
+
+            .metaList {
+                margin-bottom: 40px;
+                .metaItem {
+                    display: flex;
+                    gap: 15px;
+                    align-items: flex-start;
+                    .icon {
+                        color: #2dc275;
+                        font-size: 20px;
+                        margin-top: 3px;
+                    }
+                    .text {
+                        color: #cbd5e0;
+                        font-size: 16px;
+                    }
+                    .locName {
+                        display: block;
+                        color: #fff;
+                        font-size: 16px;
+                        margin-bottom: 4px;
+                    }
+                    .address {
+                        color: #8b949e;
+                        font-size: 14px;
+                        margin: 0;
+                    }
+                }
+            }
+
+            .priceSection {
+                margin-bottom: 25px;
+                .priceLabel {
+                    color: #8b949e;
+                    font-size: 12px;
+                    text-transform: uppercase;
+                    letter-spacing: 1px;
+                }
+                .priceValue {
+                    color: #2dc275 !important;
+                    margin: 0 !important;
+                    font-size: 32px;
+                }
+            }
+
+            .ctaBtn {
+                background: #2dc275;
+                border: none;
+                height: 55px;
+                font-weight: 700;
+                font-size: 16px;
+                box-shadow: 0 4px 14px rgba(45, 194, 117, 0.4);
+                &:hover {
+                    transform: translateY(-2px);
+                    background: #26a965;
+                }
+            }
+        }
+
+        .posterWrapper {
+            width: 100%;
+            height: 100%;
+            background: #000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+
+            .heroPoster {
+                width: 813px; // Cố định chiều rộng theo yêu cầu
+                height: 458px; // Cố định chiều cao theo yêu cầu
+                object-fit: cover;
+                display: block;
+            }
+        }
+    }
+
+    .detailCard {
+        background: rgba(255, 255, 255, 0.03);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 16px;
+        margin-bottom: 24px;
+        backdrop-filter: blur(10px);
+
+        :global(.ant-card-head) {
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+            .ant-card-head-title {
+                color: #fff;
+                font-weight: 600;
+                font-size: 18px;
+            }
+        }
+        .cardIcon {
+            color: #2dc275;
+        }
+    }
+
+    .description {
+        color: #cbd5e0;
+        line-height: 1.8;
+        font-size: 15px;
+        img {
+            max-width: 100%;
+            border-radius: 12px;
+            margin: 15px 0;
+        }
+    }
+
+    .showtimeCollapse {
+        .panelHeader {
+            display: flex;
+            justify-content: space-between;
+            width: 100%;
+            padding-right: 10px;
+            .stDate {
+                color: #fff;
+                font-size: 15px;
+            }
+            .headerPrice {
+                color: #2dc275;
+                font-weight: 600;
+            }
+        }
+
+        .ticketTiers {
+            padding: 10px 0;
+            .tierRow {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                padding: 15px 0;
+                border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+                &:last-child {
+                    border: none;
+                }
+                .tierLabel {
+                    color: #fff;
+                    font-weight: 500;
+                }
+                .tierPrice {
+                    color: #2dc275;
+                    font-weight: 700;
+                    font-size: 16px;
+                }
+                .buyBtn {
+                    border-color: #2dc275;
+                    color: #2dc275;
+                }
+            }
+        }
+    }
+
+    .miniCalendar {
+        background: transparent;
+        :global(.ant-picker-calendar-date-value) {
+            color: #fff;
+        }
+        :global(
+            .ant-picker-cell-in-view.ant-picker-cell-selected
+                .ant-picker-calendar-date-value
+        ) {
+            background: #2dc275;
+            border-color: #2dc275;
+        }
+        .activeDateIndicator {
+            width: 6px;
+            height: 6px;
+            background: #2dc275;
+            border-radius: 50%;
+            position: absolute;
+            bottom: 4px;
+            left: 50%;
+            transform: translateX(-50%);
+        }
+    }
+
+    .organizerInfo {
+        display: flex;
+        gap: 20px;
+        align-items: center;
+        .orgLogo {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 2px solid #2dc275;
+        }
+        .orgName {
+            color: #fff !important;
+            margin: 0 !important;
+        }
+        .orgSub {
+            color: #8b949e;
+            font-size: 13px;
+            display: block;
+        }
+    }
+}
+
+// Mobile Optimization
+@media (max-width: 992px) {
+    .eventDetail .hero .posterWrapper .heroPoster {
+        width: 100%;
+        height: auto;
+        aspect-ratio: 813 / 458;
+    }
+    .eventDetail .hero .infoCard {
+        padding: 25px;
+    }
+}
