@@ -455,21 +455,23 @@ const EventManagement = () => {
                                             <FileTextOutlined />
                                             <span>Đơn hàng</span>
                                         </button>
-                                        <button
-                                            style={{
-                                                ...styles.actionButton,
-                                                color: '#2dc275'
-                                            }}
-                                            className='action-btn'
-                                            onClick={() =>
-                                                navigate(
-                                                    `/organizer/events/edit/${event.id}`
-                                                )
-                                            }
-                                        >
-                                            <EditOutlined />
-                                            <span>Chỉnh sửa</span>
-                                        </button>
+                                        {activeTab === 'pending' && (
+                                            <button
+                                                style={{
+                                                    ...styles.actionButton,
+                                                    color: '#2dc275'
+                                                }}
+                                                className='action-btn'
+                                                onClick={() =>
+                                                    navigate(
+                                                        `/organizer/events/edit/${event.id}`
+                                                    )
+                                                }
+                                            >
+                                                <EditOutlined />
+                                                <span>Chỉnh sửa</span>
+                                            </button>
+                                        )}
                                     </div>
                                 </div>
                             </Col>

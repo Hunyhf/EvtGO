@@ -14,7 +14,7 @@ import Staff from '@pages/staff/Staff.jsx';
 import Home from '@pages/customer/Home/Home.jsx';
 import Genre from '@pages/customer/Genre/Genre';
 import Profile from '@pages/customer/Profile/Profile.jsx';
-import Ticket from '@pages/customer/Ticket/Ticket.jsx'; // Trang chọn vé bạn vừa yêu cầu
+import Ticket from '@pages/customer/Ticket/Ticket.jsx';
 import NotFound from '@pages/customer/NotFound/NotFound.jsx';
 import EventDetail from '@pages/customer/EventDetail/EventDetail';
 
@@ -26,7 +26,7 @@ import AdminEventManagement from '@pages/admin/EventManagement/AdminEventManagem
 // ORGANIZER PAGES
 import EventManagement from '@pages/organizer/EventManagement/EventManagement';
 import CreateEvent from '@pages/organizer/EventManagement/CreateEvent';
-
+import EditEvent from '@pages/organizer/EventManagement/EditEvent';
 // Import Protection, Context & Constants
 import ProtectedRoute from '@components/ProtectedRoute';
 import { AuthProvider } from '@contexts/AuthContext';
@@ -145,6 +145,10 @@ export const routes = createBrowserRouter([
                     {
                         path: 'events/create',
                         element: <CreateEvent />
+                    },
+                    {
+                        path: 'events/edit/:id',
+                        element: <EditEvent />
                     },
                     {
                         path: 'profile',
