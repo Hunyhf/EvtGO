@@ -170,6 +170,11 @@ const Step2Showtimes = ({
             );
 
             setIsTicketModalOpen(false);
+
+            // 👉 THÊM VÀO ĐÂY: Reset toàn bộ form sau khi đã lưu state thành công
+            ticketForm.resetFields();
+            setIsFreeTicket(false); // Reset luôn cả trạng thái checkbox Miễn phí
+
             message.success(
                 editingTicketIndex !== null
                     ? 'Cập nhật vé thành công'
