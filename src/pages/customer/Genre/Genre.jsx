@@ -100,23 +100,33 @@ function Genre() {
         setLoading(true);
         try {
             const now = dayjs();
+            // 1. Luôn giữ điều kiện cơ bản là đã publish
             let filterString = `isPublished:true`;
-            if (currentFilters.genreId)
+
+            // 2. Chỉ thêm filter genre nếu thực sự có chọn
+            if (currentFilters.genreId) {
                 filterString += ` and genre.id:${currentFilters.genreId}`;
-            if (currentFilters.q)
+            }
+
+            // 3. Xử lý tìm kiếm theo tên
+            if (currentFilters.q) {
                 filterString += ` and name ~~ '%${currentFilters.q}%'`;
-            if (currentFilters.location !== 'Toàn quốc')
+            }
+
+            // 4. QUAN TRỌNG: Chỉ lọc location nếu khác "Toàn quốc"
+            if (
+                currentFilters.location &&
+                currentFilters.location !== 'Toàn quốc'
+            ) {
                 filterString += ` and location ~~ '%${currentFilters.location}%'`;
+            }
 
             const apiParams = {
                 page: currentFilters.page - 1,
                 size: pageSize,
-                filter: filterString
+                filter: filterString,
+                sort: 'startTime,asc'
             };
-
-            if (!currentFilters.genreId) {
-                apiParams.sort = 'startDate,asc';
-            }
 
             const res = await eventApi.getAll(apiParams);
             if (res?.meta) setTotalItems(res.meta.total);
