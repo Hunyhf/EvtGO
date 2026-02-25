@@ -1,6 +1,6 @@
 // src/pages/customer/EventDetail/EventDetail.jsx
 import React, { useState, useEffect } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom'; // Cập nhật: Thêm useNavigate
 import {
     Row,
     Col,
@@ -38,9 +38,15 @@ const { Panel } = Collapse;
 
 const EventDetail = () => {
     const { id } = useParams();
+    const navigate = useNavigate(); // Cập nhật: Khởi tạo navigate
     const [event, setEvent] = useState(null);
     const [tickets, setTickets] = useState([]);
     const [loading, setLoading] = useState(true);
+
+    // Hàm xử lý chuyển hướng sang trang chọn vé
+    const handleGoToBooking = () => {
+        navigate(`/booking/${id}`); // Điều hướng đến route /booking/:eventId đã cấu trúc
+    };
 
     useEffect(() => {
         const fetchDetailData = async () => {
@@ -93,7 +99,6 @@ const EventDetail = () => {
     const lowestPrice =
         tickets.length > 0 ? Math.min(...tickets.map(t => t.price || 0)) : 0;
 
-    // Helper format thời gian
     const startTime = dayjs(
         `${event.startDate} ${event.startTime || '00:00:00'}`
     );
@@ -105,7 +110,6 @@ const EventDetail = () => {
         <main className={cx('eventDetail')}>
             <Nav />
             <div className={cx('wrapper')}>
-                {/* HERO SECTION */}
                 <section className={cx('hero')}>
                     <Row gutter={[0, 0]} align='stretch'>
                         <Col xs={24} lg={9}>
@@ -159,12 +163,14 @@ const EventDetail = () => {
                                     </Title>
                                 </div>
 
+                                {/* Cập nhật: Thêm onClick điều hướng */}
                                 <Button
                                     type='primary'
                                     size='large'
                                     block
                                     className={cx('ctaBtn')}
                                     shape='round'
+                                    onClick={handleGoToBooking}
                                 >
                                     MUA VÉ NGAY
                                 </Button>
@@ -183,7 +189,6 @@ const EventDetail = () => {
                     </Row>
                 </section>
 
-                {/* CONTENT SECTION */}
                 <section className={cx('contentBody')}>
                     <Row gutter={[24, 24]}>
                         <Col xs={24} lg={16}>
@@ -206,7 +211,7 @@ const EventDetail = () => {
                                     }}
                                 />
                             </Card>
-                            {/* DANH SÁCH VÉ - REFACTORED HEADER */}
+
                             <Card
                                 title={
                                     <Space>
@@ -303,6 +308,7 @@ const EventDetail = () => {
                                                                 )}{' '}
                                                                 đ
                                                             </Text>
+                                                            {/* Cập nhật: Thêm onClick điều hướng */}
                                                             <Button
                                                                 type='primary'
                                                                 ghost
@@ -311,6 +317,9 @@ const EventDetail = () => {
                                                                 className={cx(
                                                                     'buyBtn'
                                                                 )}
+                                                                onClick={
+                                                                    handleGoToBooking
+                                                                }
                                                             >
                                                                 Chọn
                                                             </Button>
@@ -330,7 +339,6 @@ const EventDetail = () => {
                         </Col>
 
                         <Col xs={24} lg={8}>
-                            {/* BTC SECTION */}
                             <Card
                                 title='Ban tổ chức'
                                 className={cx('detailCard')}

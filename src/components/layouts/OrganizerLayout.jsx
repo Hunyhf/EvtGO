@@ -1,5 +1,5 @@
 // src/components/layouts/OrganizerLayout.jsx
-import React, { useState } from 'react';
+import React, { useState, useContext } from 'react'; // Thêm useContext
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { Button } from 'antd';
 import {
@@ -9,15 +9,31 @@ import {
     LogoutOutlined,
     PlusOutlined
 } from '@ant-design/icons';
-import MainDashboardLayout from './MainDashboardLayout'; // Import layout chung
+import MainDashboardLayout from './MainDashboardLayout';
+import { AuthContext } from '@contexts/AuthContext'; // Import AuthContext
+import { callLogout } from '@apis/authApi'; // Import API logout
 
 function OrganizerLayout() {
     const navigate = useNavigate();
     const location = useLocation();
 
-    // === LOGIC RIÊNG CỦA ORGANIZER (Giữ nguyên logic Create Event) ===
+    // Lấy hàm logoutContext từ AuthContext
+    const { logoutContext } = useContext(AuthContext);
+
+    // === LOGIC RIÊNG CỦA ORGANIZER ===
     const [currentStep, setCurrentStep] = useState(1);
     const [onNextAction, setOnNextAction] = useState(null);
+
+    // Xử lý đăng xuất bám sát logic hệ thống
+    const handleLogout = async () => {
+        try {
+            await callLogout(); // Gọi API logout phía server
+        } catch (error) {
+            console.error('Organizer logout error:', error);
+        } finally {
+            logoutContext(); // Xóa token/user ở client và chuyển hướng về trang login/home
+        }
+    };
 
     // 1. Định nghĩa Menu cho Organizer
     const menuItems = [
@@ -49,13 +65,11 @@ function OrganizerLayout() {
             label: 'Đăng xuất',
             icon: <LogoutOutlined />,
             danger: true,
-            onClick: () => {
-                navigate('/login');
-            }
+            onClick: handleLogout
         }
     ];
 
-    // 3. Nút "Tạo sự kiện" (Chỉ hiện khi không ở trang create)
+    // 3. Nút "Tạo sự kiện"
     const extraHeaderActions =
         location.pathname !== '/organizer/events/create' ? (
             <Button
@@ -75,7 +89,6 @@ function OrganizerLayout() {
             logoLink='/organizer/events'
             extraHeaderActions={extraHeaderActions}
         >
-            {/* Truyền Context xuống các trang con */}
             <Outlet
                 context={{
                     currentStep,

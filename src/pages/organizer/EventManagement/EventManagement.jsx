@@ -17,8 +17,7 @@ import {
     EnvironmentOutlined,
     DashboardOutlined,
     TeamOutlined,
-    FileTextOutlined,
-    PlusOutlined
+    FileTextOutlined
 } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import { eventApi } from '@apis/eventApi';
@@ -129,10 +128,12 @@ const EventManagement = () => {
             const mappedData = (Array.isArray(rawData) ? rawData : []).map(
                 e => ({
                     ...e,
-                    // Tạo URL ảnh chuẩn cho từng Event
                     posterUrl: getFirstImagePoster(e.images, e.id),
                     fullStartTime: e.startDate
                         ? `${e.startDate} ${e.startTime || '00:00:00'}`
+                        : null,
+                    fullEndTime: e.endDate
+                        ? `${e.endDate} ${e.endTime || '23:59:59'}`
                         : null,
                     isApproved: e.published === true
                 })
@@ -380,10 +381,17 @@ const EventManagement = () => {
                                                         />
                                                         {dayjs(
                                                             event.fullStartTime
+                                                        ).format('HH:mm')}
+
+                                                        {' - '}
+
+                                                        {dayjs(
+                                                            event.fullEndTime
                                                         ).format(
                                                             'HH:mm - DD/MM/YYYY'
                                                         )}
                                                     </div>
+
                                                     <div
                                                         style={{
                                                             color: '#9ca6b0',

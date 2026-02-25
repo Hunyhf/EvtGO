@@ -14,9 +14,8 @@ import Staff from '@pages/staff/Staff.jsx';
 import Home from '@pages/customer/Home/Home.jsx';
 import Genre from '@pages/customer/Genre/Genre';
 import Profile from '@pages/customer/Profile/Profile.jsx';
-import Ticket from '@pages/customer/Ticket/Ticket.jsx';
+import Ticket from '@pages/customer/Ticket/Ticket.jsx'; // Trang chọn vé bạn vừa yêu cầu
 import NotFound from '@pages/customer/NotFound/NotFound.jsx';
-// Import trang Chi tiết sự kiện mới
 import EventDetail from '@pages/customer/EventDetail/EventDetail';
 
 // ADMIN PAGES
@@ -36,7 +35,8 @@ import { ROLE_ID } from '@constants/roles.js';
 export const BREADCRUMB_LABELS = {
     '/': 'Trang chủ',
     '/genre': 'Thể loại',
-    '/event': 'Chi tiết sự kiện', // Label cho breadcrumb chi tiết
+    '/event': 'Chi tiết sự kiện',
+    '/booking': 'Chọn vé', // Nhãn cho trang đặt vé mới
     '/my-tickets': 'Vé của tôi',
     '/profile': 'Hồ sơ cá nhân',
     '/organizer': 'Quản lý sự kiện',
@@ -61,11 +61,18 @@ export const routes = createBrowserRouter([
                     { index: true, element: <Home /> },
                     { path: 'genre', element: <Genre /> },
                     { path: 'event/:id', element: <EventDetail /> },
+                    // ROUTE MỚI: Trang chọn vé sau khi nhấn "Mua vé"
+                    {
+                        path: 'booking/:eventId',
+                        element: <Ticket />
+                    },
                     {
                         path: 'my-tickets',
                         element: (
                             <ProtectedRoute allowedRoles={[ROLE_ID.CUSTOMER]}>
-                                <Ticket />
+                                {/* Lưu ý: Bạn có thể cần 1 component khác cho 'Vé đã mua' 
+                                    vì Ticket hiện tại đang là trang chọn vé */}
+                                <div>Trang danh sách vé đã mua của tôi</div>
                             </ProtectedRoute>
                         )
                     },
