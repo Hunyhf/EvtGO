@@ -78,7 +78,8 @@ instance.interceptors.response.use(
             '/api/v1/auth/refresh',
             '/api/v1/auth/login',
             '/api/v1/genres',
-            '/api/v1/events'
+            '/api/v1/events',
+            '/api/v1/tickets'
         ];
 
         const isSilent = silentPaths.some(path => url.includes(path));
