@@ -1,6 +1,6 @@
 // src/components/EventCard/EventCard.jsx
 import { memo } from 'react';
-import { Link } from 'react-router-dom'; // Thêm import Link
+import { Link } from 'react-router-dom';
 import classNames from 'classnames/bind';
 import dayjs from 'dayjs';
 import styles from './EventCard.module.scss';
@@ -8,7 +8,8 @@ import styles from './EventCard.module.scss';
 const cx = classNames.bind(styles);
 
 const EventCard = ({ data }) => {
-    // Normalize dữ liệu để tương thích mock/API
+    const isPast = data.endTime ? dayjs().isAfter(dayjs(data.endTime)) : false;
+
     const imageSrc =
         data.poster ||
         data.url ||
@@ -21,7 +22,6 @@ const EventCard = ({ data }) => {
             ? `${data.startDate} ${data.startTime}`
             : data.date || data.startTime;
 
-    // Format giá hiển thị
     const formatPrice = price => {
         if (price == null || price === 0) return 'Miễn phí';
         return new Intl.NumberFormat('vi-VN', {
@@ -30,21 +30,22 @@ const EventCard = ({ data }) => {
         }).format(price);
     };
 
-    // Format ngày nếu hợp lệ
     const parsedDate = dayjs(rawDate);
     const displayDate = parsedDate.isValid()
         ? parsedDate.format('DD/MM/YYYY')
         : rawDate;
 
     return (
-        // Bọc toàn bộ Card bằng Link trỏ đến /event/:id
         <Link
             to={`/event/${data.id}`}
-            className={cx('eventCard')}
-            onClick={() => window.scrollTo(0, 0)} // Tự động cuộn lên đầu trang khi chuyển trang
+            className={cx('eventCard', { isPastCard: isPast })} // Thêm class nếu đã diễn ra
+            onClick={() => window.scrollTo(0, 0)}
         >
             <div className={cx('eventImage')}>
                 <img src={imageSrc} alt={eventName} loading='lazy' />
+
+                {/* 2. Hiển thị nhãn Đã diễn ra ở góc phải */}
+                {isPast && <div className={cx('pastLabel')}>Đã diễn ra</div>}
             </div>
             <div className={cx('eventInfo')}>
                 <h4 className={cx('eventTitle')}>{eventName}</h4>
