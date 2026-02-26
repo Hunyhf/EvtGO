@@ -14,7 +14,7 @@ import dayjs from 'dayjs';
 // Import APIs
 import { eventApi } from '@apis/eventApi';
 import { eventImageApi } from '@apis/eventImageApi';
-import { ticketApi } from '@apis/ticketApi'; // Đã thêm import ticketApi
+import { ticketApi } from '@apis/ticketApi';
 
 import Step1Info from './Step1Info';
 import Step2Showtimes from './Step2Showtimes';
@@ -31,7 +31,7 @@ const CreateEvent = () => {
     const navigate = useNavigate();
     const [loading, setLoading] = useState(false);
 
-    // 1. STATE MANAGEMENT
+    // 1. QUẢN LÝ TRẠNG THÁI (STATE)
     const [localCurrentStep, setLocalCurrentStep] = useState(() => {
         const savedStep = localStorage.getItem(STORAGE_KEY_STEP);
         return savedStep ? Number(savedStep) : 1;
@@ -53,7 +53,10 @@ const CreateEvent = () => {
                   poster: null,
                   posterFile: null,
                   organizerLogo: null,
-                  showTimes: []
+                  // Cấu trúc dữ liệu phẳng cho thời gian và vé
+                  startTime: null,
+                  endTime: null,
+                  tickets: []
               };
     });
 
@@ -62,6 +65,7 @@ const CreateEvent = () => {
     }, [localCurrentStep, setCurrentStep]);
 
     useEffect(() => {
+        // Lưu dữ liệu vào LocalStorage (loại bỏ file poster vật lý)
         const { posterFile, ...dataToSave } = formData;
         localStorage.setItem(STORAGE_KEY_DATA, JSON.stringify(dataToSave));
         localStorage.setItem(STORAGE_KEY_STEP, localCurrentStep);
@@ -80,13 +84,13 @@ const CreateEvent = () => {
         }
     };
 
-    // --- LOGIC XỬ LÝ HOÀN TẤT ---
+    // --- LOGIC XỬ LÝ HOÀN TẤT (LƯU VÀO DB) ---
     const handleFinish = async () => {
         setLoading(true);
         try {
             console.log('>>> [Final Submit] Preparing payload...');
 
-            // 1. Chuẩn bị Location
+            // 1. Chuẩn bị Địa điểm (Location)
             const parts = [
                 formData.addressDetail,
                 formData.wardName,
@@ -95,25 +99,21 @@ const CreateEvent = () => {
             ].filter(Boolean);
             const fullLocation = parts.join(', ');
 
-            // 2. Format thời gian (lấy từ suất diễn đầu tiên)
-            const firstShow =
-                formData.showTimes && formData.showTimes.length > 0
-                    ? formData.showTimes[0]
-                    : {};
-            const startDate = firstShow.startTime
-                ? dayjs(firstShow.startTime).format('YYYY-MM-DD')
+            // 2. Định dạng thời gian (Lấy trực tiếp từ formData)
+            const startDate = formData.startTime
+                ? dayjs(formData.startTime).format('YYYY-MM-DD')
                 : '';
-            const startTime = firstShow.startTime
-                ? dayjs(firstShow.startTime).format('HH:mm')
+            const startTime = formData.startTime
+                ? dayjs(formData.startTime).format('HH:mm')
                 : '';
-            const endDate = firstShow.endTime
-                ? dayjs(firstShow.endTime).format('YYYY-MM-DD')
+            const endDate = formData.endTime
+                ? dayjs(formData.endTime).format('YYYY-MM-DD')
                 : '';
-            const endTime = firstShow.endTime
-                ? dayjs(firstShow.endTime).format('HH:mm')
+            const endTime = formData.endTime
+                ? dayjs(formData.endTime).format('HH:mm')
                 : '';
 
-            // 3. Payload tạo Event (Text Only)
+            // 3. Payload tạo Event
             const finalPayload = {
                 name: formData.name,
                 description: formData.description,
@@ -122,113 +122,87 @@ const CreateEvent = () => {
                     ? dayjs(formData.permitIssuedAt).format('YYYY-MM-DD')
                     : '',
                 permitIssuedBy: formData.permitIssuedBy,
-                location: fullLocation,
+                location: fullLocation || formData.location,
                 startDate: startDate,
                 startTime: startTime,
                 endDate: endDate,
                 endTime: endTime,
                 genreId: Number(formData.genreId),
-                organizerName: formData.organizerName,
-                organizerLogo:
-                    formData.organizerLogo &&
-                    formData.organizerLogo.length < 255
-                        ? formData.organizerLogo
-                        : null
+                organizerName: formData.organizerName
             };
 
             console.log('>>> 1. Sending Event Payload:', finalPayload);
 
             // GỌI API 1: TẠO SỰ KIỆN
             const res = await eventApi.create(finalPayload);
+            const newEventId = res.data?.id || res.id;
 
-            if (res.data || res.statusCode === 201 || res.id) {
-                const newEventId = res.data?.id || res.id;
+            if (newEventId) {
                 message.success('Thông tin sự kiện đã được lưu!');
 
-                // --- GỌI API 2: TẠO VÉ (Đã thêm logic này) ---
-                console.log(
-                    '>>> 2. Preparing Tickets for Event ID:',
-                    newEventId
-                );
-
-                const allTickets = [];
-                if (formData.showTimes && formData.showTimes.length > 0) {
-                    formData.showTimes.forEach(st => {
-                        if (st.tickets && st.tickets.length > 0) {
-                            st.tickets.forEach(ticket => {
-                                allTickets.push({
-                                    totalQuantity: ticket.totalQuantity,
-                                    ticketType: ticket.ticketType,
-                                    ticketStatus: ticket.ticketStatus,
-                                    eventId: newEventId
-                                });
-                            });
-                        }
-                    });
-                }
-
-                if (allTickets.length > 0) {
+                // --- GỌI API 2: TẠO VÉ (Sử dụng mảng tickets phẳng) ---
+                if (formData.tickets && formData.tickets.length > 0) {
                     try {
-                        // Gọi API tạo từng loại vé
-                        await Promise.all(
-                            allTickets.map(t => ticketApi.create(t))
+                        console.log(
+                            '>>> 2. Creating tickets for Event ID:',
+                            newEventId
                         );
+                        const ticketRequests = formData.tickets.map(t =>
+                            ticketApi.create({
+                                totalQuantity: t.totalQuantity,
+                                ticketType: t.ticketType,
+                                ticketStatus: t.ticketStatus,
+                                price: t.price, // Trường quan trọng
+                                eventId: newEventId
+                            })
+                        );
+                        await Promise.all(ticketRequests);
                         message.success(
-                            `Đã phát hành thành công ${allTickets.length} loại vé!`
+                            `Đã phát hành thành công ${formData.tickets.length} loại vé!`
                         );
                     } catch (ticketError) {
-                        console.error('Lỗi khi tạo vé:', ticketError);
+                        console.error(
+                            'Lỗi khi tạo vé:',
+                            ticketError.response?.data || ticketError
+                        );
                         message.warning(
-                            'Sự kiện đã tạo nhưng gặp lỗi khi khởi tạo danh sách vé.'
+                            'Sự kiện đã tạo thành công nhưng gặp lỗi khi khởi tạo danh sách vé.'
                         );
                     }
                 }
 
-                // GỌI API 3: UPLOAD ẢNH POSTER (Nếu có file gốc)
-                if (formData.posterFile && newEventId) {
+                // GỌI API 3: UPLOAD ẢNH POSTER
+                if (formData.posterFile) {
                     try {
-                        console.log(
-                            '>>> 3. Uploading Poster File for Event ID:',
-                            newEventId
-                        );
                         const uploadData = new FormData();
                         uploadData.append('files', formData.posterFile);
                         uploadData.append('coverIndex', '0');
-
                         await eventImageApi.uploadEventImages(
                             newEventId,
                             uploadData
                         );
-                        message.success('Đã tải lên ảnh bìa thành công!');
+                        message.success('Đã tải lên ảnh poster thành công!');
                     } catch (imgError) {
                         console.error('Lỗi lưu ảnh:', imgError);
                         message.warning(
-                            'Sự kiện đã tạo nhưng tải ảnh bìa thất bại.'
+                            'Sự kiện đã tạo nhưng tải ảnh poster thất bại.'
                         );
                     }
                 }
 
-                // Dọn dẹp dữ liệu tạm thời
+                // Dọn dẹp dữ liệu tạm và chuyển hướng
                 localStorage.removeItem(STORAGE_KEY_DATA);
                 localStorage.removeItem(STORAGE_KEY_STEP);
-
-                setTimeout(() => {
-                    navigate('/organizer/events');
-                }, 1500);
+                navigate('/organizer/events');
             }
         } catch (error) {
             console.error('Submit Error:', error.response?.data || error);
-            const responseData = error.response?.data;
-            if (responseData && responseData.message) {
-                const msgs = responseData.message;
-                if (Array.isArray(msgs)) {
-                    msgs.forEach(msg => message.error(msg));
-                } else {
-                    message.error(msgs);
-                }
-            } else {
-                message.error('Có lỗi xảy ra khi kết nối đến server!');
-            }
+            const serverMsg = error.response?.data?.message;
+            message.error(
+                Array.isArray(serverMsg)
+                    ? serverMsg[0]
+                    : serverMsg || 'Có lỗi xảy ra khi kết nối đến máy chủ!'
+            );
         } finally {
             setLoading(false);
         }
@@ -237,6 +211,7 @@ const CreateEvent = () => {
     const handleNext = async () => {
         if (onNextAction) {
             try {
+                // triple closure hỗ trợ validate từ component con
                 const isStepValid = await onNextAction()();
                 if (!isStepValid) return;
             } catch (error) {
