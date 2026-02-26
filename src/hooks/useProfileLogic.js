@@ -4,12 +4,13 @@ import { message } from 'antd';
 import { AuthContext } from '@contexts/AuthContext';
 import { userService } from '@services/userService';
 import { callGetUserById } from '@apis/userApi';
+import axios from '@apis/axiosClient'; // Import axiosClient để gọi API upload
 
 /**
  * Hook quản lý logic trang Profile
  * - Đồng bộ dữ liệu người dùng từ server
  * - Quản lý state form chỉnh sửa thông tin cá nhân
- * - Xử lý cập nhật thông tin người dùng
+ * - Xử lý upload và cập nhật thông tin người dùng
  */
 export const useProfileLogic = () => {
     const { user, updateUserContext } = useContext(AuthContext);
@@ -24,7 +25,7 @@ export const useProfileLogic = () => {
         age: '',
         gender: 'OTHER',
         address: '',
-        avatar: ''
+        avatar: '' // Đảm bảo có trường avatar trong state
     });
 
     /**
@@ -58,7 +59,6 @@ export const useProfileLogic = () => {
                         error
                     );
 
-                    // Fallback: sử dụng dữ liệu từ context nếu API lỗi
                     if (isMounted) {
                         setFormData({
                             id: user.id || '',
@@ -67,7 +67,8 @@ export const useProfileLogic = () => {
                             phone: user.phone || '',
                             age: user.age ?? '',
                             gender: user.gender || 'OTHER',
-                            address: user.address || ''
+                            address: user.address || '',
+                            avatar: user.avatar || ''
                         });
                     }
                 }
@@ -82,8 +83,51 @@ export const useProfileLogic = () => {
     }, [user?.id]);
 
     /**
+     * Xử lý thay đổi Avatar
+     * - Upload file lên server
+     * - Cập nhật tên file vào formData
+     */
+    const handleAvatarChange = useCallback(async e => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        // Kiểm tra định dạng ảnh cơ bản
+        if (!file.type.startsWith('image/')) {
+            message.error('Vui lòng chọn tệp tin hình ảnh!');
+            return;
+        }
+
+        const uploadData = new FormData();
+        uploadData.append('file', file);
+        uploadData.append('folder', 'avatars'); // Thư mục lưu trữ trên server
+
+        try {
+            setIsUpdating(true);
+            // Gọi API upload file dựa trên FileController của Backend
+            const res = await axios.post('/api/v1/files', uploadData, {
+                headers: { 'Content-Type': 'multipart/form-data' }
+            });
+
+            // Lấy tên file từ response (tùy cấu trúc trả về của RestResponse)
+            const newAvatarName =
+                res.data?.data?.fileName || res.data?.fileName;
+
+            if (newAvatarName) {
+                setFormData(prev => ({ ...prev, avatar: newAvatarName }));
+                message.success(
+                    'Tải ảnh lên thành công! Nhấn Lưu để hoàn tất.'
+                );
+            }
+        } catch (error) {
+            console.error('Upload Avatar Error:', error);
+            message.error('Không thể tải ảnh lên. Vui lòng thử lại!');
+        } finally {
+            setIsUpdating(false);
+        }
+    }, []);
+
+    /**
      * Cập nhật giá trị input khi người dùng thay đổi form
-     * - Kiểm soát age không âm
      */
     const handleChange = useCallback(e => {
         const { name, value } = e.target;
@@ -98,9 +142,6 @@ export const useProfileLogic = () => {
 
     /**
      * Gửi request cập nhật thông tin người dùng
-     * - Validate cơ bản
-     * - Gọi API update
-     * - Đồng bộ lại AuthContext
      */
     const submitUpdate = useCallback(
         async e => {
@@ -137,5 +178,11 @@ export const useProfileLogic = () => {
         [formData, user.id, isUpdating, updateUserContext]
     );
 
-    return { formData, isUpdating, handleChange, submitUpdate };
+    return {
+        formData,
+        isUpdating,
+        handleChange,
+        submitUpdate,
+        handleAvatarChange
+    };
 };

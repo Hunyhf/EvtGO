@@ -1,26 +1,60 @@
+import { useRef } from 'react'; //
 import classNames from 'classnames/bind';
 import styles from './Profile.module.scss';
 import { useProfileLogic } from '@hooks/useProfileLogic';
 import FormGroup from '@components/Common/FormGroup';
-import { getAvatarUrl } from '@utils/imageHelper'; // Import hàm helper để lấy URL ảnh
+import { getAvatarUrl } from '@utils/imageHelper';
 
 const cx = classNames.bind(styles);
 
 function Profile() {
-    const { formData, isUpdating, handleChange, submitUpdate } =
-        useProfileLogic();
+    // Lấy handleAvatarChange từ hook đã cập nhật logic upload
+    const {
+        formData,
+        isUpdating,
+        handleChange,
+        submitUpdate,
+        handleAvatarChange
+    } = useProfileLogic();
+
+    // Tạo ref để điều khiển input file ẩn
+    const fileInputRef = useRef(null);
+
+    // Hàm kích hoạt chọn file khi nhấn vào avatar
+    const handleAvatarClick = () => {
+        if (!isUpdating) {
+            fileInputRef.current.click();
+        }
+    };
 
     return (
         <div className={cx('profile')}>
             <div className={cx('wrapper')}>
                 <h2 className={cx('title')}>Thông tin tài khoản</h2>
 
-                <div className={cx('avatarSection')}>
+                {/* Thêm sự kiện onClick và lớp phủ overlay để người dùng biết có thể đổi ảnh */}
+                <div
+                    className={cx('avatarSection')}
+                    onClick={handleAvatarClick}
+                >
                     <img
                         className={cx('avatarImg')}
-                        // Thay thế link cứng bằng dữ liệu từ formData và qua hàm helper xử lý đường dẫn
                         src={getAvatarUrl(formData.avatar)}
                         alt='Avatar'
+                    />
+
+                    {/* Lớp phủ hiển thị chữ "Đổi ảnh" khi hover (cần có trong SCSS) */}
+                    <div className={cx('avatarOverlay')}>
+                        <span>Đổi ảnh</span>
+                    </div>
+
+                    {/* Input chọn file ẩn */}
+                    <input
+                        type='file'
+                        ref={fileInputRef}
+                        onChange={handleAvatarChange}
+                        accept='image/*'
+                        style={{ display: 'none' }}
                     />
                 </div>
 
