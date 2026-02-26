@@ -27,6 +27,15 @@ function Profile() {
         }
     };
 
+    /**
+     * Logic xử lý hiển thị ảnh:
+     * 1. Nếu formData.avatar bắt đầu bằng 'blob:', đó là ảnh preview tạm thời -> Hiển thị trực tiếp.
+     * 2. Nếu không, đó là tên file từ database -> Dùng hàm getAvatarUrl để lấy link từ server.
+     */
+    const avatarSrc = formData.avatar?.startsWith('blob:')
+        ? formData.avatar
+        : getAvatarUrl(formData.id, formData.avatar);
+
     return (
         <div className={cx('profile')}>
             <div className={cx('wrapper')}>
@@ -40,7 +49,7 @@ function Profile() {
                 >
                     <img
                         className={cx('avatarImg')}
-                        src={getAvatarUrl(formData.id, formData.avatar)}
+                        src={avatarSrc}
                         alt='Avatar'
                     />
 
