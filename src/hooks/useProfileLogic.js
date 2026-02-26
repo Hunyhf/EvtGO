@@ -23,7 +23,8 @@ export const useProfileLogic = () => {
         phone: '',
         age: '',
         gender: 'OTHER',
-        address: ''
+        address: '',
+        avatar: ''
     });
 
     /**
@@ -47,7 +48,8 @@ export const useProfileLogic = () => {
                             phone: userData.phone || user.phone || '',
                             age: userData.age ?? user.age ?? '',
                             gender: userData.gender || user.gender || 'OTHER',
-                            address: userData.address || user.address || ''
+                            address: userData.address || user.address || '',
+                            avatar: userData.avatar || user.avatar || ''
                         });
                     }
                 } catch (error) {

@@ -2,6 +2,7 @@ import classNames from 'classnames/bind';
 import styles from './Profile.module.scss';
 import { useProfileLogic } from '@hooks/useProfileLogic';
 import FormGroup from '@components/Common/FormGroup';
+import { getAvatarUrl } from '@utils/imageHelper'; // Import hàm helper để lấy URL ảnh
 
 const cx = classNames.bind(styles);
 
@@ -17,7 +18,8 @@ function Profile() {
                 <div className={cx('avatarSection')}>
                     <img
                         className={cx('avatarImg')}
-                        src='https://static.ticketbox.vn/avatar.png'
+                        // Thay thế link cứng bằng dữ liệu từ formData và qua hàm helper xử lý đường dẫn
+                        src={getAvatarUrl(formData.avatar)}
                         alt='Avatar'
                     />
                 </div>
@@ -26,7 +28,7 @@ function Profile() {
                     <FormGroup
                         label='Họ tên'
                         name='name'
-                        value={formData.name || ''} // Sửa: Thêm fallback chuỗi rỗng
+                        value={formData.name || ''}
                         onChange={handleChange}
                         placeholder='Nhập họ và tên'
                         className={cx('formGroup')}
@@ -35,7 +37,7 @@ function Profile() {
                     <FormGroup
                         label='Email'
                         name='email'
-                        value={formData.email || ''} // Sửa: Thêm fallback chuỗi rỗng
+                        value={formData.email || ''}
                         readOnly
                         className={cx('formGroup')}
                     />
@@ -44,7 +46,7 @@ function Profile() {
                         label='Tuổi'
                         name='age'
                         type='number'
-                        value={formData.age ?? ''} // Sửa: Dùng ?? để giữ giá trị 0
+                        value={formData.age ?? ''}
                         onChange={handleChange}
                         placeholder='Nhập tuổi'
                         className={cx('formGroup')}
@@ -53,7 +55,7 @@ function Profile() {
                     <FormGroup
                         label='Địa chỉ'
                         name='address'
-                        value={formData.address || ''} // Sửa: Thêm fallback chuỗi rỗng
+                        value={formData.address || ''}
                         onChange={handleChange}
                         placeholder='Nhập địa chỉ cư trú'
                         className={cx('formGroup')}
