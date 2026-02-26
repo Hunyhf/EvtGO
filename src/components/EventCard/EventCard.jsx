@@ -22,12 +22,16 @@ const EventCard = ({ data }) => {
             ? `${data.startDate} ${data.startTime}`
             : data.date || data.startTime;
 
+    // Cập nhật hàm formatPrice để thêm chữ "Giá từ"
     const formatPrice = price => {
         if (price == null || price === 0) return 'Miễn phí';
-        return new Intl.NumberFormat('vi-VN', {
+
+        const formatted = new Intl.NumberFormat('vi-VN', {
             style: 'currency',
             currency: 'VND'
         }).format(price);
+
+        return `Giá từ: ${formatted}`; // Thêm tiền tố "Giá từ: "
     };
 
     const parsedDate = dayjs(rawDate);
@@ -38,13 +42,11 @@ const EventCard = ({ data }) => {
     return (
         <Link
             to={`/event/${data.id}`}
-            className={cx('eventCard', { isPastCard: isPast })} // Thêm class nếu đã diễn ra
+            className={cx('eventCard', { isPastCard: isPast })}
             onClick={() => window.scrollTo(0, 0)}
         >
             <div className={cx('eventImage')}>
                 <img src={imageSrc} alt={eventName} loading='lazy' />
-
-                {/* 2. Hiển thị nhãn Đã diễn ra ở góc phải */}
                 {isPast && <div className={cx('pastLabel')}>Đã diễn ra</div>}
             </div>
             <div className={cx('eventInfo')}>

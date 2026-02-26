@@ -22,6 +22,7 @@ import styles from './Genre.module.scss';
 import EventCard from '@components/EventCard/EventCard';
 import { eventApi } from '@apis/eventApi';
 import { genresApi } from '@apis/genresApi';
+import { ticketApi } from '@apis/ticketApi'; // 1. Import ticketApi
 import { getEventImageUrl } from '@utils/imageHelper';
 
 const cx = classNames.bind(styles);
@@ -100,20 +101,16 @@ function Genre() {
         setLoading(true);
         try {
             const now = dayjs();
-            // 1. Luôn giữ điều kiện cơ bản là đã publish
             let filterString = `isPublished:true`;
 
-            // 2. Chỉ thêm filter genre nếu thực sự có chọn
             if (currentFilters.genreId) {
                 filterString += ` and genre.id:${currentFilters.genreId}`;
             }
 
-            // 3. Xử lý tìm kiếm theo tên
             if (currentFilters.q) {
                 filterString += ` and name ~~ '%${currentFilters.q}%'`;
             }
 
-            // 4. QUAN TRỌNG: Chỉ lọc location nếu khác "Toàn quốc"
             if (
                 currentFilters.location &&
                 currentFilters.location !== 'Toàn quốc'
@@ -131,33 +128,54 @@ function Genre() {
             const res = await eventApi.getAll(apiParams);
             if (res?.meta) setTotalItems(res.meta.total);
 
-            const mappedData = (res?.result || res?.content || []).map(e => {
-                const posterObj =
-                    e.images?.find(img => img.isCover) || e.images?.[0];
+            // 2. Sử dụng Promise.all để lấy giá vé STANDARD song song cho từng sự kiện
+            const eventsList = res?.result || res?.content || [];
+            const mappedData = await Promise.all(
+                eventsList.map(async e => {
+                    let standardPrice = 0;
+                    try {
+                        // Gọi API lấy vé của event hiện tại, lọc theo ticketType là STANDARD
+                        const ticketRes = await ticketApi.getAll({
+                            filter: `event.id:${e.id} and ticketType:'STANDARD'`
+                        });
+                        const tickets =
+                            ticketRes?.result || ticketRes?.content || [];
+                        if (tickets.length > 0) {
+                            standardPrice = tickets[0].price; // Lấy giá từ bảng tickets
+                        }
+                    } catch (ticketErr) {
+                        console.error(
+                            `Lỗi lấy giá vé cho event ${e.id}:`,
+                            ticketErr
+                        );
+                    }
 
-                // Ghép ngày và giờ để tính toán chính xác
-                const fullStartTime = e.startDate
-                    ? `${e.startDate} ${e.startTime || '00:00:00'}`
-                    : e.startTime;
-                const startEvent = dayjs(fullStartTime);
-                const endEvent = dayjs(e.endTime);
+                    const posterObj =
+                        e.images?.find(img => img.isCover) || e.images?.[0];
 
-                return {
-                    ...e,
-                    title: e.name,
-                    // Trạng thái tự động dựa trên thời gian
-                    isAutoActive:
-                        e.isPublished &&
-                        now.isAfter(startEvent) &&
-                        now.isBefore(endEvent),
-                    isPast: now.isAfter(endEvent),
-                    date: startEvent.isValid()
-                        ? startEvent.format('DD/MM/YYYY')
-                        : 'Sắp diễn ra',
-                    // Sử dụng Helper ảnh dùng chung
-                    url: getEventImageUrl(e.id, posterObj?.url)
-                };
-            });
+                    const fullStartTime = e.startDate
+                        ? `${e.startDate} ${e.startTime || '00:00:00'}`
+                        : e.startTime;
+                    const startEvent = dayjs(fullStartTime);
+                    const endEvent = dayjs(e.endTime);
+
+                    return {
+                        ...e,
+                        title: e.name,
+                        price: standardPrice, // 3. Gán giá vé vào data để EventCard sử dụng
+                        isAutoActive:
+                            e.isPublished &&
+                            now.isAfter(startEvent) &&
+                            now.isBefore(endEvent),
+                        isPast: now.isAfter(endEvent),
+                        date: startEvent.isValid()
+                            ? startEvent.format('DD/MM/YYYY')
+                            : 'Sắp diễn ra',
+                        url: getEventImageUrl(e.id, posterObj?.url)
+                    };
+                })
+            );
+
             setEvents(mappedData);
         } catch (e) {
             console.error('Fetch Events Error:', e);
