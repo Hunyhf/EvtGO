@@ -1,4 +1,4 @@
-import { useRef } from 'react'; //
+import { useRef } from 'react';
 import classNames from 'classnames/bind';
 import styles from './Profile.module.scss';
 import { useProfileLogic } from '@hooks/useProfileLogic';
@@ -8,7 +8,7 @@ import { getAvatarUrl } from '@utils/imageHelper';
 const cx = classNames.bind(styles);
 
 function Profile() {
-    // Lấy handleAvatarChange từ hook đã cập nhật logic upload
+    // Lấy dữ liệu và các hàm xử lý từ hook useProfileLogic
     const {
         formData,
         isUpdating,
@@ -20,7 +20,7 @@ function Profile() {
     // Tạo ref để điều khiển input file ẩn
     const fileInputRef = useRef(null);
 
-    // Hàm kích hoạt chọn file khi nhấn vào avatar
+    // Hàm kích hoạt chọn file khi nhấn vào vùng avatar
     const handleAvatarClick = () => {
         if (!isUpdating) {
             fileInputRef.current.click();
@@ -32,23 +32,24 @@ function Profile() {
             <div className={cx('wrapper')}>
                 <h2 className={cx('title')}>Thông tin tài khoản</h2>
 
-                {/* Thêm sự kiện onClick và lớp phủ overlay để người dùng biết có thể đổi ảnh */}
+                {/* Phần hiển thị Avatar */}
                 <div
                     className={cx('avatarSection')}
                     onClick={handleAvatarClick}
+                    title='Nhấn để đổi ảnh đại diện'
                 >
                     <img
                         className={cx('avatarImg')}
-                        src={getAvatarUrl(formData.avatar)}
+                        src={getAvatarUrl(formData.id, formData.avatar)}
                         alt='Avatar'
                     />
 
-                    {/* Lớp phủ hiển thị chữ "Đổi ảnh" khi hover (cần có trong SCSS) */}
+                    {/* Lớp phủ hiển thị chữ "Đổi ảnh" khi di chuột vào */}
                     <div className={cx('avatarOverlay')}>
                         <span>Đổi ảnh</span>
                     </div>
 
-                    {/* Input chọn file ẩn */}
+                    {/* Input chọn file ẩn (chỉ chấp nhận định dạng ảnh) */}
                     <input
                         type='file'
                         ref={fileInputRef}

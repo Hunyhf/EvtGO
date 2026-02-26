@@ -84,7 +84,7 @@ export const useProfileLogic = () => {
 
     /**
      * Xử lý thay đổi Avatar
-     * - Upload file lên server
+     * - Upload file lên server với thư mục theo ID người dùng
      * - Cập nhật tên file vào formData
      * - Tự động lưu Database
      */
@@ -101,7 +101,8 @@ export const useProfileLogic = () => {
 
             const uploadData = new FormData();
             uploadData.append('file', file);
-            uploadData.append('folder', 'avatars'); // Thư mục lưu trữ trên server
+
+            uploadData.append('folder', `avatars/${user.id}`);
 
             try {
                 setIsUpdating(true);
@@ -110,7 +111,7 @@ export const useProfileLogic = () => {
                     headers: { 'Content-Type': 'multipart/form-data' }
                 });
 
-                // Lấy tên file từ response (tùy cấu trúc trả về của RestResponse)
+                // Lấy tên file từ response
                 const newAvatarName =
                     res.data?.data?.fileName || res.data?.fileName;
 
@@ -119,15 +120,14 @@ export const useProfileLogic = () => {
                     setFormData(prev => ({ ...prev, avatar: newAvatarName }));
                     updateUserContext({ avatar: newAvatarName });
 
-                    // 👉 THÊM: Tự động gọi API cập nhật User vào Database
+                    // Tự động gọi API cập nhật User vào Database ngay sau khi upload thành công
                     const payload = {
-                        ...formData, // lấy các thông tin cũ trên form
-                        avatar: newAvatarName, // đè tên ảnh mới vào
+                        ...formData,
+                        avatar: newAvatarName,
                         age: Number(formData.age) || 0
                     };
 
                     await userService.updateProfile(payload, user.id);
-                    // Thông báo riêng cho ảnh đại diện
                     message.success('Cập nhật ảnh đại diện thành công!');
                 }
             } catch (error) {
@@ -137,7 +137,7 @@ export const useProfileLogic = () => {
                 setIsUpdating(false);
             }
         },
-        [formData, user.id, updateUserContext] // Cập nhật dependencies
+        [formData, user.id, updateUserContext]
     );
 
     /**
@@ -176,7 +176,6 @@ export const useProfileLogic = () => {
                 );
 
                 if (updatedData) {
-                    // updatedData sẽ bao gồm cả avatar do BE mới trả về
                     updateUserContext(updatedData);
                     message.success('Cập nhật thông tin thành công!');
                 }

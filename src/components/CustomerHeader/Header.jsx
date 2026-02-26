@@ -13,6 +13,7 @@ import HomeIcon from '@icons/svgs/homeIcon.svg?react';
 import { AuthContext } from '@contexts/AuthContext';
 import { callLogout } from '@apis/authApi';
 import { useSearch } from '@hooks/useSearch';
+import { getAvatarUrl } from '@utils/imageHelper';
 
 const cx = classNames.bind(styles);
 
@@ -20,7 +21,9 @@ const cx = classNames.bind(styles);
 function Header() {
     const [showAuthModal, setShowAuthModal] = useState(false);
     const { pathname } = useLocation();
-    const { isAuthenticated, logoutContext } = useContext(AuthContext);
+
+    const { isAuthenticated, user, logoutContext } = useContext(AuthContext);
+
     const searchRef = useRef(null);
 
     // Custom hook quản lý logic tìm kiếm + lịch sử
@@ -90,7 +93,6 @@ function Header() {
                     <div className={cx('headerRight')}>
                         {/* ===== Search Bar ===== */}
                         <div className={cx('headerSearch')} ref={searchRef}>
-                            {/* Icon search (mở mobile search hoặc submit) */}
                             <div
                                 className={cx('headerSearchIcon')}
                                 onClick={() =>
@@ -102,7 +104,6 @@ function Header() {
                                 <SearchIcon />
                             </div>
 
-                            {/* Input tìm kiếm */}
                             <input
                                 className={cx('headerSearchInput')}
                                 placeholder='Search...'
@@ -114,7 +115,6 @@ function Header() {
                                 }
                             />
 
-                            {/* Dropdown lịch sử tìm kiếm */}
                             {showHistory && searchHistory.length > 0 && (
                                 <div className={cx('searchHistory')}>
                                     <div className={cx('searchHistoryTitle')}>
@@ -153,7 +153,6 @@ function Header() {
 
                             <span className={cx('headerDivider')}>|</span>
 
-                            {/* Nút tìm kiếm */}
                             <button
                                 type='button'
                                 className={cx('headerSearchBtn')}
@@ -165,7 +164,6 @@ function Header() {
 
                         {/* ===== Khu vực user / guest ===== */}
                         <div className={cx('headerActions')}>
-                            {/* Link vé của tôi */}
                             <Link
                                 to='/my-tickets'
                                 className={cx('headerTickets')}
@@ -181,7 +179,7 @@ function Header() {
                                 <div className={cx('headerUser')}>
                                     <img
                                         className={cx('userAvatar')}
-                                        src='https://static.ticketbox.vn/avatar.png'
+                                        src={getAvatarUrl(user.id, user.avatar)}
                                         alt='avatar'
                                     />
                                     <span className={cx('textHide')}>
@@ -268,7 +266,6 @@ function Header() {
                         />
                     </div>
 
-                    {/* Lịch sử tìm kiếm mobile */}
                     <div className={cx('mobileSearchBody')}>
                         <div className={cx('searchHistoryTitle')}>
                             Tìm kiếm gần đây
@@ -338,7 +335,6 @@ function Header() {
                 </Link>
             </nav>
 
-            {/* Modal đăng nhập / đăng ký */}
             <AuthModal
                 isOpen={showAuthModal}
                 onClose={() => setShowAuthModal(false)}
