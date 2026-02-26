@@ -1,5 +1,5 @@
 // src/components/layouts/MainDashboardLayout.jsx
-import React, { useState } from 'react';
+import React, { useState, useContext } from 'react'; // Thêm useContext
 import { useLocation, useNavigate } from 'react-router-dom';
 import {
     Layout,
@@ -17,6 +17,10 @@ import {
     UserOutlined
 } from '@ant-design/icons';
 
+// Import AuthContext và helper xử lý ảnh
+import { AuthContext } from '@contexts/AuthContext';
+import { getAvatarUrl } from '@utils/imageHelper';
+
 const { Header, Sider, Content } = Layout;
 
 // Cấu hình màu sắc chung
@@ -27,12 +31,6 @@ const SIDER_WIDTH = 250;
 
 /**
  * MainDashboardLayout: Khung giao diện chung cho cả Admin và Organizer
- * @param {Array} menuItems - Danh sách menu bên trái
- * @param {Array} userMenuItems - Danh sách menu dropdown của User
- * @param {String} logoTitle - Chữ hiển thị ở Logo (VD: EvtGO Organizer)
- * @param {String} logoLink - Đường dẫn khi bấm vào logo
- * @param {ReactNode} children - Nội dung thay đổi (Outlet)
- * @param {ReactNode} extraHeaderActions - Các nút bấm thêm ở Header (VD: Nút "Tạo sự kiện")
  */
 const MainDashboardLayout = ({
     menuItems,
@@ -45,6 +43,9 @@ const MainDashboardLayout = ({
     const [collapsed, setCollapsed] = useState(false);
     const navigate = useNavigate();
     const location = useLocation();
+
+    // Lấy thông tin user từ context
+    const { user } = useContext(AuthContext);
 
     // Tự động chọn menu dựa trên URL hiện tại
     const selectedKey = location.pathname;
@@ -159,7 +160,6 @@ const MainDashboardLayout = ({
                         />
 
                         <Space size='middle'>
-                            {/* Khu vực nút bấm tùy chỉnh (VD: Tạo sự kiện) */}
                             {extraHeaderActions}
 
                             <Dropdown
@@ -172,13 +172,19 @@ const MainDashboardLayout = ({
                                         color: TEXT_COLOR
                                     }}
                                 >
+                                    {/* Hiển thị Avatar từ dữ liệu người dùng */}
                                     <Avatar
+                                        src={getAvatarUrl(
+                                            user?.id,
+                                            user?.avatar
+                                        )}
                                         icon={<UserOutlined />}
                                         style={{
-                                            backgroundColor: PRIMARY_COLOR
+                                            backgroundColor: SECONDARY_COLOR
                                         }}
                                     />
-                                    <span>User Name</span>
+                                    {/* Hiển thị tên người dùng từ context */}
+                                    <span>{user?.name || 'User'}</span>
                                 </Space>
                             </Dropdown>
                         </Space>

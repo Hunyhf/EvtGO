@@ -22,7 +22,6 @@ const EventCard = ({ data }) => {
             ? `${data.startDate} ${data.startTime}`
             : data.date || data.startTime;
 
-    // Cập nhật hàm formatPrice để thêm chữ "Giá từ"
     const formatPrice = price => {
         if (price == null || price === 0) return 'Miễn phí';
 
@@ -31,7 +30,7 @@ const EventCard = ({ data }) => {
             currency: 'VND'
         }).format(price);
 
-        return `Giá từ: ${formatted}`; // Thêm tiền tố "Giá từ: "
+        return `Giá từ: ${formatted}`;
     };
 
     const parsedDate = dayjs(rawDate);
