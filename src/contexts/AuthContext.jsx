@@ -29,6 +29,7 @@ export const AuthProvider = ({ children }) => {
         age: '',
         address: '',
         gender: '',
+        avatar: '', // THÊM KHỞI TẠO AVATAR
         role_id: null
     });
     const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -44,7 +45,7 @@ export const AuthProvider = ({ children }) => {
 
     const saveExtraInfoToCookies = userData => {
         const expires = 1;
-        // SỬA LỖI: Kiểm tra khác undefined để số 0 vẫn được lưu vào cookie
+        // Kiểm tra khác undefined để số 0 vẫn được lưu vào cookie
         if (userData?.age !== undefined && userData?.age !== null) {
             Cookies.set('u_age', userData.age, { expires });
         }
@@ -53,6 +54,10 @@ export const AuthProvider = ({ children }) => {
         }
         if (userData?.gender) {
             Cookies.set('u_gender', userData.gender, { expires });
+        }
+        // THÊM LƯU AVATAR VÀO COOKIE
+        if (userData?.avatar) {
+            Cookies.set('u_avatar', userData.avatar, { expires });
         }
     };
 
@@ -102,12 +107,14 @@ export const AuthProvider = ({ children }) => {
                 setUser({
                     ...serverUser,
                     role_id: roleId,
-                    // SỬA LỖI: Dùng ?? (Nullish Coalescing) để ưu tiên giá trị 0 thay vì chuỗi rỗng
+                    // Dùng ?? (Nullish Coalescing) để ưu tiên giá trị 0 thay vì chuỗi rỗng
                     age: serverUser.age ?? Cookies.get('u_age') ?? '',
                     address:
                         serverUser.address || Cookies.get('u_address') || '',
                     gender:
-                        serverUser.gender || Cookies.get('u_gender') || 'MALE'
+                        serverUser.gender || Cookies.get('u_gender') || 'MALE',
+                    // THÊM ĐỒNG BỘ AVATAR TỪ SERVER HOẶC COOKIE
+                    avatar: serverUser.avatar || Cookies.get('u_avatar') || ''
                 });
                 setIsAuthenticated(true);
 
@@ -141,13 +148,15 @@ export const AuthProvider = ({ children }) => {
             age: '',
             address: '',
             gender: '',
+            avatar: '', // XÓA SẠCH AVATAR KHI LOGOUT
             role_id: null
-        }); // Xóa sạch dữ liệu
+        });
         Cookies.remove('access_token', { path: '/' });
         Cookies.remove('backup_role_id', { path: '/' });
         Cookies.remove('u_age');
         Cookies.remove('u_address');
         Cookies.remove('u_gender');
+        Cookies.remove('u_avatar'); // XÓA COOKIE AVATAR
         navigate('/');
     };
 

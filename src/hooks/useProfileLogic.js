@@ -86,45 +86,59 @@ export const useProfileLogic = () => {
      * Xử lý thay đổi Avatar
      * - Upload file lên server
      * - Cập nhật tên file vào formData
+     * - Tự động lưu Database
      */
-    const handleAvatarChange = useCallback(async e => {
-        const file = e.target.files?.[0];
-        if (!file) return;
+    const handleAvatarChange = useCallback(
+        async e => {
+            const file = e.target.files?.[0];
+            if (!file) return;
 
-        // Kiểm tra định dạng ảnh cơ bản
-        if (!file.type.startsWith('image/')) {
-            message.error('Vui lòng chọn tệp tin hình ảnh!');
-            return;
-        }
-
-        const uploadData = new FormData();
-        uploadData.append('file', file);
-        uploadData.append('folder', 'avatars'); // Thư mục lưu trữ trên server
-
-        try {
-            setIsUpdating(true);
-            // Gọi API upload file dựa trên FileController của Backend
-            const res = await axios.post('/api/v1/files', uploadData, {
-                headers: { 'Content-Type': 'multipart/form-data' }
-            });
-
-            // Lấy tên file từ response (tùy cấu trúc trả về của RestResponse)
-            const newAvatarName =
-                res.data?.data?.fileName || res.data?.fileName;
-
-            if (newAvatarName) {
-                setFormData(prev => ({ ...prev, avatar: newAvatarName }));
-                message.success(
-                    'Tải ảnh lên thành công! Nhấn Lưu để hoàn tất.'
-                );
+            // Kiểm tra định dạng ảnh cơ bản
+            if (!file.type.startsWith('image/')) {
+                message.error('Vui lòng chọn tệp tin hình ảnh!');
+                return;
             }
-        } catch (error) {
-            console.error('Upload Avatar Error:', error);
-            message.error('Không thể tải ảnh lên. Vui lòng thử lại!');
-        } finally {
-            setIsUpdating(false);
-        }
-    }, []);
+
+            const uploadData = new FormData();
+            uploadData.append('file', file);
+            uploadData.append('folder', 'avatars'); // Thư mục lưu trữ trên server
+
+            try {
+                setIsUpdating(true);
+                // Gọi API upload file dựa trên FileController của Backend
+                const res = await axios.post('/api/v1/files', uploadData, {
+                    headers: { 'Content-Type': 'multipart/form-data' }
+                });
+
+                // Lấy tên file từ response (tùy cấu trúc trả về của RestResponse)
+                const newAvatarName =
+                    res.data?.data?.fileName || res.data?.fileName;
+
+                if (newAvatarName) {
+                    // Cập nhật State và Context hiển thị UI tạm thời
+                    setFormData(prev => ({ ...prev, avatar: newAvatarName }));
+                    updateUserContext({ avatar: newAvatarName });
+
+                    // 👉 THÊM: Tự động gọi API cập nhật User vào Database
+                    const payload = {
+                        ...formData, // lấy các thông tin cũ trên form
+                        avatar: newAvatarName, // đè tên ảnh mới vào
+                        age: Number(formData.age) || 0
+                    };
+
+                    await userService.updateProfile(payload, user.id);
+                    // Thông báo riêng cho ảnh đại diện
+                    message.success('Cập nhật ảnh đại diện thành công!');
+                }
+            } catch (error) {
+                console.error('Upload Avatar Error:', error);
+                message.error('Không thể tải ảnh lên. Vui lòng thử lại!');
+            } finally {
+                setIsUpdating(false);
+            }
+        },
+        [formData, user.id, updateUserContext] // Cập nhật dependencies
+    );
 
     /**
      * Cập nhật giá trị input khi người dùng thay đổi form
@@ -162,6 +176,7 @@ export const useProfileLogic = () => {
                 );
 
                 if (updatedData) {
+                    // updatedData sẽ bao gồm cả avatar do BE mới trả về
                     updateUserContext(updatedData);
                     message.success('Cập nhật thông tin thành công!');
                 }

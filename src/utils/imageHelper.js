@@ -4,7 +4,6 @@ const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080';
 export const getEventImageUrl = (eventId, fileName) => {
     if (!fileName) return 'https://placehold.co/400x600?text=No+Image';
 
-    // Nếu fileName đã là một URL tuyệt đối (ví dụ link ảnh từ web khác)
     if (fileName.startsWith('http')) return fileName;
 
     // Cấu trúc chuẩn theo Backend: /storage/events/{eventId}/{fileName}
