@@ -5,7 +5,6 @@ import {
     Input,
     DatePicker,
     Button,
-    Collapse,
     Row,
     Col,
     Checkbox,
@@ -16,110 +15,77 @@ import {
     Card,
     Tag,
     Select,
-    message,
-    theme
+    message
 } from 'antd';
 import {
     PlusOutlined,
-    CalendarOutlined,
     DeleteOutlined,
-    EditOutlined
+    EditOutlined,
+    AuditOutlined,
+    CalendarOutlined
 } from '@ant-design/icons';
 import dayjs from 'dayjs';
 
 const { Title, Text } = Typography;
-const { Panel } = Collapse;
 const { TextArea } = Input;
 const { Option } = Select;
 
-const Step2Showtimes = ({
-    setOnNextAction,
-    formData,
-    setFormData,
-    nextStep // Prop này thực tế không cần dùng trong hàm validate nữa
-}) => {
-    const { token } = theme.useToken();
-
-    // --- STATE QUẢN LÝ DỮ LIỆU ---
-    const [showTimes, setShowTimes] = useState(
-        formData?.showTimes?.length > 0
-            ? formData.showTimes
-            : [{ id: Date.now(), startTime: null, endTime: null, tickets: [] }]
-    );
+const Step2Showtimes = ({ setOnNextAction, formData, setFormData }) => {
+    // --- STATE QUẢN LÝ DỮ LIỆU VÉ ---
+    const [tickets, setTickets] = useState(formData?.tickets || []);
 
     const [isTicketModalOpen, setIsTicketModalOpen] = useState(false);
-    const [currentShowtimeId, setCurrentShowtimeId] = useState(null);
     const [editingTicketIndex, setEditingTicketIndex] = useState(null);
     const [ticketForm] = Form.useForm();
     const [isFreeTicket, setIsFreeTicket] = useState(false);
 
     // ----------------------------------------------------------------------
-    // LOGIC: ĐĂNG KÝ HÀM VALIDATE CHO CHA (ĐÃ SỬA)
+    // LOGIC: ĐĂNG KÝ HÀM VALIDATE CHO CHA (CreateEvent.jsx)
     // ----------------------------------------------------------------------
     useEffect(() => {
-        // Sử dụng triple closure để tương thích với CreateEvent: await onNextAction()()
         setOnNextAction(() => () => async () => {
-            const isValid = showTimes.every(
-                st => st.startTime && st.endTime && st.tickets.length > 0
-            );
-
-            if (!isValid) {
+            // 1. Kiểm tra thời gian sự kiện
+            if (!formData.startTime || !formData.endTime) {
                 message.error(
-                    'Vui lòng nhập đầy đủ thời gian và tạo ít nhất 1 loại vé cho mỗi suất diễn!'
+                    'Vui lòng chọn thời gian bắt đầu và kết thúc sự kiện!'
                 );
-                return false; // Trả về false để Cha không chuyển bước
+                return false;
             }
 
-            // Cập nhật dữ liệu vào state tổng
-            setFormData(prev => ({ ...prev, showTimes }));
+            // 2. Kiểm tra danh sách vé
+            if (tickets.length === 0) {
+                message.error('Vui lòng tạo ít nhất 1 loại vé cho sự kiện!');
+                return false;
+            }
 
-            return true; // Trả về true để Cha tự gọi nextStep()
+            // Cập nhật mảng tickets vào formData tổng trước khi chuyển bước
+            setFormData(prev => ({ ...prev, tickets }));
+            return true;
         });
 
-        // Cleanup: Reset hành động khi rời khỏi component
         return () => setOnNextAction(null);
-    }, [showTimes, setFormData, setOnNextAction]);
+    }, [
+        tickets,
+        formData.startTime,
+        formData.endTime,
+        setFormData,
+        setOnNextAction
+    ]);
 
-    // --- CÁC HÀM XỬ LÝ LOGIC ---
-    const addShowtime = () => {
-        setShowTimes([
-            ...showTimes,
-            { id: Date.now(), startTime: null, endTime: null, tickets: [] }
-        ]);
+    // --- HÀM XỬ LÝ THỜI GIAN SỰ KIỆN ---
+    const handleTimeChange = (field, value) => {
+        setFormData(prev => ({
+            ...prev,
+            [field]: value ? value.toISOString() : null
+        }));
     };
 
-    const removeShowtime = id => {
-        if (showTimes.length === 1) {
-            message.warning('Cần ít nhất một suất diễn!');
-            return;
-        }
-        setShowTimes(showTimes.filter(st => st.id !== id));
-    };
+    // --- CÁC HÀM XỬ LÝ VÉ ---
+    const openTicketModal = (index = null) => {
+        setEditingTicketIndex(index);
 
-    const updateShowtimeTime = (id, field, value) => {
-        setShowTimes(prev =>
-            prev.map(st =>
-                st.id === id
-                    ? { ...st, [field]: value ? value.toISOString() : null }
-                    : st
-            )
-        );
-    };
-
-    const openTicketModal = (showtimeId, ticketIndex = null) => {
-        const currentShowtime = showTimes.find(st => st.id === showtimeId);
-        if (!currentShowtime?.endTime) {
-            message.error(
-                'Vui lòng chọn thời gian kết thúc sự kiện trước khi tạo vé!'
-            );
-            return;
-        }
-
-        setCurrentShowtimeId(showtimeId);
-        setEditingTicketIndex(ticketIndex);
-
-        if (ticketIndex !== null) {
-            const ticket = currentShowtime.tickets[ticketIndex];
+        if (index !== null) {
+            const ticket = tickets[index];
             ticketForm.setFieldsValue({
                 ...ticket,
                 saleTime: [
@@ -130,7 +96,6 @@ const Step2Showtimes = ({
             setIsFreeTicket(ticket.price === 0);
         } else {
             ticketForm.resetFields();
-            // Default giá trị khi mở Modal mới
             ticketForm.setFieldsValue({
                 ticketType: 'STANDARD',
                 ticketStatus: 'PUBLISHED'
@@ -155,26 +120,17 @@ const Step2Showtimes = ({
             };
             delete newTicket.saleTime;
 
-            setShowTimes(prev =>
-                prev.map(st => {
-                    if (st.id !== currentShowtimeId) return st;
-
-                    const newTickets = [...st.tickets];
-                    if (editingTicketIndex !== null) {
-                        newTickets[editingTicketIndex] = newTicket;
-                    } else {
-                        newTickets.push(newTicket);
-                    }
-                    return { ...st, tickets: newTickets };
-                })
-            );
+            if (editingTicketIndex !== null) {
+                const updatedTickets = [...tickets];
+                updatedTickets[editingTicketIndex] = newTicket;
+                setTickets(updatedTickets);
+            } else {
+                setTickets([...tickets, newTicket]);
+            }
 
             setIsTicketModalOpen(false);
-
-            // 👉 THÊM VÀO ĐÂY: Reset toàn bộ form sau khi đã lưu state thành công
             ticketForm.resetFields();
-            setIsFreeTicket(false); // Reset luôn cả trạng thái checkbox Miễn phí
-
+            setIsFreeTicket(false);
             message.success(
                 editingTicketIndex !== null
                     ? 'Cập nhật vé thành công'
@@ -185,288 +141,199 @@ const Step2Showtimes = ({
         }
     };
 
-    const handleDeleteTicket = (showtimeId, ticketIndex) => {
-        setShowTimes(prev =>
-            prev.map(st => {
-                if (st.id !== showtimeId) return st;
-                const newTickets = st.tickets.filter(
-                    (_, idx) => idx !== ticketIndex
-                );
-                return { ...st, tickets: newTickets };
-            })
-        );
+    const handleDeleteTicket = index => {
+        setTickets(tickets.filter((_, idx) => idx !== index));
     };
-
-    const genExtra = id => (
-        <DeleteOutlined
-            onClick={event => {
-                event.stopPropagation();
-                removeShowtime(id);
-            }}
-            style={{ color: '#ff4d4f' }}
-        />
-    );
 
     return (
         <div style={{ maxWidth: 1000, margin: '0 auto' }}>
-            <div style={{ marginBottom: 16 }}>
-                <Title level={4} style={{ color: '#fff', margin: 0 }}>
-                    Thông tin suất diễn & Vé
-                </Title>
-                <Text type='secondary'>Vui lòng nhập thông tin suất diễn</Text>
-            </div>
-
-            <Collapse
-                defaultActiveKey={showTimes.map(st => st.id)}
-                style={{ background: 'transparent', border: 'none' }}
-            >
-                {showTimes.map((showtime, index) => (
-                    <Panel
-                        header={
-                            <Space>
-                                <CalendarOutlined />{' '}
-                                <span style={{ fontWeight: 600 }}>
-                                    Suất diễn {index + 1}
-                                </span>
-                            </Space>
-                        }
-                        key={showtime.id}
-                        extra={genExtra(showtime.id)}
-                        style={{
-                            background: '#2a2d34',
-                            borderRadius: 8,
-                            marginBottom: 16,
-                            border: '1px solid #393f4e',
-                            overflow: 'hidden'
-                        }}
-                    >
-                        <div style={{ marginBottom: 24 }}>
-                            <Title
-                                level={5}
-                                style={{ color: '#fff', marginTop: 0 }}
-                            >
-                                Ngày sự kiện
-                            </Title>
-                            <Row gutter={16}>
-                                <Col span={12}>
-                                    <Form.Item
-                                        label={
-                                            <span style={{ color: '#fff' }}>
-                                                Bắt đầu
-                                            </span>
-                                        }
-                                        required
-                                    >
-                                        <DatePicker
-                                            showTime
-                                            format='HH:mm DD/MM/YYYY'
-                                            style={{ width: '100%' }}
-                                            size='large'
-                                            value={
-                                                showtime.startTime
-                                                    ? dayjs(showtime.startTime)
-                                                    : null
-                                            }
-                                            onChange={date =>
-                                                updateShowtimeTime(
-                                                    showtime.id,
-                                                    'startTime',
-                                                    date
-                                                )
-                                            }
-                                        />
-                                    </Form.Item>
-                                </Col>
-                                <Col span={12}>
-                                    <Form.Item
-                                        label={
-                                            <span style={{ color: '#fff' }}>
-                                                Kết thúc
-                                            </span>
-                                        }
-                                        required
-                                    >
-                                        <DatePicker
-                                            showTime
-                                            format='HH:mm DD/MM/YYYY'
-                                            style={{ width: '100%' }}
-                                            size='large'
-                                            value={
-                                                showtime.endTime
-                                                    ? dayjs(showtime.endTime)
-                                                    : null
-                                            }
-                                            onChange={date =>
-                                                updateShowtimeTime(
-                                                    showtime.id,
-                                                    'endTime',
-                                                    date
-                                                )
-                                            }
-                                        />
-                                    </Form.Item>
-                                </Col>
-                            </Row>
-                        </div>
-
-                        <div>
-                            <div
-                                style={{
-                                    display: 'flex',
-                                    justifyContent: 'space-between',
-                                    marginBottom: 16
-                                }}
-                            >
-                                <Title
-                                    level={5}
-                                    style={{ color: '#fff', margin: 0 }}
-                                >
-                                    <span style={{ color: '#ff4d4f' }}>*</span>{' '}
-                                    Loại vé
-                                </Title>
-                            </div>
-
-                            <div
-                                style={{
-                                    display: 'flex',
-                                    gap: 12,
-                                    flexWrap: 'wrap',
-                                    marginBottom: 16
-                                }}
-                            >
-                                {showtime.tickets.map((ticket, idx) => (
-                                    <Card
-                                        key={idx}
-                                        size='small'
-                                        style={{
-                                            width: 200,
-                                            background: '#1f1f1f',
-                                            borderColor: '#393f4e'
-                                        }}
-                                    >
-                                        <div
-                                            style={{
-                                                display: 'flex',
-                                                justifyContent: 'space-between'
-                                            }}
-                                        >
-                                            <Text
-                                                strong
-                                                style={{ color: '#fff' }}
-                                                ellipsis
-                                            >
-                                                {/* Hiển thị Ticket Type thay vì name để người dùng thấy rõ hạng vé */}
-                                                {ticket.ticketType === 'VIP'
-                                                    ? 'Vé VIP'
-                                                    : 'Vé Phổ Thông'}
-                                            </Text>
-                                            <Space>
-                                                <EditOutlined
-                                                    onClick={() =>
-                                                        openTicketModal(
-                                                            showtime.id,
-                                                            idx
-                                                        )
-                                                    }
-                                                    style={{
-                                                        color: '#1890ff',
-                                                        cursor: 'pointer'
-                                                    }}
-                                                />
-                                                <DeleteOutlined
-                                                    onClick={() =>
-                                                        handleDeleteTicket(
-                                                            showtime.id,
-                                                            idx
-                                                        )
-                                                    }
-                                                    style={{
-                                                        color: '#ff4d4f',
-                                                        cursor: 'pointer'
-                                                    }}
-                                                />
-                                            </Space>
-                                        </div>
-                                        <div style={{ marginTop: 8 }}>
-                                            <Tag
-                                                color={
-                                                    ticket.price === 0
-                                                        ? 'green'
-                                                        : 'blue'
-                                                }
-                                            >
-                                                {ticket.price === 0
-                                                    ? 'Miễn phí'
-                                                    : `${ticket.price.toLocaleString()} VND`}
-                                            </Tag>
-                                            <div
-                                                style={{
-                                                    color: '#9ca6b0',
-                                                    fontSize: 12,
-                                                    marginTop: 4
-                                                }}
-                                            >
-                                                SL: {ticket.totalQuantity} |
-                                                Trạng thái:{' '}
-                                                {ticket.ticketStatus ===
-                                                'PUBLISHED'
-                                                    ? 'Mở bán'
-                                                    : ticket.ticketStatus ===
-                                                        'STOPPED'
-                                                      ? 'Tạm ngưng'
-                                                      : 'Hết vé'}
-                                            </div>
-                                        </div>
-                                    </Card>
-                                ))}
-                                <Button
-                                    type='dashed'
-                                    onClick={() => openTicketModal(showtime.id)}
-                                    style={{
-                                        width:
-                                            showtime.tickets.length > 0
-                                                ? 200
-                                                : '100%',
-                                        height: 50,
-                                        borderColor: '#393f4e',
-                                        color: '#9ca6b0'
-                                    }}
-                                    icon={<PlusOutlined />}
-                                >
-                                    Tạo loại vé mới
-                                </Button>
-                            </div>
-                        </div>
-                    </Panel>
-                ))}
-            </Collapse>
-
-            <Button
-                type='dashed'
-                block
-                size='large'
-                icon={<PlusOutlined />}
-                onClick={addShowtime}
+            {/* PHẦN 1: THỜI GIAN DIỄN RA SỰ KIỆN */}
+            <div
                 style={{
-                    marginTop: 16,
-                    height: 50,
-                    borderColor: '#2dc275',
-                    color: '#2dc275'
+                    marginBottom: 32,
+                    background: '#2a2d34',
+                    padding: 24,
+                    borderRadius: 8,
+                    border: '1px solid #393f4e'
                 }}
             >
-                Tạo suất diễn
-            </Button>
+                <Title
+                    level={4}
+                    style={{ color: '#fff', marginTop: 0, marginBottom: 20 }}
+                >
+                    <CalendarOutlined /> Thời gian diễn ra sự kiện
+                </Title>
+                <Row gutter={24}>
+                    <Col span={12}>
+                        <Form.Item
+                            label={
+                                <span style={{ color: '#fff' }}>
+                                    Bắt đầu sự kiện
+                                </span>
+                            }
+                            required
+                        >
+                            <DatePicker
+                                showTime
+                                format='HH:mm DD/MM/YYYY'
+                                style={{ width: '100%' }}
+                                size='large'
+                                value={
+                                    formData.startTime
+                                        ? dayjs(formData.startTime)
+                                        : null
+                                }
+                                onChange={date =>
+                                    handleTimeChange('startTime', date)
+                                }
+                                placeholder='Chọn ngày giờ bắt đầu'
+                            />
+                        </Form.Item>
+                    </Col>
+                    <Col span={12}>
+                        <Form.Item
+                            label={
+                                <span style={{ color: '#fff' }}>
+                                    Kết thúc sự kiện
+                                </span>
+                            }
+                            required
+                        >
+                            <DatePicker
+                                showTime
+                                format='HH:mm DD/MM/YYYY'
+                                style={{ width: '100%' }}
+                                size='large'
+                                value={
+                                    formData.endTime
+                                        ? dayjs(formData.endTime)
+                                        : null
+                                }
+                                onChange={date =>
+                                    handleTimeChange('endTime', date)
+                                }
+                                placeholder='Chọn ngày giờ kết thúc'
+                            />
+                        </Form.Item>
+                    </Col>
+                </Row>
+            </div>
 
-            <Modal
-                title={
-                    <span style={{ color: '#fff', fontSize: 18 }}>
+            {/* PHẦN 2: CẤU HÌNH LOẠI VÉ */}
+            <div style={{ marginBottom: 16 }}>
+                <Title level={4} style={{ color: '#fff', margin: 0 }}>
+                    Cấu hình loại vé
+                </Title>
+                <Text type='secondary'>
+                    Tạo các hạng vé (Ví dụ: VIP, Thường) cho sự kiện của bạn
+                </Text>
+            </div>
+
+            <div
+                style={{
+                    background: '#2a2d34',
+                    padding: 24,
+                    borderRadius: 8,
+                    border: '1px solid #393f4e',
+                    minHeight: 200
+                }}
+            >
+                <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap' }}>
+                    {tickets.map((ticket, idx) => (
+                        <Card
+                            key={idx}
+                            size='small'
+                            style={{
+                                width: 280,
+                                background: '#1f1f1f',
+                                borderColor: '#393f4e'
+                            }}
+                            actions={[
+                                <EditOutlined
+                                    key='edit'
+                                    onClick={() => openTicketModal(idx)}
+                                    style={{ color: '#1890ff' }}
+                                />,
+                                <DeleteOutlined
+                                    key='delete'
+                                    onClick={() => handleDeleteTicket(idx)}
+                                    style={{ color: '#ff4d4f' }}
+                                />
+                            ]}
+                        >
+                            <Card.Meta
+                                avatar={
+                                    <AuditOutlined
+                                        style={{
+                                            fontSize: 24,
+                                            color: '#2dc275'
+                                        }}
+                                    />
+                                }
+                                title={
+                                    <span style={{ color: '#fff' }}>
+                                        {ticket.ticketType === 'VIP'
+                                            ? 'Vé VIP'
+                                            : 'Vé Phổ Thông'}
+                                    </span>
+                                }
+                                description={
+                                    <div style={{ marginTop: 8 }}>
+                                        <Tag
+                                            color={
+                                                ticket.price === 0
+                                                    ? 'green'
+                                                    : 'blue'
+                                            }
+                                        >
+                                            {ticket.price === 0
+                                                ? 'Miễn phí'
+                                                : `${ticket.price.toLocaleString()} VND`}
+                                        </Tag>
+                                        <div
+                                            style={{
+                                                color: '#9ca6b0',
+                                                fontSize: 12,
+                                                marginTop: 8
+                                            }}
+                                        >
+                                            Số lượng: {ticket.totalQuantity}{' '}
+                                            <br />
+                                            Trạng thái:{' '}
+                                            {ticket.ticketStatus === 'PUBLISHED'
+                                                ? 'Đang mở bán'
+                                                : 'Tạm ngưng'}
+                                        </div>
+                                    </div>
+                                }
+                            />
+                        </Card>
+                    ))}
+
+                    <Button
+                        type='dashed'
+                        onClick={() => openTicketModal()}
+                        style={{
+                            width: 280,
+                            height: 120,
+                            borderColor: '#393f4e',
+                            color: '#9ca6b0',
+                            background: 'transparent'
+                        }}
+                        icon={<PlusOutlined />}
+                    >
                         Tạo loại vé mới
-                    </span>
-                }
+                    </Button>
+                </div>
+            </div>
+
+            {/* Modal Form Ticket giữ nguyên để khớp với ReqTicketDTO của Backend */}
+            <Modal
+                title={<span style={{ color: '#fff' }}>Thông tin loại vé</span>}
                 open={isTicketModalOpen}
                 onCancel={() => setIsTicketModalOpen(false)}
                 footer={null}
-                width={700}
+                width={600}
                 centered
                 styles={{
                     content: {
@@ -486,19 +353,16 @@ const Step2Showtimes = ({
                 >
                     <Row gutter={16}>
                         <Col span={12}>
-                            {/* ĐỔI TỪ name SANG ticketType (Khớp BE) */}
                             <Form.Item
                                 name='ticketType'
                                 label={
                                     <span style={{ color: '#fff' }}>
-                                        Hạng vé (Ticket Type)
+                                        Hạng vé
                                     </span>
                                 }
-                                rules={[
-                                    { required: true, message: 'Chọn hạng vé' }
-                                ]}
+                                rules={[{ required: true }]}
                             >
-                                <Select placeholder='Chọn hạng vé' size='large'>
+                                <Select size='large'>
                                     <Option value='STANDARD'>
                                         Phổ thông (Standard)
                                     </Option>
@@ -567,7 +431,6 @@ const Step2Showtimes = ({
 
                     <Row gutter={16}>
                         <Col span={12}>
-                            {/* ĐỔI TỪ total SANG totalQuantity (Khớp BE) */}
                             <Form.Item
                                 name='totalQuantity'
                                 label={
@@ -586,45 +449,13 @@ const Step2Showtimes = ({
                         </Col>
                         <Col span={12}>
                             <Form.Item
-                                name='saleTime'
-                                label={
-                                    <span style={{ color: '#fff' }}>
-                                        Thời gian bán
-                                    </span>
-                                }
-                                rules={[
-                                    {
-                                        required: true,
-                                        message: 'Chọn thời gian'
-                                    }
-                                ]}
-                            >
-                                <DatePicker.RangePicker
-                                    showTime
-                                    format='HH:mm DD/MM/YYYY'
-                                    style={{ width: '100%' }}
-                                    size='large'
-                                />
-                            </Form.Item>
-                        </Col>
-                    </Row>
-
-                    <Row gutter={16}>
-                        <Col span={12}>
-                            {/* THÊM TRƯỜNG ticketStatus (Khớp BE) */}
-                            <Form.Item
                                 name='ticketStatus'
                                 label={
                                     <span style={{ color: '#fff' }}>
-                                        Trạng thái vé
+                                        Trạng thái
                                     </span>
                                 }
-                                rules={[
-                                    {
-                                        required: true,
-                                        message: 'Chọn trạng thái'
-                                    }
-                                ]}
+                                rules={[{ required: true }]}
                             >
                                 <Select size='large'>
                                     <Option value='PUBLISHED'>
@@ -633,23 +464,42 @@ const Step2Showtimes = ({
                                     <Option value='STOPPED'>
                                         Tạm ngưng (Stopped)
                                     </Option>
-                                    <Option value='SOLD_OUT'>
-                                        Hết vé (Sold Out)
-                                    </Option>
                                 </Select>
                             </Form.Item>
                         </Col>
                     </Row>
 
                     <Form.Item
+                        name='saleTime'
+                        label={
+                            <span style={{ color: '#fff' }}>
+                                Thời gian bán vé
+                            </span>
+                        }
+                        rules={[{ required: true, message: 'Chọn thời gian' }]}
+                    >
+                        <DatePicker.RangePicker
+                            showTime
+                            format='HH:mm DD/MM/YYYY'
+                            style={{ width: '100%' }}
+                            size='large'
+                        />
+                    </Form.Item>
+
+                    <Form.Item
                         name='description'
-                        label={<span style={{ color: '#fff' }}>Mô tả</span>}
+                        label={
+                            <span style={{ color: '#fff' }}>
+                                Mô tả quyền lợi
+                            </span>
+                        }
                     >
                         <TextArea
                             rows={3}
-                            placeholder='Mô tả quyền lợi vé...'
+                            placeholder='Ví dụ: Có chỗ ngồi riêng, tặng nước suối...'
                         />
                     </Form.Item>
+
                     <Button
                         type='primary'
                         htmlType='submit'
