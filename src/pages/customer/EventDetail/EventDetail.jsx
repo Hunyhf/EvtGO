@@ -28,7 +28,7 @@ import styles from './EventDetail.module.scss';
 import Nav from '@components/Nav/Nav.jsx';
 import { eventApi } from '@apis/eventApi';
 import { ticketApi } from '@apis/ticketApi';
-import { getEventImageUrl } from '@utils/imageHelper';
+import { getEventImageUrl, getAvatarUrl } from '@utils/imageHelper'; //
 import { AuthContext } from '@contexts/AuthContext';
 import AuthModal from '@components/AuthModal/AuthModal';
 
@@ -101,20 +101,31 @@ const EventDetail = () => {
 
     const posterFileName = event.urlImage?.[0];
     const posterUrl = getEventImageUrl(id, posterFileName);
-    const logoFileName = event.urlImage?.[1] || event.urlImage?.[0];
-    const logoUrl = getEventImageUrl(id, logoFileName);
+
+    /**
+     * SỬA LỖI HIỂN THỊ BAN TỔ CHỨC
+     * Thử lấy dữ liệu từ event.organizer hoặc event.user tùy theo cấu trúc API trả về
+     */
+    const organizer = event.organizer || event.user || {};
+
+    // Theo Profile.jsx, trường họ tên là 'name'
+    const organizerName =
+        organizer.name ||
+        event.organizerName ||
+        event.createdBy ||
+        'Ban tổ chức';
+
+    // Cần truyền cả id người dùng và tên file ảnh vào getAvatarUrl
+    const organizerAvatar = getAvatarUrl(organizer.id, organizer.avatar);
 
     const lowestPrice =
         tickets.length > 0 ? Math.min(...tickets.map(t => t.price || 0)) : 0;
-
     const startTime = dayjs(
         `${event.startDate} ${event.startTime || '00:00:00'}`
     );
     const endTime = event.endTime
         ? dayjs(`${event.startDate} ${event.endTime}`)
         : null;
-
-    // Logic kiểm tra sự kiện đã qua chưa
     const isPast = endTime
         ? dayjs().isAfter(endTime)
         : dayjs().isAfter(startTime.endOf('day'));
@@ -208,6 +219,7 @@ const EventDetail = () => {
                 <section className={cx('contentBody')}>
                     <Row gutter={[24, 24]}>
                         <Col xs={24} lg={16}>
+                            {/* Giới thiệu sự kiện */}
                             <Card
                                 title={
                                     <Space>
@@ -228,6 +240,7 @@ const EventDetail = () => {
                                 />
                             </Card>
 
+                            {/* Lịch diễn & Vé */}
                             <Card
                                 title={
                                     <Space>
@@ -334,6 +347,7 @@ const EventDetail = () => {
                         </Col>
 
                         <Col xs={24} lg={8}>
+                            {/* Ban tổ chức */}
                             <Card
                                 title='Ban tổ chức'
                                 className={cx('detailCard')}
@@ -341,8 +355,8 @@ const EventDetail = () => {
                             >
                                 <div className={cx('organizerInfo')}>
                                     <img
-                                        src={logoUrl}
-                                        alt='Organizer'
+                                        src={organizerAvatar}
+                                        alt={organizerName}
                                         className={cx('orgLogo')}
                                     />
                                     <div className={cx('orgMeta')}>
@@ -350,8 +364,7 @@ const EventDetail = () => {
                                             level={5}
                                             className={cx('orgName')}
                                         >
-                                            {event.organizerName ||
-                                                event.createdBy}
+                                            {organizerName}
                                         </Title>
                                         <Space direction='vertical' size={2}>
                                             <Text className={cx('orgSub')}>
