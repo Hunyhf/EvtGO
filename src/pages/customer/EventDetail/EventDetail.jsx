@@ -71,7 +71,7 @@ const EventDetail = () => {
 
                 const [resEvent, resTicket] = await Promise.all([
                     eventApi.getById(id),
-                    ticketApi.getAll({ eventId: id })
+                    ticketApi.getAll({ filter: `event.id:${id}` })
                 ]);
 
                 // 3. Chỉ cập nhật state nếu kết quả trả về vẫn thuộc về ID hiện tại
