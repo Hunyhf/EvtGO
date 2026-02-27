@@ -152,13 +152,12 @@ const EventManagement = () => {
     }, [fetchEvents]);
 
     /**
-     * Lọc danh sách
+     * Lọc danh sách theo Tab
      */
     const filteredEvents = useMemo(() => {
         const now = dayjs();
-        let result = [...events]; // Tạo bản sao để tránh mutate state gốc
+        let result = [...events];
 
-        // 1. Lọc theo từ khóa tìm kiếm
         if (searchText) {
             const lowerSearch = searchText.toLowerCase();
             result = result.filter(
@@ -168,13 +167,12 @@ const EventManagement = () => {
             );
         }
 
-        // 2. Lọc theo Tab và Sắp xếp theo ngày
         switch (activeTab) {
             case 'upcoming':
+                // Sắp tới: Đã duyệt và chưa đến giờ bắt đầu
                 result = result.filter(
                     e => e.isApproved && dayjs(e.fullStartTime).isAfter(now)
                 );
-                // Sắp xếp TĂNG DẦN: Ngày gần hiện tại nhất xếp trước
                 result.sort(
                     (a, b) =>
                         dayjs(a.fullStartTime).unix() -
@@ -182,10 +180,10 @@ const EventManagement = () => {
                 );
                 break;
             case 'pending':
+                // Chờ duyệt: Chưa duyệt và chưa đến giờ bắt đầu
                 result = result.filter(
                     e => !e.isApproved && dayjs(e.fullStartTime).isAfter(now)
                 );
-                // Sắp xếp TĂNG DẦN
                 result.sort(
                     (a, b) =>
                         dayjs(a.fullStartTime).unix() -
@@ -193,10 +191,10 @@ const EventManagement = () => {
                 );
                 break;
             case 'past':
+                // Đã qua: Bất kỳ sự kiện nào đã đến hoặc qua giờ bắt đầu
                 result = result.filter(e =>
                     dayjs(e.fullStartTime).isBefore(now)
                 );
-                // Sắp xếp GIẢM DẦN: Sự kiện vừa mới kết thúc xếp trước
                 result.sort(
                     (a, b) =>
                         dayjs(b.fullStartTime).unix() -
@@ -297,9 +295,19 @@ const EventManagement = () => {
                     </div>
                 ) : (
                     currentData.map(event => {
-                        const isPast = dayjs(event.fullStartTime).isBefore(
-                            dayjs()
-                        );
+                        // Logic trạng thái hiển thị nhãn (Tag)
+                        const now = dayjs();
+                        const isPast = dayjs(event.fullStartTime).isBefore(now);
+
+                        let statusTag;
+                        if (isPast) {
+                            statusTag = <Tag color='default'>Đã qua</Tag>;
+                        } else if (event.isApproved) {
+                            statusTag = <Tag color='success'>Đang bán</Tag>;
+                        } else {
+                            statusTag = <Tag color='warning'>Chờ duyệt</Tag>;
+                        }
+
                         return (
                             <Col xs={24} lg={12} key={event.id}>
                                 <div
@@ -382,16 +390,13 @@ const EventManagement = () => {
                                                         {dayjs(
                                                             event.fullStartTime
                                                         ).format('HH:mm')}
-
                                                         {' - '}
-
                                                         {dayjs(
                                                             event.fullEndTime
                                                         ).format(
                                                             'HH:mm - DD/MM/YYYY'
                                                         )}
                                                     </div>
-
                                                     <div
                                                         style={{
                                                             color: '#9ca6b0',
@@ -408,21 +413,7 @@ const EventManagement = () => {
                                                     </div>
                                                 </Space>
                                             </div>
-                                            <div>
-                                                {isPast ? (
-                                                    <Tag color='default'>
-                                                        Đã qua
-                                                    </Tag>
-                                                ) : event.isApproved ? (
-                                                    <Tag color='success'>
-                                                        Đang bán
-                                                    </Tag>
-                                                ) : (
-                                                    <Tag color='warning'>
-                                                        Chờ duyệt
-                                                    </Tag>
-                                                )}
-                                            </div>
+                                            <div>{statusTag}</div>
                                         </div>
                                     </div>
 

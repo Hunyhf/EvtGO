@@ -37,7 +37,7 @@ const approve = id => {
 };
 
 const reject = id => {
-    return remove(id);
+    return toggleActive(id);
 };
 
 // 2. Export gom nhóm
