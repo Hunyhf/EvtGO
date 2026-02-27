@@ -25,7 +25,7 @@ import classNames from 'classnames/bind';
 
 import styles from './EventDetail.module.scss';
 import Nav from '@components/Nav/Nav.jsx';
-import BookingButton from '@components/BookingButton/BookingButton'; // Import component dùng chung
+import BookingButton from '@components/BookingButton/BookingButton';
 import { eventApi } from '@apis/eventApi';
 import { ticketApi } from '@apis/ticketApi';
 import { getEventImageUrl, getAvatarUrl } from '@utils/imageHelper';
@@ -37,6 +37,12 @@ dayjs.locale('vi');
 const cx = classNames.bind(styles);
 const { Title, Text } = Typography;
 const { Panel } = Collapse;
+
+// Mapping nhãn hiển thị cho các loại vé từ Enum của Backend
+const TICKET_LABELS = {
+    VIP: 'Vé VIP: ',
+    STANDARD: 'Vé tiêu chuẩn: '
+};
 
 const EventDetail = () => {
     const { id } = useParams();
@@ -199,7 +205,6 @@ const EventDetail = () => {
                                     </Title>
                                 </div>
 
-                                {/* SỬ DỤNG BOOKING BUTTON CHO NÚT CHÍNH */}
                                 <BookingButton
                                     isPast={isPast}
                                     isUpcoming={isUpcoming}
@@ -305,7 +310,12 @@ const EventDetail = () => {
                                                                 'tierLabel'
                                                             )}
                                                         >
-                                                            {ticket.name ||
+                                                            {/* Cập nhật sử dụng ticketType từ Backend */}
+                                                            {TICKET_LABELS[
+                                                                ticket
+                                                                    .ticketType
+                                                            ] ||
+                                                                ticket.ticketType ||
                                                                 'Vé tiêu chuẩn'}
                                                         </Text>
                                                         <Space size={16}>
@@ -323,7 +333,6 @@ const EventDetail = () => {
                                                                 đ
                                                             </Text>
 
-                                                            {/* SỬ DỤNG BOOKING BUTTON CHO DANH SÁCH VÉ */}
                                                             <BookingButton
                                                                 isPast={isPast}
                                                                 isUpcoming={
