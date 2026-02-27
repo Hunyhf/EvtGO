@@ -8,20 +8,45 @@
     transition: transform 0.3s ease;
     height: 100%;
     cursor: pointer;
+    display: block;
 
     &:hover {
         transform: translateY(-5px);
+    }
+
+    // Thêm hiệu ứng mờ cho toàn bộ card nếu đã diễn ra (tùy chọn)
+    &.isPastCard {
+        opacity: 0.85;
+        filter: grayscale(0.2);
     }
 }
 
 .eventImage {
     width: 100%;
     aspect-ratio: 16 / 9;
+    position: relative; // QUAN TRỌNG: Để định vị nhãn overlay bên trong
 
     img {
         width: 100%;
         height: 100%;
         object-fit: cover;
+    }
+
+    // NHÃN "ĐÃ DIỄN RA" GÓC TRÊN BÊN PHẢI
+    .pastLabel {
+        position: absolute;
+        top: 1rem;
+        right: 1rem;
+        background-color: $error-color; // Màu nền tối mờ
+        color: variables.$white-color;
+        padding: 0.4rem 1rem;
+        border-radius: 0.4rem;
+        font-size: 1.1rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        z-index: 2;
+        pointer-events: none;
+        border: 1px solid rgba(255, 255, 255, 0.2);
     }
 }
 
@@ -29,7 +54,7 @@
     padding: 1.2rem;
 
     .eventTitle {
-        color: $white-color;
+        color: variables.$white-color;
         font-size: 1.6rem;
         font-weight: 600;
         margin-bottom: 0.8rem;
@@ -45,7 +70,7 @@
         gap: 0.4rem;
 
         .eventPrice {
-            color: $primary-color;
+            color: variables.$primary-color;
             font-size: 1.5rem;
             font-weight: 700;
         }

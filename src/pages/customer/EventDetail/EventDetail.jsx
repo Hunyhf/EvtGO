@@ -39,30 +39,15 @@ const { Title, Text } = Typography;
 const { Panel } = Collapse;
 
 const EventDetail = () => {
-    // Lấy id sự kiện từ URL
     const { id } = useParams();
     const navigate = useNavigate();
-
-    // Lấy trạng thái đăng nhập từ Context
     const { isAuthenticated } = useContext(AuthContext);
 
-    // State lưu thông tin sự kiện
     const [event, setEvent] = useState(null);
-
-    // State lưu danh sách vé của sự kiện
     const [tickets, setTickets] = useState([]);
-
-    // State loading khi gọi API
     const [loading, setLoading] = useState(true);
-
-    // State điều khiển hiển thị modal đăng nhập
     const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
 
-    /**
-     * Xử lý khi người dùng bấm mua vé
-     * - Nếu chưa đăng nhập: mở modal đăng nhập
-     * - Nếu đã đăng nhập: chuyển sang trang booking
-     */
     const handleGoToBooking = () => {
         if (!isAuthenticated) {
             setIsAuthModalOpen(true);
@@ -71,14 +56,10 @@ const EventDetail = () => {
         }
     };
 
-    /**
-     * Gọi API lấy thông tin chi tiết sự kiện và danh sách vé
-     */
     useEffect(() => {
         const fetchDetailData = async () => {
             try {
                 setLoading(true);
-
                 const [resEvent, resTicket] = await Promise.all([
                     eventApi.getById(id),
                     ticketApi.getAll({ eventId: id })
@@ -92,7 +73,6 @@ const EventDetail = () => {
                     resTicket?.data ||
                     resTicket?.result ||
                     [];
-
                 setTickets(Array.isArray(ticketData) ? ticketData : []);
             } catch (error) {
                 console.error('Lỗi tải dữ liệu:', error);
@@ -106,9 +86,6 @@ const EventDetail = () => {
         window.scrollTo(0, 0);
     }, [id]);
 
-    /**
-     * Hiển thị skeleton khi đang tải dữ liệu
-     */
     if (loading)
         return (
             <div className={cx('loadingWrapper')}>
@@ -119,48 +96,42 @@ const EventDetail = () => {
             </div>
         );
 
-    /**
-     * Trường hợp không tìm thấy sự kiện
-     */
     if (!event)
         return <div className={cx('error')}>Không tìm thấy sự kiện.</div>;
 
-    // Xử lý hình ảnh poster và logo
     const posterFileName = event.urlImage?.[0];
     const posterUrl = getEventImageUrl(id, posterFileName);
-
     const logoFileName = event.urlImage?.[1] || event.urlImage?.[0];
     const logoUrl = getEventImageUrl(id, logoFileName);
 
-    // Tính giá vé thấp nhất
     const lowestPrice =
         tickets.length > 0 ? Math.min(...tickets.map(t => t.price || 0)) : 0;
 
-    // Format thời gian bắt đầu và kết thúc
     const startTime = dayjs(
         `${event.startDate} ${event.startTime || '00:00:00'}`
     );
-
     const endTime = event.endTime
         ? dayjs(`${event.startDate} ${event.endTime}`)
         : null;
+
+    // Logic kiểm tra sự kiện đã qua chưa
+    const isPast = endTime
+        ? dayjs().isAfter(endTime)
+        : dayjs().isAfter(startTime.endOf('day'));
 
     return (
         <main className={cx('eventDetail')}>
             <Nav />
 
             <div className={cx('wrapper')}>
-                {/* Section Hero: Thông tin chính và Poster */}
                 <section className={cx('hero')}>
                     <Row gutter={[0, 0]} align='stretch'>
-                        {/* Cột trái: Thông tin sự kiện */}
                         <Col xs={24} lg={9}>
                             <div className={cx('infoCard')}>
                                 <Title level={1} className={cx('eventTitle')}>
                                     {event.name?.toUpperCase()}
                                 </Title>
 
-                                {/* Thông tin ngày giờ và địa điểm */}
                                 <Space
                                     direction='vertical'
                                     size={20}
@@ -176,7 +147,6 @@ const EventDetail = () => {
                                             )}
                                         </Text>
                                     </div>
-
                                     <div className={cx('metaItem')}>
                                         <EnvironmentOutlined
                                             className={cx('icon')}
@@ -187,7 +157,6 @@ const EventDetail = () => {
                                     </div>
                                 </Space>
 
-                                {/* Giá vé thấp nhất */}
                                 <div className={cx('priceSection')}>
                                     <Text className={cx('priceLabel')}>
                                         Giá từ
@@ -203,21 +172,22 @@ const EventDetail = () => {
                                     </Title>
                                 </div>
 
-                                {/* Nút mua vé */}
                                 <Button
-                                    type='primary'
+                                    type={isPast ? 'default' : 'primary'}
                                     size='large'
                                     block
                                     shape='round'
-                                    className={cx('ctaBtn')}
+                                    className={cx('ctaBtn', {
+                                        isPastBtn: isPast
+                                    })}
                                     onClick={handleGoToBooking}
+                                    disabled={isPast}
                                 >
-                                    MUA VÉ NGAY
+                                    {isPast ? 'ĐÃ DIỄN RA' : 'MUA VÉ NGAY'}
                                 </Button>
                             </div>
                         </Col>
 
-                        {/* Cột phải: Poster sự kiện */}
                         <Col xs={24} lg={15}>
                             <div className={cx('posterContainer')}>
                                 <img
@@ -225,17 +195,19 @@ const EventDetail = () => {
                                     alt={event.name}
                                     className={cx('heroPoster')}
                                 />
+                                {isPast && (
+                                    <div className={cx('pastLabel')}>
+                                        ĐÃ DIỄN RA
+                                    </div>
+                                )}
                             </div>
                         </Col>
                     </Row>
                 </section>
 
-                {/* Section nội dung chi tiết */}
                 <section className={cx('contentBody')}>
                     <Row gutter={[24, 24]}>
-                        {/* Cột trái: Giới thiệu & Vé */}
                         <Col xs={24} lg={16}>
-                            {/* Giới thiệu sự kiện */}
                             <Card
                                 title={
                                     <Space>
@@ -256,7 +228,6 @@ const EventDetail = () => {
                                 />
                             </Card>
 
-                            {/* Lịch diễn và danh sách vé */}
                             <Card
                                 title={
                                     <Space>
@@ -314,7 +285,6 @@ const EventDetail = () => {
                                                             {ticket.name ||
                                                                 'Vé tiêu chuẩn'}
                                                         </Text>
-
                                                         <Space size={16}>
                                                             <Text
                                                                 className={cx(
@@ -329,7 +299,6 @@ const EventDetail = () => {
                                                                 )}{' '}
                                                                 đ
                                                             </Text>
-
                                                             <Button
                                                                 type='primary'
                                                                 ghost
@@ -341,8 +310,13 @@ const EventDetail = () => {
                                                                 onClick={
                                                                     handleGoToBooking
                                                                 }
+                                                                disabled={
+                                                                    isPast
+                                                                }
                                                             >
-                                                                Chọn
+                                                                {isPast
+                                                                    ? 'Hết hạn'
+                                                                    : 'Chọn'}
                                                             </Button>
                                                         </Space>
                                                     </div>
@@ -359,7 +333,6 @@ const EventDetail = () => {
                             </Card>
                         </Col>
 
-                        {/* Cột phải: Thông tin ban tổ chức */}
                         <Col xs={24} lg={8}>
                             <Card
                                 title='Ban tổ chức'
@@ -372,7 +345,6 @@ const EventDetail = () => {
                                         alt='Organizer'
                                         className={cx('orgLogo')}
                                     />
-
                                     <div className={cx('orgMeta')}>
                                         <Title
                                             level={5}
@@ -381,7 +353,6 @@ const EventDetail = () => {
                                             {event.organizerName ||
                                                 event.createdBy}
                                         </Title>
-
                                         <Space direction='vertical' size={2}>
                                             <Text className={cx('orgSub')}>
                                                 <GlobalOutlined /> evtgo.vn
@@ -398,7 +369,6 @@ const EventDetail = () => {
                 </section>
             </div>
 
-            {/* Modal đăng nhập khi người dùng chưa xác thực */}
             <AuthModal
                 isOpen={isAuthModalOpen}
                 onClose={() => setIsAuthModalOpen(false)}
