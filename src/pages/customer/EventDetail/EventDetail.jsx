@@ -3,7 +3,6 @@ import { useParams, useNavigate } from 'react-router-dom';
 import {
     Row,
     Col,
-    Button,
     Space,
     Typography,
     Card,
@@ -26,6 +25,7 @@ import classNames from 'classnames/bind';
 
 import styles from './EventDetail.module.scss';
 import Nav from '@components/Nav/Nav.jsx';
+import BookingButton from '@components/BookingButton/BookingButton'; // Import component dùng chung
 import { eventApi } from '@apis/eventApi';
 import { ticketApi } from '@apis/ticketApi';
 import { getEventImageUrl, getAvatarUrl } from '@utils/imageHelper';
@@ -57,15 +57,11 @@ const EventDetail = () => {
     };
 
     useEffect(() => {
-        // 1. Tạo biến cờ để kiểm tra xem component có còn xem ID này không
         let active = true;
 
         const fetchDetailData = async () => {
             try {
                 setLoading(true);
-
-                // 2. QUAN TRỌNG: Reset state về rỗng ngay lập tức khi ID thay đổi
-                // Điều này đảm bảo dữ liệu của event cũ không bị hiển thị đè lên event mới
                 setEvent(null);
                 setTickets([]);
 
@@ -74,7 +70,6 @@ const EventDetail = () => {
                     ticketApi.getAll({ filter: `event.id:${id}` })
                 ]);
 
-                // 3. Chỉ cập nhật state nếu kết quả trả về vẫn thuộc về ID hiện tại
                 if (active) {
                     const eventData = resEvent?.result || resEvent;
                     setEvent(eventData);
@@ -101,11 +96,10 @@ const EventDetail = () => {
         fetchDetailData();
         window.scrollTo(0, 0);
 
-        // 4. Cleanup function: Chạy khi ID thay đổi hoặc component bị gỡ bỏ
         return () => {
             active = false;
         };
-    }, [id]); // Luôn chạy lại mỗi khi id trên URL thay đổi
+    }, [id]);
 
     if (loading)
         return (
@@ -120,25 +114,14 @@ const EventDetail = () => {
     if (!event)
         return <div className={cx('error')}>Không tìm thấy sự kiện.</div>;
 
-    // --- XỬ LÝ HÌNH ẢNH ---
     const eventImages = event.urlImage || [];
-
-    // Ảnh bìa mặc định là ảnh đầu tiên (index 0)
     const posterUrl = getEventImageUrl(id, eventImages[0]);
-
-    // Thông tin nhà tổ chức từ User tạo event
     const organizer = event.organizer || event.user || {};
     const organizerName =
         organizer.name ||
         event.organizerName ||
         event.createdBy ||
         'Ban tổ chức';
-
-    /**
-     * LOGIC HIỂN THỊ LOGO BAN TỔ CHỨC:
-     * Ưu tiên lấy ảnh thứ 2 (index 1) trong mảng ảnh của sự kiện (đây là ảnh logo được upload ở Step 1).
-     * Nếu không có ảnh thứ 2, hệ thống sẽ fallback về ảnh đại diện (avatar) của tài khoản BTC.
-     */
     const organizerAvatar =
         eventImages.length > 1
             ? getEventImageUrl(id, eventImages[1])
@@ -152,9 +135,16 @@ const EventDetail = () => {
     const endTime = event.endTime
         ? dayjs(`${event.startDate} ${event.endTime}`)
         : null;
+
+    // --- LOGIC TRẠNG THÁI NÚT ---
     const isPast = endTime
         ? dayjs().isAfter(endTime)
         : dayjs().isAfter(startTime.endOf('day'));
+
+    // Kiểm tra nếu có ngày mở bán và thời gian hiện tại chưa đến ngày đó
+    const isUpcoming = event.saleStartDate
+        ? dayjs().isBefore(dayjs(event.saleStartDate))
+        : false;
 
     return (
         <main className={cx('eventDetail')}>
@@ -209,19 +199,15 @@ const EventDetail = () => {
                                     </Title>
                                 </div>
 
-                                <Button
-                                    type={isPast ? 'default' : 'primary'}
-                                    size='large'
-                                    block
-                                    shape='round'
-                                    className={cx('ctaBtn', {
-                                        isPastBtn: isPast
-                                    })}
+                                {/* SỬ DỤNG BOOKING BUTTON CHO NÚT CHÍNH */}
+                                <BookingButton
+                                    isPast={isPast}
+                                    isUpcoming={isUpcoming}
                                     onClick={handleGoToBooking}
-                                    disabled={isPast}
-                                >
-                                    {isPast ? 'ĐÃ DIỄN RA' : 'MUA VÉ NGAY'}
-                                </Button>
+                                    variant='primary'
+                                    block
+                                    size='large'
+                                />
                             </div>
                         </Col>
 
@@ -336,25 +322,22 @@ const EventDetail = () => {
                                                                 )}{' '}
                                                                 đ
                                                             </Text>
-                                                            <Button
-                                                                type='primary'
-                                                                ghost
-                                                                size='small'
-                                                                shape='round'
-                                                                className={cx(
-                                                                    'buyBtn'
-                                                                )}
+
+                                                            {/* SỬ DỤNG BOOKING BUTTON CHO DANH SÁCH VÉ */}
+                                                            <BookingButton
+                                                                isPast={isPast}
+                                                                isUpcoming={
+                                                                    isUpcoming
+                                                                }
                                                                 onClick={
                                                                     handleGoToBooking
                                                                 }
-                                                                disabled={
-                                                                    isPast
-                                                                }
-                                                            >
-                                                                {isPast
-                                                                    ? 'Hết hạn'
-                                                                    : 'Chọn'}
-                                                            </Button>
+                                                                variant='sub'
+                                                                label='Chọn'
+                                                                pastLabel='Hết hạn'
+                                                                upcomingLabel='Chờ bán'
+                                                                size='small'
+                                                            />
                                                         </Space>
                                                     </div>
                                                 ))

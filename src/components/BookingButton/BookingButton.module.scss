@@ -1,0 +1,54 @@
+@use '@styles/variables';
+
+.bookingBtn {
+    font-weight: $font-weight-bold; // Sử dụng 700
+    transition: all 0.3s ease;
+    border: none;
+
+    &.primary {
+        background: $primary-color; // Màu thương hiệu
+        height: 55px;
+        font-size: $font-size-md; // Tương đương 16px
+        color: $white-color; // Trắng
+        box-shadow: 0 4px 14px rgba(45, 194, 117, 0.4);
+
+        &:hover:not(:disabled) {
+            transform: translateY(-2px);
+            background: darken(
+                $primary-color,
+                5%
+            ); // Làm đậm màu chính khi hover
+        }
+    }
+
+    &.sub {
+        border: 1px solid $primary-color; // Viền màu chính
+        color: $primary-color; // Chữ màu chính
+        background: transparent;
+
+        &:hover:not(:disabled) {
+            background: rgba($primary-color, 0.1); // Màu nền nhạt khi hover
+        }
+    }
+
+    // STYLE KHI ĐÃ DIỄN RA
+    &.isPastBtn {
+        background: $third-color !important; // Sử dụng màu trung tính sẵn có
+        color: $text-color !important; // Màu chữ xám
+        cursor: not-allowed;
+        opacity: 0.8;
+    }
+
+    // STYLE KHI SẮP MỞ BÁN
+    &.isUpcomingBtn {
+        background: $secondary-color !important; // Sử dụng màu thương hiệu phụ
+        color: $white-color !important; // Chữ trắng
+        cursor: wait;
+        box-shadow: none;
+
+        &:disabled {
+            background: $secondary-color !important; //
+            color: $white-color !important; //
+        }
+    }
+}
