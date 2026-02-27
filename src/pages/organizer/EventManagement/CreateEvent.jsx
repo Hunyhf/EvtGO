@@ -204,13 +204,22 @@ const CreateEvent = () => {
                     }
                 }
 
-                /**
-                 * GỌI API 3: Upload ảnh poster
-                 */
-                if (formData.posterFile) {
+                // GỌI API 3: Upload ảnh (Poster và Logo)
+                if (formData.posterFile || formData.logoFile) {
                     try {
                         const uploadData = new FormData();
-                        uploadData.append('files', formData.posterFile);
+
+                        // Thêm poster vào vị trí index 0 (Ảnh bìa)
+                        if (formData.posterFile) {
+                            uploadData.append('files', formData.posterFile);
+                        }
+
+                        // Thêm logo của BTC vào vị trí index 1
+                        if (formData.logoFile) {
+                            uploadData.append('files', formData.logoFile);
+                        }
+
+                        // Đánh dấu ảnh ở index 0 là ảnh bìa
                         uploadData.append('coverIndex', '0');
 
                         await eventImageApi.uploadEventImages(
@@ -218,7 +227,7 @@ const CreateEvent = () => {
                             uploadData
                         );
 
-                        message.success('Đã tải lên ảnh poster!');
+                        message.success('Đã tải lên các ảnh của sự kiện!');
                     } catch (imgError) {
                         message.warning(
                             'Sự kiện đã tạo nhưng tải ảnh thất bại.'

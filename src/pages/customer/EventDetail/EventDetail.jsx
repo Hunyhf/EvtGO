@@ -28,7 +28,7 @@ import styles from './EventDetail.module.scss';
 import Nav from '@components/Nav/Nav.jsx';
 import { eventApi } from '@apis/eventApi';
 import { ticketApi } from '@apis/ticketApi';
-import { getEventImageUrl, getAvatarUrl } from '@utils/imageHelper'; //
+import { getEventImageUrl, getAvatarUrl } from '@utils/imageHelper';
 import { AuthContext } from '@contexts/AuthContext';
 import AuthModal from '@components/AuthModal/AuthModal';
 
@@ -57,34 +57,55 @@ const EventDetail = () => {
     };
 
     useEffect(() => {
+        // 1. Tạo biến cờ để kiểm tra xem component có còn xem ID này không
+        let active = true;
+
         const fetchDetailData = async () => {
             try {
                 setLoading(true);
+
+                // 2. QUAN TRỌNG: Reset state về rỗng ngay lập tức khi ID thay đổi
+                // Điều này đảm bảo dữ liệu của event cũ không bị hiển thị đè lên event mới
+                setEvent(null);
+                setTickets([]);
+
                 const [resEvent, resTicket] = await Promise.all([
                     eventApi.getById(id),
                     ticketApi.getAll({ eventId: id })
                 ]);
 
-                const eventData = resEvent?.result || resEvent;
-                setEvent(eventData);
+                // 3. Chỉ cập nhật state nếu kết quả trả về vẫn thuộc về ID hiện tại
+                if (active) {
+                    const eventData = resEvent?.result || resEvent;
+                    setEvent(eventData);
 
-                const ticketData =
-                    resTicket?.result?.content ||
-                    resTicket?.data ||
-                    resTicket?.result ||
-                    [];
-                setTickets(Array.isArray(ticketData) ? ticketData : []);
+                    const ticketData =
+                        resTicket?.result?.content ||
+                        resTicket?.data ||
+                        resTicket?.result ||
+                        [];
+                    setTickets(Array.isArray(ticketData) ? ticketData : []);
+                }
             } catch (error) {
-                console.error('Lỗi tải dữ liệu:', error);
-                message.error('Không thể tải thông tin sự kiện hoặc vé');
+                if (active) {
+                    console.error('Lỗi tải dữ liệu:', error);
+                    message.error('Không thể tải thông tin sự kiện hoặc vé');
+                }
             } finally {
-                setLoading(false);
+                if (active) {
+                    setLoading(false);
+                }
             }
         };
 
         fetchDetailData();
         window.scrollTo(0, 0);
-    }, [id]);
+
+        // 4. Cleanup function: Chạy khi ID thay đổi hoặc component bị gỡ bỏ
+        return () => {
+            active = false;
+        };
+    }, [id]); // Luôn chạy lại mỗi khi id trên URL thay đổi
 
     if (loading)
         return (
@@ -99,24 +120,29 @@ const EventDetail = () => {
     if (!event)
         return <div className={cx('error')}>Không tìm thấy sự kiện.</div>;
 
-    const posterFileName = event.urlImage?.[0];
-    const posterUrl = getEventImageUrl(id, posterFileName);
+    // --- XỬ LÝ HÌNH ẢNH ---
+    const eventImages = event.urlImage || [];
 
-    /**
-     * SỬA LỖI HIỂN THỊ BAN TỔ CHỨC
-     * Thử lấy dữ liệu từ event.organizer hoặc event.user tùy theo cấu trúc API trả về
-     */
+    // Ảnh bìa mặc định là ảnh đầu tiên (index 0)
+    const posterUrl = getEventImageUrl(id, eventImages[0]);
+
+    // Thông tin nhà tổ chức từ User tạo event
     const organizer = event.organizer || event.user || {};
-
-    // Theo Profile.jsx, trường họ tên là 'name'
     const organizerName =
         organizer.name ||
         event.organizerName ||
         event.createdBy ||
         'Ban tổ chức';
 
-    // Cần truyền cả id người dùng và tên file ảnh vào getAvatarUrl
-    const organizerAvatar = getAvatarUrl(organizer.id, organizer.avatar);
+    /**
+     * LOGIC HIỂN THỊ LOGO BAN TỔ CHỨC:
+     * Ưu tiên lấy ảnh thứ 2 (index 1) trong mảng ảnh của sự kiện (đây là ảnh logo được upload ở Step 1).
+     * Nếu không có ảnh thứ 2, hệ thống sẽ fallback về ảnh đại diện (avatar) của tài khoản BTC.
+     */
+    const organizerAvatar =
+        eventImages.length > 1
+            ? getEventImageUrl(id, eventImages[1])
+            : getAvatarUrl(organizer.id, organizer.avatar);
 
     const lowestPrice =
         tickets.length > 0 ? Math.min(...tickets.map(t => t.price || 0)) : 0;
@@ -219,7 +245,6 @@ const EventDetail = () => {
                 <section className={cx('contentBody')}>
                     <Row gutter={[24, 24]}>
                         <Col xs={24} lg={16}>
-                            {/* Giới thiệu sự kiện */}
                             <Card
                                 title={
                                     <Space>
@@ -240,7 +265,6 @@ const EventDetail = () => {
                                 />
                             </Card>
 
-                            {/* Lịch diễn & Vé */}
                             <Card
                                 title={
                                     <Space>
@@ -347,7 +371,6 @@ const EventDetail = () => {
                         </Col>
 
                         <Col xs={24} lg={8}>
-                            {/* Ban tổ chức */}
                             <Card
                                 title='Ban tổ chức'
                                 className={cx('detailCard')}
