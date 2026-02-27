@@ -1,5 +1,4 @@
 import { callUpdateUser } from '@apis/userApi';
-// Thay thế react-toastify bằng antd
 import { message } from 'antd';
 import Cookies from 'js-cookie';
 
@@ -17,14 +16,11 @@ export const userService = {
                     });
                 }
 
-                // Đổi toast.success thành message.success
                 message.success('Cập nhật thông tin thành công!');
                 return updatedData;
             }
         } catch (error) {
             console.error('Service Update Error:', error);
-            // Đổi toast.error thành message.error
-            // Lưu ý: Nếu axiosClient đã có thông báo lỗi global, bạn có thể cân nhắc xóa dòng này để tránh lặp thông báo
             message.error('Cập nhật thông tin thất bại!');
             throw error;
         }

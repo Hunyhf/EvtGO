@@ -1,6 +1,5 @@
-// src/pages/customer/EventDetail/EventDetail.jsx
-import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom'; // Cập nhật: Thêm useNavigate
+import React, { useState, useEffect, useContext } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
 import {
     Row,
     Col,
@@ -30,28 +29,56 @@ import Nav from '@components/Nav/Nav.jsx';
 import { eventApi } from '@apis/eventApi';
 import { ticketApi } from '@apis/ticketApi';
 import { getEventImageUrl } from '@utils/imageHelper';
+import { AuthContext } from '@contexts/AuthContext';
+import AuthModal from '@components/AuthModal/AuthModal';
 
 dayjs.locale('vi');
+
 const cx = classNames.bind(styles);
-const { Title, Text, Paragraph } = Typography;
+const { Title, Text } = Typography;
 const { Panel } = Collapse;
 
 const EventDetail = () => {
+    // Lấy id sự kiện từ URL
     const { id } = useParams();
-    const navigate = useNavigate(); // Cập nhật: Khởi tạo navigate
+    const navigate = useNavigate();
+
+    // Lấy trạng thái đăng nhập từ Context
+    const { isAuthenticated } = useContext(AuthContext);
+
+    // State lưu thông tin sự kiện
     const [event, setEvent] = useState(null);
+
+    // State lưu danh sách vé của sự kiện
     const [tickets, setTickets] = useState([]);
+
+    // State loading khi gọi API
     const [loading, setLoading] = useState(true);
 
-    // Hàm xử lý chuyển hướng sang trang chọn vé
+    // State điều khiển hiển thị modal đăng nhập
+    const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+
+    /**
+     * Xử lý khi người dùng bấm mua vé
+     * - Nếu chưa đăng nhập: mở modal đăng nhập
+     * - Nếu đã đăng nhập: chuyển sang trang booking
+     */
     const handleGoToBooking = () => {
-        navigate(`/booking/${id}`); // Điều hướng đến route /booking/:eventId đã cấu trúc
+        if (!isAuthenticated) {
+            setIsAuthModalOpen(true);
+        } else {
+            navigate(`/booking/${id}`);
+        }
     };
 
+    /**
+     * Gọi API lấy thông tin chi tiết sự kiện và danh sách vé
+     */
     useEffect(() => {
         const fetchDetailData = async () => {
             try {
                 setLoading(true);
+
                 const [resEvent, resTicket] = await Promise.all([
                     eventApi.getById(id),
                     ticketApi.getAll({ eventId: id })
@@ -65,6 +92,7 @@ const EventDetail = () => {
                     resTicket?.data ||
                     resTicket?.result ||
                     [];
+
                 setTickets(Array.isArray(ticketData) ? ticketData : []);
             } catch (error) {
                 console.error('Lỗi tải dữ liệu:', error);
@@ -73,10 +101,14 @@ const EventDetail = () => {
                 setLoading(false);
             }
         };
+
         fetchDetailData();
         window.scrollTo(0, 0);
     }, [id]);
 
+    /**
+     * Hiển thị skeleton khi đang tải dữ liệu
+     */
     if (loading)
         return (
             <div className={cx('loadingWrapper')}>
@@ -87,21 +119,28 @@ const EventDetail = () => {
             </div>
         );
 
+    /**
+     * Trường hợp không tìm thấy sự kiện
+     */
     if (!event)
         return <div className={cx('error')}>Không tìm thấy sự kiện.</div>;
 
+    // Xử lý hình ảnh poster và logo
     const posterFileName = event.urlImage?.[0];
     const posterUrl = getEventImageUrl(id, posterFileName);
 
     const logoFileName = event.urlImage?.[1] || event.urlImage?.[0];
     const logoUrl = getEventImageUrl(id, logoFileName);
 
+    // Tính giá vé thấp nhất
     const lowestPrice =
         tickets.length > 0 ? Math.min(...tickets.map(t => t.price || 0)) : 0;
 
+    // Format thời gian bắt đầu và kết thúc
     const startTime = dayjs(
         `${event.startDate} ${event.startTime || '00:00:00'}`
     );
+
     const endTime = event.endTime
         ? dayjs(`${event.startDate} ${event.endTime}`)
         : null;
@@ -109,15 +148,19 @@ const EventDetail = () => {
     return (
         <main className={cx('eventDetail')}>
             <Nav />
+
             <div className={cx('wrapper')}>
+                {/* Section Hero: Thông tin chính và Poster */}
                 <section className={cx('hero')}>
                     <Row gutter={[0, 0]} align='stretch'>
+                        {/* Cột trái: Thông tin sự kiện */}
                         <Col xs={24} lg={9}>
                             <div className={cx('infoCard')}>
                                 <Title level={1} className={cx('eventTitle')}>
                                     {event.name?.toUpperCase()}
                                 </Title>
 
+                                {/* Thông tin ngày giờ và địa điểm */}
                                 <Space
                                     direction='vertical'
                                     size={20}
@@ -133,21 +176,18 @@ const EventDetail = () => {
                                             )}
                                         </Text>
                                     </div>
+
                                     <div className={cx('metaItem')}>
                                         <EnvironmentOutlined
                                             className={cx('icon')}
                                         />
-                                        <div>
-                                            <Text
-                                                strong
-                                                className={cx('locName')}
-                                            >
-                                                {event.location}
-                                            </Text>
-                                        </div>
+                                        <Text strong className={cx('locName')}>
+                                            {event.location}
+                                        </Text>
                                     </div>
                                 </Space>
 
+                                {/* Giá vé thấp nhất */}
                                 <div className={cx('priceSection')}>
                                     <Text className={cx('priceLabel')}>
                                         Giá từ
@@ -163,13 +203,13 @@ const EventDetail = () => {
                                     </Title>
                                 </div>
 
-                                {/* Cập nhật: Thêm onClick điều hướng */}
+                                {/* Nút mua vé */}
                                 <Button
                                     type='primary'
                                     size='large'
                                     block
-                                    className={cx('ctaBtn')}
                                     shape='round'
+                                    className={cx('ctaBtn')}
                                     onClick={handleGoToBooking}
                                 >
                                     MUA VÉ NGAY
@@ -177,6 +217,7 @@ const EventDetail = () => {
                             </div>
                         </Col>
 
+                        {/* Cột phải: Poster sự kiện */}
                         <Col xs={24} lg={15}>
                             <div className={cx('posterContainer')}>
                                 <img
@@ -189,9 +230,12 @@ const EventDetail = () => {
                     </Row>
                 </section>
 
+                {/* Section nội dung chi tiết */}
                 <section className={cx('contentBody')}>
                     <Row gutter={[24, 24]}>
+                        {/* Cột trái: Giới thiệu & Vé */}
                         <Col xs={24} lg={16}>
+                            {/* Giới thiệu sự kiện */}
                             <Card
                                 title={
                                     <Space>
@@ -212,6 +256,7 @@ const EventDetail = () => {
                                 />
                             </Card>
 
+                            {/* Lịch diễn và danh sách vé */}
                             <Card
                                 title={
                                     <Space>
@@ -225,66 +270,41 @@ const EventDetail = () => {
                                 bordered={false}
                             >
                                 <Collapse
+                                    ghost
+                                    defaultActiveKey={['ticket-list']}
                                     expandIcon={({ isActive }) => (
                                         <RightOutlined
                                             rotate={isActive ? 90 : 0}
                                         />
                                     )}
-                                    className={cx('showtimeCollapse')}
-                                    ghost
-                                    defaultActiveKey={['ticket-list']}
                                 >
                                     <Panel
+                                        key='ticket-list'
                                         header={
                                             <div className={cx('panelHeader')}>
-                                                <div
-                                                    className={cx('timeGroup')}
-                                                >
-                                                    <Text
-                                                        strong
-                                                        className={cx('stTime')}
-                                                    >
-                                                        {startTime.format(
-                                                            'HH:mm'
-                                                        )}
-                                                        {endTime
-                                                            ? ` - ${endTime.format('HH:mm')}`
-                                                            : ''}
-                                                    </Text>
-                                                    <Text
-                                                        className={cx('stDay')}
-                                                    >
-                                                        {startTime.format(
-                                                            'dddd'
-                                                        )}
-                                                    </Text>
-                                                </div>
-                                                <div
-                                                    className={cx('dateGroup')}
-                                                >
-                                                    <Text
-                                                        className={cx(
-                                                            'stFullDate'
-                                                        )}
-                                                    >
-                                                        Ngày{' '}
-                                                        {startTime.format(
-                                                            'DD/MM/YYYY'
-                                                        )}
-                                                    </Text>
-                                                </div>
+                                                <Text strong>
+                                                    {startTime.format('HH:mm')}
+                                                    {endTime
+                                                        ? ` - ${endTime.format('HH:mm')}`
+                                                        : ''}
+                                                </Text>
+                                                <Text>
+                                                    Ngày{' '}
+                                                    {startTime.format(
+                                                        'DD/MM/YYYY'
+                                                    )}
+                                                </Text>
                                             </div>
                                         }
-                                        key='ticket-list'
                                     >
                                         <div className={cx('ticketTiers')}>
                                             {tickets.length > 0 ? (
                                                 tickets.map((ticket, idx) => (
                                                     <div
+                                                        key={ticket.id || idx}
                                                         className={cx(
                                                             'tierRow'
                                                         )}
-                                                        key={ticket.id || idx}
                                                     >
                                                         <Text
                                                             className={cx(
@@ -294,6 +314,7 @@ const EventDetail = () => {
                                                             {ticket.name ||
                                                                 'Vé tiêu chuẩn'}
                                                         </Text>
+
                                                         <Space size={16}>
                                                             <Text
                                                                 className={cx(
@@ -308,7 +329,7 @@ const EventDetail = () => {
                                                                 )}{' '}
                                                                 đ
                                                             </Text>
-                                                            {/* Cập nhật: Thêm onClick điều hướng */}
+
                                                             <Button
                                                                 type='primary'
                                                                 ghost
@@ -338,6 +359,7 @@ const EventDetail = () => {
                             </Card>
                         </Col>
 
+                        {/* Cột phải: Thông tin ban tổ chức */}
                         <Col xs={24} lg={8}>
                             <Card
                                 title='Ban tổ chức'
@@ -350,6 +372,7 @@ const EventDetail = () => {
                                         alt='Organizer'
                                         className={cx('orgLogo')}
                                     />
+
                                     <div className={cx('orgMeta')}>
                                         <Title
                                             level={5}
@@ -358,6 +381,7 @@ const EventDetail = () => {
                                             {event.organizerName ||
                                                 event.createdBy}
                                         </Title>
+
                                         <Space direction='vertical' size={2}>
                                             <Text className={cx('orgSub')}>
                                                 <GlobalOutlined /> evtgo.vn
@@ -373,6 +397,12 @@ const EventDetail = () => {
                     </Row>
                 </section>
             </div>
+
+            {/* Modal đăng nhập khi người dùng chưa xác thực */}
+            <AuthModal
+                isOpen={isAuthModalOpen}
+                onClose={() => setIsAuthModalOpen(false)}
+            />
         </main>
     );
 };

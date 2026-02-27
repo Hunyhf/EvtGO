@@ -1,5 +1,5 @@
 import { useState, useContext, useEffect, useRef } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import classNames from 'classnames/bind';
 import styles from './Header.module.scss';
 import AuthModal from '@components/AuthModal/AuthModal';
@@ -17,16 +17,35 @@ import { getAvatarUrl } from '@utils/imageHelper';
 
 const cx = classNames.bind(styles);
 
-// Header chính của website (logo, search, user, mobile nav)
+/**
+ * Header chính của website
+ * Bao gồm:
+ * - Logo
+ * - Thanh tìm kiếm (desktop + mobile)
+ * - Khu vực user (login / dropdown)
+ * - Bottom navigation cho mobile
+ */
 function Header() {
+    // State điều khiển hiển thị modal đăng nhập
     const [showAuthModal, setShowAuthModal] = useState(false);
-    const { pathname } = useLocation();
 
+    // Lấy đường dẫn hiện tại
+    const { pathname } = useLocation();
+    const navigate = useNavigate();
+
+    // Lấy thông tin xác thực người dùng từ Context
     const { isAuthenticated, user, logoutContext } = useContext(AuthContext);
 
+    // Ref để xử lý click outside của search
     const searchRef = useRef(null);
 
-    // Custom hook quản lý logic tìm kiếm + lịch sử
+    /**
+     * Custom hook quản lý:
+     * - Từ khóa tìm kiếm
+     * - Lịch sử tìm kiếm
+     * - Hiển thị dropdown
+     * - Search mobile overlay
+     */
     const {
         searchTerm,
         setSearchTerm,
@@ -41,7 +60,9 @@ function Header() {
 
     const isHomePage = pathname === '/';
 
-    // Ẩn dropdown search khi click ra ngoài
+    /**
+     * Đóng dropdown search khi click ra ngoài
+     */
     useEffect(() => {
         const handleClickOutside = event => {
             if (
@@ -51,12 +72,18 @@ function Header() {
                 setShowHistory(false);
             }
         };
+
         document.addEventListener('mousedown', handleClickOutside);
+
         return () =>
             document.removeEventListener('mousedown', handleClickOutside);
     }, [setShowHistory]);
 
-    // Xử lý đăng xuất
+    /**
+     * Xử lý đăng xuất
+     * - Gọi API logout
+     * - Clear context
+     */
     const handleLogout = async () => {
         try {
             await callLogout();
@@ -67,12 +94,26 @@ function Header() {
         }
     };
 
+    /**
+     * Xử lý các action yêu cầu đăng nhập
+     * - Nếu chưa login: mở AuthModal
+     * - Nếu đã login: cho phép điều hướng
+     */
+    const handleProtectedAction = (e, targetPath) => {
+        if (!isAuthenticated) {
+            e.preventDefault();
+            setShowAuthModal(true);
+        } else if (targetPath) {
+            navigate(targetPath);
+        }
+    };
+
     return (
         <>
             {/* ===== Header Desktop ===== */}
             <header className={cx('header')}>
                 <div className={cx('headerInner')}>
-                    {/* Logo + link về trang chủ */}
+                    {/* Logo + quay về trang chủ */}
                     <div className={cx('headerLogo')}>
                         <Link to='/'>
                             <img
@@ -91,7 +132,7 @@ function Header() {
                     </div>
 
                     <div className={cx('headerRight')}>
-                        {/* ===== Search Bar ===== */}
+                        {/* ===== Search Bar (Desktop) ===== */}
                         <div className={cx('headerSearch')} ref={searchRef}>
                             <div
                                 className={cx('headerSearchIcon')}
@@ -115,11 +156,13 @@ function Header() {
                                 }
                             />
 
+                            {/* Dropdown lịch sử tìm kiếm */}
                             {showHistory && searchHistory.length > 0 && (
                                 <div className={cx('searchHistory')}>
                                     <div className={cx('searchHistoryTitle')}>
                                         Tìm kiếm gần đây
                                     </div>
+
                                     <ul className={cx('searchHistoryList')}>
                                         {searchHistory.map((item, index) => (
                                             <li
@@ -162,11 +205,13 @@ function Header() {
                             </button>
                         </div>
 
-                        {/* ===== Khu vực user / guest ===== */}
+                        {/* ===== Khu vực User / Guest ===== */}
                         <div className={cx('headerActions')}>
+                            {/* Vé của tôi (Desktop) */}
                             <Link
-                                to='/my-tickets'
+                                to={isAuthenticated ? '/my-tickets' : '#'}
                                 className={cx('headerTickets')}
+                                onClick={e => handleProtectedAction(e)}
                             >
                                 <TicketIcon />
                                 <span className={cx('textHide')}>
@@ -175,16 +220,20 @@ function Header() {
                             </Link>
 
                             {isAuthenticated ? (
-                                // ===== Dropdown tài khoản =====
+                                /**
+                                 * Dropdown tài khoản khi đã đăng nhập
+                                 */
                                 <div className={cx('headerUser')}>
                                     <img
                                         className={cx('userAvatar')}
                                         src={getAvatarUrl(user.id, user.avatar)}
                                         alt='avatar'
                                     />
+
                                     <span className={cx('textHide')}>
                                         Tài khoản
                                     </span>
+
                                     <div className={cx('userToggle')}>
                                         <DropDownIcon />
                                     </div>
@@ -228,7 +277,9 @@ function Header() {
                                     </div>
                                 </div>
                             ) : (
-                                // ===== Trạng thái chưa đăng nhập =====
+                                /**
+                                 * Trạng thái Guest (chưa đăng nhập)
+                                 */
                                 <div
                                     className={cx('headerGuest')}
                                     onClick={() => setShowAuthModal(true)}
@@ -245,7 +296,7 @@ function Header() {
                 </div>
             </header>
 
-            {/* ===== Mobile Search Overlay ===== */}
+            {/* ===== Overlay Search (Mobile) ===== */}
             {isMobileSearchOpen && (
                 <div className={cx('mobileSearchOverlay')}>
                     <div className={cx('mobileSearchHeader')}>
@@ -315,26 +366,29 @@ function Header() {
                 </Link>
 
                 <Link
-                    to='/my-tickets'
+                    to={isAuthenticated ? '/my-tickets' : '#'}
                     className={cx('bottomNavItem', {
                         active: pathname === '/my-tickets'
                     })}
+                    onClick={e => handleProtectedAction(e)}
                 >
                     <TicketIcon />
                     <span>Vé của tôi</span>
                 </Link>
 
                 <Link
-                    to='/profile'
+                    to={isAuthenticated ? '/profile' : '#'}
                     className={cx('bottomNavItem', {
                         active: pathname === '/profile'
                     })}
+                    onClick={e => handleProtectedAction(e)}
                 >
                     <UserIcon />
                     <span>Tài khoản</span>
                 </Link>
             </nav>
 
+            {/* Modal xác thực */}
             <AuthModal
                 isOpen={showAuthModal}
                 onClose={() => setShowAuthModal(false)}

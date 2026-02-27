@@ -6,7 +6,6 @@ export const useGenres = (autoFetch = true, initialParams = {}) => {
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState(null);
 
-    // Dùng useMemo để ổn định tham chiếu của params, tránh trigger useCallback liên tục
     const memoizedParams = useMemo(
         () => initialParams,
         [JSON.stringify(initialParams)]

@@ -8,7 +8,7 @@ import {
     ClockCircleOutlined,
     RiseOutlined
 } from '@ant-design/icons';
-import styles from './AdminDashBoard.module.scss'; // Style riêng nếu cần
+import styles from './AdminDashBoard.module.scss';
 
 const { Title } = Typography;
 

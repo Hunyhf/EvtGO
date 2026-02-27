@@ -11,7 +11,6 @@ import {
 } from '@ant-design/icons';
 import dayjs from 'dayjs';
 
-// Import APIs
 import { eventApi } from '@apis/eventApi';
 import { eventImageApi } from '@apis/eventImageApi';
 import { ticketApi } from '@apis/ticketApi';
@@ -22,21 +21,34 @@ import Step3Settings from './Step3Settings';
 import Step4Payment from './Step4Payment';
 
 const { confirm } = Modal;
+
+/**
+ * Key lưu trữ dữ liệu tạo sự kiện vào LocalStorage
+ */
 const STORAGE_KEY_DATA = 'evtgo_create_event_data';
 const STORAGE_KEY_STEP = 'evtgo_create_event_step';
 
 const CreateEvent = () => {
+    /**
+     * Lấy context từ Layout cha (quản lý step và validation giữa các bước)
+     */
     const { setCurrentStep, onNextAction, setOnNextAction } =
         useOutletContext();
+
     const navigate = useNavigate();
     const [loading, setLoading] = useState(false);
 
-    // 1. QUẢN LÝ TRẠNG THÁI (STATE)
+    /**
+     * Quản lý step hiện tại (có lưu LocalStorage để không mất dữ liệu khi reload)
+     */
     const [localCurrentStep, setLocalCurrentStep] = useState(() => {
         const savedStep = localStorage.getItem(STORAGE_KEY_STEP);
         return savedStep ? Number(savedStep) : 1;
     });
 
+    /**
+     * State lưu toàn bộ dữ liệu form tạo sự kiện
+     */
     const [formData, setFormData] = useState(() => {
         const savedData = localStorage.getItem(STORAGE_KEY_DATA);
         return savedData
@@ -53,30 +65,40 @@ const CreateEvent = () => {
                   poster: null,
                   posterFile: null,
                   organizerLogo: null,
-                  // Cấu trúc dữ liệu phẳng cho thời gian và vé
                   startTime: null,
                   endTime: null,
                   tickets: []
               };
     });
 
+    /**
+     * Đồng bộ step lên layout cha
+     */
     useEffect(() => {
         setCurrentStep(localCurrentStep);
     }, [localCurrentStep, setCurrentStep]);
 
+    /**
+     * Tự động lưu dữ liệu vào LocalStorage khi form thay đổi
+     * Loại bỏ posterFile vì không thể stringify file object
+     */
     useEffect(() => {
-        // Lưu dữ liệu vào LocalStorage (loại bỏ file poster vật lý)
         const { posterFile, ...dataToSave } = formData;
         localStorage.setItem(STORAGE_KEY_DATA, JSON.stringify(dataToSave));
         localStorage.setItem(STORAGE_KEY_STEP, localCurrentStep);
     }, [formData, localCurrentStep]);
 
-    // --- ĐIỀU HƯỚNG ---
+    /**
+     * Chuyển sang bước tiếp theo
+     */
     const nextStep = () => {
         setLocalCurrentStep(prev => prev + 1);
         window.scrollTo({ top: 0, behavior: 'smooth' });
     };
 
+    /**
+     * Quay lại bước trước
+     */
     const handlePrev = () => {
         if (localCurrentStep > 1) {
             setLocalCurrentStep(prev => prev - 1);
@@ -84,36 +106,51 @@ const CreateEvent = () => {
         }
     };
 
-    // --- LOGIC XỬ LÝ HOÀN TẤT (LƯU VÀO DB) ---
+    /**
+     * Xử lý hoàn tất tạo sự kiện:
+     * 1. Tạo event
+     * 2. Tạo ticket
+     * 3. Upload poster
+     * 4. Clear localStorage và điều hướng
+     */
     const handleFinish = async () => {
         setLoading(true);
-        try {
-            console.log('>>> [Final Submit] Preparing payload...');
 
-            // 1. Chuẩn bị Địa điểm (Location)
+        try {
+            /**
+             * Ghép địa chỉ đầy đủ từ các phần nhỏ
+             */
             const parts = [
                 formData.addressDetail,
                 formData.wardName,
                 formData.districtName,
                 formData.provinceName
             ].filter(Boolean);
+
             const fullLocation = parts.join(', ');
 
-            // 2. Định dạng thời gian (Lấy trực tiếp từ formData)
+            /**
+             * Format thời gian theo chuẩn backend yêu cầu
+             */
             const startDate = formData.startTime
                 ? dayjs(formData.startTime).format('YYYY-MM-DD')
                 : '';
+
             const startTime = formData.startTime
                 ? dayjs(formData.startTime).format('HH:mm')
                 : '';
+
             const endDate = formData.endTime
                 ? dayjs(formData.endTime).format('YYYY-MM-DD')
                 : '';
+
             const endTime = formData.endTime
                 ? dayjs(formData.endTime).format('HH:mm')
                 : '';
 
-            // 3. Payload tạo Event
+            /**
+             * Payload tạo Event
+             */
             const finalPayload = {
                 name: formData.name,
                 description: formData.description,
@@ -123,99 +160,103 @@ const CreateEvent = () => {
                     : '',
                 permitIssuedBy: formData.permitIssuedBy,
                 location: fullLocation || formData.location,
-                startDate: startDate,
-                startTime: startTime,
-                endDate: endDate,
-                endTime: endTime,
+                startDate,
+                startTime,
+                endDate,
+                endTime,
                 genreId: Number(formData.genreId),
                 organizerName: formData.organizerName
             };
 
-            console.log('>>> 1. Sending Event Payload:', finalPayload);
-
-            // GỌI API 1: TẠO SỰ KIỆN
+            /**
+             * GỌI API 1: Tạo sự kiện
+             */
             const res = await eventApi.create(finalPayload);
             const newEventId = res.data?.id || res.id;
 
             if (newEventId) {
                 message.success('Thông tin sự kiện đã được lưu!');
 
-                // --- GỌI API 2: TẠO VÉ (Sử dụng mảng tickets phẳng) ---
-                if (formData.tickets && formData.tickets.length > 0) {
+                /**
+                 * GỌI API 2: Tạo danh sách vé
+                 */
+                if (formData.tickets?.length > 0) {
                     try {
-                        console.log(
-                            '>>> 2. Creating tickets for Event ID:',
-                            newEventId
-                        );
                         const ticketRequests = formData.tickets.map(t =>
                             ticketApi.create({
                                 totalQuantity: t.totalQuantity,
                                 ticketType: t.ticketType,
                                 ticketStatus: t.ticketStatus,
-                                price: t.price, // Trường quan trọng
+                                price: t.price,
                                 eventId: newEventId
                             })
                         );
+
                         await Promise.all(ticketRequests);
+
                         message.success(
-                            `Đã phát hành thành công ${formData.tickets.length} loại vé!`
+                            `Đã phát hành ${formData.tickets.length} loại vé!`
                         );
                     } catch (ticketError) {
-                        console.error(
-                            'Lỗi khi tạo vé:',
-                            ticketError.response?.data || ticketError
-                        );
                         message.warning(
-                            'Sự kiện đã tạo thành công nhưng gặp lỗi khi khởi tạo danh sách vé.'
+                            'Sự kiện đã tạo nhưng khởi tạo vé thất bại.'
                         );
                     }
                 }
 
-                // GỌI API 3: UPLOAD ẢNH POSTER
+                /**
+                 * GỌI API 3: Upload ảnh poster
+                 */
                 if (formData.posterFile) {
                     try {
                         const uploadData = new FormData();
                         uploadData.append('files', formData.posterFile);
                         uploadData.append('coverIndex', '0');
+
                         await eventImageApi.uploadEventImages(
                             newEventId,
                             uploadData
                         );
-                        message.success('Đã tải lên ảnh poster thành công!');
+
+                        message.success('Đã tải lên ảnh poster!');
                     } catch (imgError) {
-                        console.error('Lỗi lưu ảnh:', imgError);
                         message.warning(
-                            'Sự kiện đã tạo nhưng tải ảnh poster thất bại.'
+                            'Sự kiện đã tạo nhưng tải ảnh thất bại.'
                         );
                     }
                 }
 
-                // Dọn dẹp dữ liệu tạm và chuyển hướng
+                /**
+                 * Dọn dẹp dữ liệu tạm
+                 */
                 localStorage.removeItem(STORAGE_KEY_DATA);
                 localStorage.removeItem(STORAGE_KEY_STEP);
+
                 navigate('/organizer/events');
             }
         } catch (error) {
-            console.error('Submit Error:', error.response?.data || error);
             const serverMsg = error.response?.data?.message;
+
             message.error(
                 Array.isArray(serverMsg)
                     ? serverMsg[0]
-                    : serverMsg || 'Có lỗi xảy ra khi kết nối đến máy chủ!'
+                    : serverMsg || 'Có lỗi xảy ra khi kết nối máy chủ!'
             );
         } finally {
             setLoading(false);
         }
     };
 
+    /**
+     * Xử lý khi bấm nút Tiếp tục / Hoàn tất
+     * Hỗ trợ validate từ component con qua onNextAction
+     */
     const handleNext = async () => {
         if (onNextAction) {
             try {
-                // triple closure hỗ trợ validate từ component con
                 const isStepValid = await onNextAction()();
                 if (!isStepValid) return;
-            } catch (error) {
-                console.warn('Validation error', error);
+            } catch {
                 return;
             }
         }
@@ -227,11 +268,14 @@ const CreateEvent = () => {
         }
     };
 
+    /**
+     * Xử lý hủy tạo sự kiện
+     */
     const handleCancel = () => {
         confirm({
             title: 'Hủy tạo sự kiện?',
             icon: <ExclamationCircleOutlined />,
-            content: 'Toàn bộ dữ liệu bạn đã nhập sẽ bị xóa bỏ.',
+            content: 'Toàn bộ dữ liệu bạn đã nhập sẽ bị xóa.',
             okText: 'Xác nhận',
             cancelText: 'Quay lại',
             centered: true,
@@ -243,6 +287,9 @@ const CreateEvent = () => {
         });
     };
 
+    /**
+     * Danh sách các bước tạo sự kiện
+     */
     const stepItems = [
         {
             title: 'Thông tin',
@@ -353,6 +400,7 @@ const CreateEvent = () => {
                         >
                             Hủy bỏ
                         </Button>
+
                         <Button
                             type='primary'
                             onClick={handleNext}

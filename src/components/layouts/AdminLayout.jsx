@@ -1,4 +1,4 @@
-import React, { useContext } from 'react'; //
+import React, { useContext } from 'react';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import {
     DashboardOutlined,
@@ -7,28 +7,45 @@ import {
     LogoutOutlined
 } from '@ant-design/icons';
 import MainDashboardLayout from './MainDashboardLayout';
-import { AuthContext } from '@contexts/AuthContext'; //
-import { callLogout } from '@apis/authApi'; //
+import { AuthContext } from '@contexts/AuthContext';
+import { callLogout } from '@apis/authApi';
 
+/**
+ * Layout dành riêng cho khu vực Admin
+ * Bao gồm:
+ * - Sidebar menu điều hướng
+ * - Header admin
+ * - Dropdown user (logout)
+ * - Outlet render nội dung con
+ */
 function AdminLayout() {
     const navigate = useNavigate();
     const location = useLocation();
 
-    // 1. Lấy hàm logout từ Context
+    /**
+     * Lấy hàm logout từ AuthContext
+     * Dùng để xóa thông tin user sau khi gọi API logout
+     */
     const { logoutContext } = useContext(AuthContext);
 
-    // 2. Định nghĩa hàm handleLogout giống bên Header.jsx
+    /**
+     * Xử lý đăng xuất trong Admin
+     * - Gọi API logout
+     * - Clear context (token, user)
+     */
     const handleLogout = async () => {
         try {
-            await callLogout(); // Gọi API đăng xuất
+            await callLogout();
         } catch (error) {
             console.error('Admin Logout error:', error);
         } finally {
-            logoutContext(); // Xóa sạch dữ liệu user, token và điều hướng về Home
+            logoutContext();
         }
     };
 
-    // 3. Cập nhật Menu Admin
+    /**
+     * Danh sách menu sidebar của Admin
+     */
     const menuItems = [
         {
             key: '/admin',
@@ -50,14 +67,16 @@ function AdminLayout() {
         }
     ];
 
-    // 4. Cập nhật User Menu với hàm handleLogout mới
+    /**
+     * Dropdown menu tài khoản admin (góc phải header)
+     */
     const userMenuItems = [
         {
             key: 'logout',
             label: 'Đăng xuất',
             icon: <LogoutOutlined />,
             danger: true,
-            onClick: handleLogout //
+            onClick: handleLogout
         }
     ];
 
@@ -69,6 +88,7 @@ function AdminLayout() {
             logoLink='/admin'
             extraHeaderActions={null}
         >
+            {/* Render các trang con của Admin */}
             <Outlet />
         </MainDashboardLayout>
     );

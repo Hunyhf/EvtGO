@@ -6,31 +6,53 @@ import { userService } from '@services/userService';
 import { callGetUserById } from '@apis/userApi';
 import axios from '@apis/axiosClient';
 
+/**
+ * Custom Hook quản lý toàn bộ logic trang Profile:
+ * - Lấy dữ liệu user chi tiết
+ * - Xử lý thay đổi form
+ * - Preview và upload avatar
+ * - Gửi request cập nhật profile
+ */
 export const useProfileLogic = () => {
     const { user, updateUserContext } = useContext(AuthContext);
+
+    /**
+     * Trạng thái loading khi đang gửi yêu cầu cập nhật
+     */
     const [isUpdating, setIsUpdating] = useState(false);
 
-    // State lưu file ảnh đã chọn để chờ upload
+    /**
+     * Lưu file avatar được chọn để upload sau khi submit
+     */
     const [selectedFile, setSelectedFile] = useState(null);
 
+    /**
+     * State quản lý dữ liệu form chỉnh sửa thông tin cá nhân
+     */
     const [formData, setFormData] = useState({
         id: '',
         name: '',
         email: '',
-        phone: '', // Lưu ý: Backend Entity User chưa có trường phone
+        phone: '',
         age: '',
         gender: 'OTHER',
         address: '',
         avatar: ''
     });
 
+    /**
+     * Lấy đầy đủ thông tin user từ server khi component mount
+     * Đồng bộ dữ liệu từ API và context
+     */
     useEffect(() => {
         let isMounted = true;
+
         const fetchFullUserProfile = async () => {
             if (user?.id) {
                 try {
                     const res = await callGetUserById(user.id);
                     const userData = res.data || res;
+
                     if (isMounted) {
                         setFormData({
                             id: user.id,
@@ -48,14 +70,21 @@ export const useProfileLogic = () => {
                 }
             }
         };
+
         fetchFullUserProfile();
+
         return () => {
             isMounted = false;
         };
     }, [user?.id]);
 
+    /**
+     * Xử lý thay đổi input trong form
+     * Đảm bảo age luôn >= 0 và đúng định dạng số
+     */
     const handleChange = useCallback(e => {
         const { name, value } = e.target;
+
         if (name === 'age') {
             const val = value === '' ? '' : Math.max(0, parseInt(value, 10));
             setFormData(prev => ({ ...prev, age: val }));
@@ -65,7 +94,10 @@ export const useProfileLogic = () => {
     }, []);
 
     /**
-     * Chỉ xử lý hiển thị Preview và giữ file lại
+     * Xử lý chọn avatar mới:
+     * - Kiểm tra định dạng ảnh
+     * - Tạo URL preview hiển thị trên UI
+     * - Lưu file để upload khi submit
      */
     const handleAvatarChange = useCallback(e => {
         const file = e.target.files?.[0];
@@ -76,14 +108,21 @@ export const useProfileLogic = () => {
             return;
         }
 
-        // Tạo đường dẫn tạm thời để hiển thị UI
         const previewUrl = URL.createObjectURL(file);
-        setFormData(prev => ({ ...prev, avatar: previewUrl }));
-        setSelectedFile(file); // Giữ file lại để upload sau
+
+        setFormData(prev => ({
+            ...prev,
+            avatar: previewUrl
+        }));
+
+        setSelectedFile(file);
     }, []);
 
     /**
-     * Logic chính để gửi dữ liệu vào Database
+     * Xử lý submit cập nhật profile:
+     * 1. Upload avatar nếu có file mới
+     * 2. Gửi dữ liệu cập nhật vào database
+     * 3. Đồng bộ lại AuthContext
      */
     const submitUpdate = useCallback(
         async e => {
@@ -91,21 +130,26 @@ export const useProfileLogic = () => {
             if (isUpdating) return;
 
             setIsUpdating(true);
+
             let finalAvatarName = formData.avatar;
 
             try {
-                // Bước 1: Nếu có file mới, upload lên server trước
+                /**
+                 * Upload file avatar lên server nếu người dùng chọn ảnh mới
+                 */
                 if (selectedFile) {
                     const uploadData = new FormData();
                     uploadData.append('file', selectedFile);
                     uploadData.append('folder', `avatars/${user.id}`);
 
                     const res = await axios.post('/api/v1/files', uploadData, {
-                        headers: { 'Content-Type': 'multipart/form-data' }
+                        headers: {
+                            'Content-Type': 'multipart/form-data'
+                        }
                     });
 
-                    // Lấy tên file từ ResUploadFileDTO (xử lý cả trường hợp có wrapper data hoặc không)
                     const uploadResult = res.data || res;
+
                     finalAvatarName =
                         uploadResult.data?.fileName || uploadResult.fileName;
 
@@ -113,16 +157,23 @@ export const useProfileLogic = () => {
                         throw new Error('Không nhận được tên file từ server');
                     }
 
-                    // Giải phóng bộ nhớ preview
-                    if (formData.avatar.startsWith('blob:')) {
+                    /**
+                     * Giải phóng bộ nhớ nếu avatar là blob preview
+                     */
+                    if (
+                        formData.avatar &&
+                        formData.avatar.startsWith('blob:')
+                    ) {
                         URL.revokeObjectURL(formData.avatar);
                     }
                 }
 
-                // Bước 2: Gửi payload cập nhật User vào DB
+                /**
+                 * Tạo payload cập nhật thông tin user
+                 */
                 const payload = {
                     ...formData,
-                    avatar: finalAvatarName, // Đảm bảo đây là String tên file, không phải blob URL
+                    avatar: finalAvatarName,
                     age: Number(formData.age) || 0
                 };
 
@@ -131,9 +182,15 @@ export const useProfileLogic = () => {
                     user.id
                 );
 
+                /**
+                 * Nếu cập nhật thành công:
+                 * - Đồng bộ lại context
+                 * - Reset trạng thái file
+                 * - Hiển thị thông báo thành công
+                 */
                 if (updatedData) {
                     updateUserContext(updatedData);
-                    setSelectedFile(null); // Reset trạng thái file
+                    setSelectedFile(null);
                     message.success('Cập nhật thông tin thành công!');
                 }
             } catch (error) {
@@ -148,6 +205,9 @@ export const useProfileLogic = () => {
         [formData, user.id, isUpdating, selectedFile, updateUserContext]
     );
 
+    /**
+     * Trả về các state và hàm xử lý cho component sử dụng
+     */
     return {
         formData,
         isUpdating,

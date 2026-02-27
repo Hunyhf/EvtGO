@@ -1,5 +1,4 @@
 import { useState, useContext, useEffect } from 'react';
-// Thay thế toast bằng App của antd
 import { App as AntdApp } from 'antd';
 import classNames from 'classnames/bind';
 import styles from './AuthModal.module.scss';
