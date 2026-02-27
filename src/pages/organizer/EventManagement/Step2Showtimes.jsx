@@ -27,42 +27,30 @@ import {
 import dayjs from 'dayjs';
 
 const { Title, Text } = Typography;
-const { TextArea } = Input;
 const { Option } = Select;
 
 const Step2Showtimes = ({ setOnNextAction, formData, setFormData }) => {
-    // --- STATE QUẢN LÝ DỮ LIỆU VÉ ---
     const [tickets, setTickets] = useState(formData?.tickets || []);
-
     const [isTicketModalOpen, setIsTicketModalOpen] = useState(false);
     const [editingTicketIndex, setEditingTicketIndex] = useState(null);
     const [ticketForm] = Form.useForm();
     const [isFreeTicket, setIsFreeTicket] = useState(false);
 
-    // ----------------------------------------------------------------------
-    // LOGIC: ĐĂNG KÝ HÀM VALIDATE CHO CHA (CreateEvent.jsx)
-    // ----------------------------------------------------------------------
     useEffect(() => {
         setOnNextAction(() => () => async () => {
-            // 1. Kiểm tra thời gian sự kiện
             if (!formData.startTime || !formData.endTime) {
                 message.error(
                     'Vui lòng chọn thời gian bắt đầu và kết thúc sự kiện!'
                 );
                 return false;
             }
-
-            // 2. Kiểm tra danh sách vé
             if (tickets.length === 0) {
                 message.error('Vui lòng tạo ít nhất 1 loại vé cho sự kiện!');
                 return false;
             }
-
-            // Cập nhật mảng tickets vào formData tổng trước khi chuyển bước
             setFormData(prev => ({ ...prev, tickets }));
             return true;
         });
-
         return () => setOnNextAction(null);
     }, [
         tickets,
@@ -72,7 +60,6 @@ const Step2Showtimes = ({ setOnNextAction, formData, setFormData }) => {
         setOnNextAction
     ]);
 
-    // --- HÀM XỬ LÝ THỜI GIAN SỰ KIỆN ---
     const handleTimeChange = (field, value) => {
         setFormData(prev => ({
             ...prev,
@@ -80,10 +67,8 @@ const Step2Showtimes = ({ setOnNextAction, formData, setFormData }) => {
         }));
     };
 
-    // --- CÁC HÀM XỬ LÝ VÉ ---
     const openTicketModal = (index = null) => {
         setEditingTicketIndex(index);
-
         if (index !== null) {
             const ticket = tickets[index];
             ticketForm.setFieldsValue({
@@ -147,7 +132,6 @@ const Step2Showtimes = ({ setOnNextAction, formData, setFormData }) => {
 
     return (
         <div style={{ maxWidth: 1000, margin: '0 auto' }}>
-            {/* PHẦN 1: THỜI GIAN DIỄN RA SỰ KIỆN */}
             <div
                 style={{
                     marginBottom: 32,
@@ -219,13 +203,12 @@ const Step2Showtimes = ({ setOnNextAction, formData, setFormData }) => {
                 </Row>
             </div>
 
-            {/* PHẦN 2: CẤU HÌNH LOẠI VÉ */}
             <div style={{ marginBottom: 16 }}>
                 <Title level={4} style={{ color: '#fff', margin: 0 }}>
                     Cấu hình loại vé
                 </Title>
                 <Text type='secondary'>
-                    Tạo các hạng vé (Ví dụ: VIP, Thường) cho sự kiện của bạn
+                    Tạo các hạng vé cho sự kiện của bạn
                 </Text>
             </div>
 
@@ -309,7 +292,6 @@ const Step2Showtimes = ({ setOnNextAction, formData, setFormData }) => {
                             />
                         </Card>
                     ))}
-
                     <Button
                         type='dashed'
                         onClick={() => openTicketModal()}
@@ -327,7 +309,6 @@ const Step2Showtimes = ({ setOnNextAction, formData, setFormData }) => {
                 </div>
             </div>
 
-            {/* Modal Form Ticket giữ nguyên để khớp với ReqTicketDTO của Backend */}
             <Modal
                 title={<span style={{ color: '#fff' }}>Thông tin loại vé</span>}
                 open={isTicketModalOpen}
@@ -428,7 +409,6 @@ const Step2Showtimes = ({ setOnNextAction, formData, setFormData }) => {
                             </Form.Item>
                         </Col>
                     </Row>
-
                     <Row gutter={16}>
                         <Col span={12}>
                             <Form.Item
@@ -468,7 +448,6 @@ const Step2Showtimes = ({ setOnNextAction, formData, setFormData }) => {
                             </Form.Item>
                         </Col>
                     </Row>
-
                     <Form.Item
                         name='saleTime'
                         label={
@@ -485,21 +464,6 @@ const Step2Showtimes = ({ setOnNextAction, formData, setFormData }) => {
                             size='large'
                         />
                     </Form.Item>
-
-                    <Form.Item
-                        name='description'
-                        label={
-                            <span style={{ color: '#fff' }}>
-                                Mô tả quyền lợi
-                            </span>
-                        }
-                    >
-                        <TextArea
-                            rows={3}
-                            placeholder='Ví dụ: Có chỗ ngồi riêng, tặng nước suối...'
-                        />
-                    </Form.Item>
-
                     <Button
                         type='primary'
                         htmlType='submit'
