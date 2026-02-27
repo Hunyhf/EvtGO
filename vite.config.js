@@ -24,6 +24,7 @@ export default defineConfig({
     css: {
         preprocessorOptions: {
             scss: {
+                // Tự động inject file variables và mixins vào tất cả file .scss
                 additionalData: `
                     @use "@/assets/styles/variables" as *;
                     @use "@/assets/styles/mixins" as *;
