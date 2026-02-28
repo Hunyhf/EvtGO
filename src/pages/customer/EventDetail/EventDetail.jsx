@@ -38,7 +38,6 @@ const cx = classNames.bind(styles);
 const { Title, Text } = Typography;
 const { Panel } = Collapse;
 
-// Mapping nhãn hiển thị cho các loại vé từ Enum của Backend
 const TICKET_LABELS = {
     VIP: 'Vé VIP: ',
     STANDARD: 'Vé tiêu chuẩn: '
@@ -68,9 +67,6 @@ const EventDetail = () => {
         const fetchDetailData = async () => {
             try {
                 setLoading(true);
-                setEvent(null);
-                setTickets([]);
-
                 const [resEvent, resTicket] = await Promise.all([
                     eventApi.getById(id),
                     ticketApi.getAll({ filter: `event.id:${id}` })
@@ -142,15 +138,18 @@ const EventDetail = () => {
         ? dayjs(`${event.startDate} ${event.endTime}`)
         : null;
 
-    // --- LOGIC TRẠNG THÁI NÚT ---
+    // --- LOGIC TRẠNG THÁI NÚT THEO ORGANIZER & ADMIN ---
+    const isPublished = event.isPublished || event.published;
+    const isActive = event.isActive || event.active;
+
+    // 1. Đã diễn ra: Dựa vào thời gian thực tế
     const isPast = endTime
         ? dayjs().isAfter(endTime)
         : dayjs().isAfter(startTime.endOf('day'));
 
-    // Kiểm tra nếu có ngày mở bán và thời gian hiện tại chưa đến ngày đó
-    const isUpcoming = event.saleStartDate
-        ? dayjs().isBefore(dayjs(event.saleStartDate))
-        : false;
+    // 2. Sắp mở bán: Nếu sự kiện chưa kết thúc NHƯNG (Admin chưa duyệt HOẶC Organizer chưa mở bán)
+    // Ưu tiên cờ active của Organizer theo yêu cầu
+    const isUpcoming = !isPast && (!isPublished || !isActive);
 
     return (
         <main className={cx('eventDetail')}>
@@ -310,7 +309,6 @@ const EventDetail = () => {
                                                                 'tierLabel'
                                                             )}
                                                         >
-                                                            {/* Cập nhật sử dụng ticketType từ Backend */}
                                                             {TICKET_LABELS[
                                                                 ticket
                                                                     .ticketType
@@ -332,7 +330,6 @@ const EventDetail = () => {
                                                                 )}{' '}
                                                                 đ
                                                             </Text>
-
                                                             <BookingButton
                                                                 isPast={isPast}
                                                                 isUpcoming={

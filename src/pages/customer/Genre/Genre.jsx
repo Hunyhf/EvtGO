@@ -22,7 +22,7 @@ import styles from './Genre.module.scss';
 import EventCard from '@components/EventCard/EventCard';
 import { eventApi } from '@apis/eventApi';
 import { genresApi } from '@apis/genresApi';
-import { ticketApi } from '@apis/ticketApi'; // 1. Import ticketApi
+import { ticketApi } from '@apis/ticketApi';
 import { getEventImageUrl } from '@utils/imageHelper';
 
 const cx = classNames.bind(styles);
@@ -59,6 +59,32 @@ function Genre() {
     );
 
     const [tempFilters, setTempFilters] = useState({ ...currentFilters });
+
+    // --- LOGIC SẮP XẾP QUAN TRỌNG ---
+    const sortedEvents = useMemo(() => {
+        if (!events || events.length === 0) return [];
+
+        // 1. Chia mảng thành 2 nhóm: Chưa diễn ra và Đã diễn ra
+        const upcomingEvents = events.filter(e => !e.isPast);
+        const pastEvents = events.filter(e => e.isPast);
+
+        // 2. Sắp xếp nhóm Chưa diễn ra: Ngày gần hiện tại nhất lên đầu (Tăng dần)
+        upcomingEvents.sort((a, b) => {
+            const timeA = dayjs(a.fullStartTime).unix();
+            const timeB = dayjs(b.fullStartTime).unix();
+            return timeA - timeB;
+        });
+
+        // 3. Sắp xếp nhóm Đã diễn ra: Mới kết thúc gần đây lên đầu (Giảm dần)
+        pastEvents.sort((a, b) => {
+            const timeA = dayjs(a.fullStartTime).unix();
+            const timeB = dayjs(b.fullStartTime).unix();
+            return timeB - timeA;
+        });
+
+        // 4. Kết hợp: Sắp diễn ra trước, Đã qua sau
+        return [...upcomingEvents, ...pastEvents];
+    }, [events]);
 
     useEffect(() => {
         const loadGenres = async () => {
@@ -121,27 +147,25 @@ function Genre() {
             const apiParams = {
                 page: currentFilters.page - 1,
                 size: pageSize,
-                filter: filterString,
-                sort: 'startTime,asc'
+                filter: filterString
+                // Không sort ở API nữa vì ta sẽ tự sort ở FE theo logic phức tạp hơn
             };
 
             const res = await eventApi.getAll(apiParams);
             if (res?.meta) setTotalItems(res.meta.total);
 
-            // 2. Sử dụng Promise.all để lấy giá vé STANDARD song song cho từng sự kiện
             const eventsList = res?.result || res?.content || [];
             const mappedData = await Promise.all(
                 eventsList.map(async e => {
                     let standardPrice = 0;
                     try {
-                        // Gọi API lấy vé của event hiện tại, lọc theo ticketType là STANDARD
                         const ticketRes = await ticketApi.getAll({
                             filter: `event.id:${e.id} and ticketType:'STANDARD'`
                         });
                         const tickets =
                             ticketRes?.result || ticketRes?.content || [];
                         if (tickets.length > 0) {
-                            standardPrice = tickets[0].price; // Lấy giá từ bảng tickets
+                            standardPrice = tickets[0].price;
                         }
                     } catch (ticketErr) {
                         console.error(
@@ -152,22 +176,31 @@ function Genre() {
 
                     const posterObj =
                         e.images?.find(img => img.isCover) || e.images?.[0];
-
                     const fullStartTime = e.startDate
                         ? `${e.startDate} ${e.startTime || '00:00:00'}`
                         : e.startTime;
+
                     const startEvent = dayjs(fullStartTime);
-                    const endEvent = dayjs(e.endTime);
+                    const endEvent = dayjs(
+                        e.endDate
+                            ? `${e.endDate} ${e.endTime || '23:59:59'}`
+                            : e.endTime
+                    );
+
+                    // Xác định trạng thái Đã qua (Logic Data: false - true hoặc hết thời gian)
+                    const isPast =
+                        (!e.isPublished && e.isActive) || now.isAfter(endEvent);
 
                     return {
                         ...e,
                         title: e.name,
-                        price: standardPrice, // 3. Gán giá vé vào data để EventCard sử dụng
+                        price: standardPrice,
+                        fullStartTime, // Lưu lại để dùng cho sort
                         isAutoActive:
                             e.isPublished &&
                             now.isAfter(startEvent) &&
                             now.isBefore(endEvent),
-                        isPast: now.isAfter(endEvent),
+                        isPast: isPast,
                         date: startEvent.isValid()
                             ? startEvent.format('DD/MM/YYYY')
                             : 'Sắp diễn ra',
@@ -246,9 +279,9 @@ function Genre() {
                     </div>
                 ) : (
                     <>
-                        {events.length > 0 ? (
+                        {sortedEvents.length > 0 ? (
                             <div className={cx('eventsGrid')}>
-                                {events.map(event => (
+                                {sortedEvents.map(event => (
                                     <EventCard key={event.id} data={event} />
                                 ))}
                             </div>
@@ -258,7 +291,7 @@ function Genre() {
                             </div>
                         )}
 
-                        {events.length > 0 && (
+                        {sortedEvents.length > 0 && (
                             <div className={cx('paginationContainer')}>
                                 <Pagination
                                     current={currentFilters.page}
