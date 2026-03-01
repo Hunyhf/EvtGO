@@ -1,3 +1,4 @@
+// src/pages/customer/EventDetail/EventDetail.jsx
 import React, { useState, useEffect, useContext } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
@@ -131,6 +132,7 @@ const EventDetail = () => {
 
     const lowestPrice =
         tickets.length > 0 ? Math.min(...tickets.map(t => t.price || 0)) : 0;
+
     const startTime = dayjs(
         `${event.startDate} ${event.startTime || '00:00:00'}`
     );
@@ -142,13 +144,11 @@ const EventDetail = () => {
     const isPublished = event.isPublished || event.published;
     const isActive = event.isActive || event.active;
 
-    // 1. Đã diễn ra: Dựa vào thời gian thực tế
-    const isPast = endTime
-        ? dayjs().isAfter(endTime)
-        : dayjs().isAfter(startTime.endOf('day'));
+    // 1. Đã diễn ra: Cập nhật logic dựa trên thời gian bắt đầu
+    // Ngay khi hiện tại vượt quá startTime, isPast sẽ thành true
+    const isPast = dayjs().isAfter(startTime);
 
-    // 2. Sắp mở bán: Nếu sự kiện chưa kết thúc NHƯNG (Admin chưa duyệt HOẶC Organizer chưa mở bán)
-    // Ưu tiên cờ active của Organizer theo yêu cầu
+    // 2. Sắp mở bán: Nếu sự kiện chưa bắt đầu nhưng chưa được Admin duyệt hoặc Organizer chưa kích hoạt
     const isUpcoming = !isPast && (!isPublished || !isActive);
 
     return (

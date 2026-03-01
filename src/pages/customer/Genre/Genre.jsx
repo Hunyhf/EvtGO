@@ -43,7 +43,7 @@ function Genre() {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [totalItems, setTotalItems] = useState(0);
 
-    const pageSize = 12;
+    const pageSize = 20;
 
     const currentFilters = useMemo(
         () => ({

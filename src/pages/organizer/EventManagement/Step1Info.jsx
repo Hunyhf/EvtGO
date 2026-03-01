@@ -123,6 +123,19 @@ const Step1Info = ({
                     : null
             });
 
+            // 1. Khôi phục ảnh cho flow tạo mới (khi quay lại từ bước 2)
+            if (parentFormData.poster) {
+                setPosterUrl(parentFormData.poster);
+                form.setFieldsValue({ poster: parentFormData.poster });
+            }
+            if (parentFormData.organizerLogo) {
+                setLogoUrl(parentFormData.organizerLogo);
+                form.setFieldsValue({
+                    organizerLogo: parentFormData.organizerLogo
+                });
+            }
+
+            // 2. Khôi phục ảnh cho flow chỉnh sửa (dữ liệu từ server)
             if (parentFormData.images && parentFormData.images.length > 0) {
                 const posterData = parentFormData.images.find(
                     img => img.isCover === true
@@ -150,18 +163,14 @@ const Step1Info = ({
         }
     }, [parentFormData]);
 
-    // --- CẬP NHẬT CÁC HÀM THAY ĐỔI ĐỊA CHỈ ĐỂ KHÔNG MẤT DỮ LIỆU ---
     const handleProvinceChange = async (value, resetChildren = true) => {
         const province = provinces.find(p => p.code === value);
         if (resetChildren) {
-            // Lấy toàn bộ dữ liệu đang có trong form
             const currentValues = form.getFieldsValue();
-
             form.setFieldsValue({ district: undefined, ward: undefined });
             setDistricts([]);
             setWards([]);
 
-            // Cập nhật parentFormData kèm theo các dữ liệu cũ đã nhập
             setParentFormData(prev => ({
                 ...prev,
                 ...currentValues,
@@ -185,7 +194,6 @@ const Step1Info = ({
         const district = districts.find(d => d.code === value);
         if (resetChildren) {
             const currentValues = form.getFieldsValue();
-
             form.setFieldsValue({ ward: undefined });
             setWards([]);
 
@@ -257,7 +265,6 @@ const Step1Info = ({
 
     return (
         <Form form={form} layout='vertical'>
-            {/* --- CARD ẢNH BÌA VỚI TỶ LỆ 16:9 CHUẨN --- */}
             <Card
                 style={{
                     marginBottom: 24,
@@ -287,7 +294,7 @@ const Step1Info = ({
                             <div
                                 style={{
                                     width: '100%',
-                                    aspectRatio: '16/9', // Giữ tỷ lệ khung hình 16:9
+                                    aspectRatio: '16/9',
                                     overflow: 'hidden'
                                 }}
                             >
@@ -297,7 +304,7 @@ const Step1Info = ({
                                     style={{
                                         width: '100%',
                                         height: '100%',
-                                        objectFit: 'cover' // Ảnh sẽ phủ kín khung hình
+                                        objectFit: 'cover'
                                     }}
                                 />
                             </div>

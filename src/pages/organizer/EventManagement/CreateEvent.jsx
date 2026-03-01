@@ -16,7 +16,7 @@ import { ticketApi } from '@apis/ticketApi';
 
 import Step1Info from './Step1Info';
 import Step2Showtimes from './Step2Showtimes';
-import Step4Payment from './Step4Payment'; // Giờ đóng vai trò bước cuối
+import Step4Payment from './Step4Payment';
 
 const { confirm } = Modal;
 const STORAGE_KEY_DATA = 'evtgo_create_event_data';
@@ -49,6 +49,7 @@ const CreateEvent = () => {
                   poster: null,
                   posterFile: null,
                   organizerLogo: null,
+                  logoFile: null,
                   startTime: null,
                   endTime: null,
                   tickets: []
@@ -60,7 +61,8 @@ const CreateEvent = () => {
     }, [localCurrentStep, setCurrentStep]);
 
     useEffect(() => {
-        const { posterFile, ...dataToSave } = formData;
+        // Loại bỏ File object trước khi lưu vào localStorage để tránh lỗi JSON
+        const { posterFile, logoFile, ...dataToSave } = formData;
         localStorage.setItem(STORAGE_KEY_DATA, JSON.stringify(dataToSave));
         localStorage.setItem(STORAGE_KEY_STEP, localCurrentStep);
     }, [formData, localCurrentStep]);
@@ -80,14 +82,18 @@ const CreateEvent = () => {
     const handleFinish = async () => {
         setLoading(true);
         try {
-            const parts = [
+            // 1. Xử lý gộp địa chỉ thành chuỗi location duy nhất cho BE
+            const addressParts = [
                 formData.addressDetail,
                 formData.wardName,
                 formData.districtName,
                 formData.provinceName
             ].filter(Boolean);
-            const fullLocation = parts.join(', ');
+            const fullLocation = [formData.location, ...addressParts].join(
+                ', '
+            );
 
+            // 2. Build Payload khớp chính xác với ReqEventDTO của Backend
             const finalPayload = {
                 name: formData.name,
                 description: formData.description,
@@ -96,7 +102,8 @@ const CreateEvent = () => {
                     ? dayjs(formData.permitIssuedAt).format('YYYY-MM-DD')
                     : '',
                 permitIssuedBy: formData.permitIssuedBy,
-                location: fullLocation || formData.location,
+                location: fullLocation,
+                // Giữ nguyên giờ địa phương bằng cách parse không quan tâm múi giờ UTC
                 startDate: formData.startTime
                     ? dayjs(formData.startTime).format('YYYY-MM-DD')
                     : '',
@@ -110,7 +117,15 @@ const CreateEvent = () => {
                     ? dayjs(formData.endTime).format('HH:mm')
                     : '',
                 genreId: Number(formData.genreId),
-                organizerName: formData.organizerName
+                // BE yêu cầu object organizer chứ không phải String organizerName
+                organizer: {
+                    name: formData.organizerName
+                },
+                // Thêm trường price (BE yêu cầu Double) - lấy giá vé đầu tiên làm đại diện
+                price:
+                    formData.tickets?.length > 0
+                        ? Number(formData.tickets[0].price)
+                        : 0
             };
 
             const res = await eventApi.create(finalPayload);
@@ -118,26 +133,34 @@ const CreateEvent = () => {
 
             if (newEventId) {
                 message.success('Thông tin sự kiện đã được lưu!');
+
+                // Tạo vé: Khớp ReqTicketDTO (totalQuantity, ticketType, ticketStatus, price, eventId)
                 if (formData.tickets?.length > 0) {
                     const ticketRequests = formData.tickets.map(t =>
                         ticketApi.create({
-                            totalQuantity: t.totalQuantity,
+                            totalQuantity: Number(t.totalQuantity),
                             ticketType: t.ticketType,
-                            ticketStatus: t.ticketStatus,
-                            price: t.price,
+                            ticketStatus: t.ticketStatus || 'PUBLISHED',
+                            price: Number(t.price),
                             eventId: newEventId
                         })
                     );
                     await Promise.all(ticketRequests);
                 }
 
-                if (formData.posterFile || formData.logoFile) {
+                // Upload ảnh: Gửi "files" và "coverIndex" theo EventImageController
+                if (
+                    formData.posterFile instanceof File ||
+                    formData.logoFile instanceof File
+                ) {
                     const uploadData = new FormData();
-                    if (formData.posterFile)
+                    if (formData.posterFile instanceof File)
                         uploadData.append('files', formData.posterFile);
-                    if (formData.logoFile)
+                    if (formData.logoFile instanceof File)
                         uploadData.append('files', formData.logoFile);
-                    uploadData.append('coverIndex', '0');
+
+                    uploadData.append('coverIndex', 0); // Giả định poster là file đầu tiên
+
                     await eventImageApi.uploadEventImages(
                         newEventId,
                         uploadData

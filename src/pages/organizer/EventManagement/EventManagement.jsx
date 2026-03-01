@@ -13,7 +13,6 @@ import {
 } from 'antd';
 import {
     SearchOutlined,
-    EditOutlined,
     CalendarOutlined,
     EnvironmentOutlined,
     DashboardOutlined,
@@ -108,7 +107,7 @@ const EventManagement = () => {
     const [searchText, setSearchText] = useState('');
     const [activeTab, setActiveTab] = useState('upcoming');
     const [currentPage, setCurrentPage] = useState(1);
-    const pageSize = 10; // Đặt 10 sự kiện trên một trang theo yêu cầu
+    const pageSize = 10;
 
     const fetchEvents = useCallback(async () => {
         setLoading(true);
@@ -138,7 +137,6 @@ const EventManagement = () => {
                         fullStartTime: e.startDate
                             ? `${e.startDate} ${e.startTime || '00:00:00'}`
                             : null,
-                        // Hiển thị thời gian kết thúc (End Date + End Time)
                         fullEndTime: e.endDate
                             ? `${e.endDate} ${e.endTime || '23:59:59'}`
                             : e.endTime
@@ -151,7 +149,6 @@ const EventManagement = () => {
                 }
             );
 
-            // Sắp xếp sự kiện từ mới nhất đến cũ nhất dựa trên thời gian bắt đầu
             mappedData.sort(
                 (a, b) =>
                     dayjs(b.fullStartTime).unix() -
@@ -465,23 +462,6 @@ const EventManagement = () => {
                                                 </button>
                                             )}
 
-                                        {event.derivedStatus === 'PENDING' && (
-                                            <button
-                                                style={{
-                                                    ...styles.actionButton,
-                                                    color: '#2dc275'
-                                                }}
-                                                className='action-btn'
-                                                onClick={() =>
-                                                    navigate(
-                                                        `/organizer/events/edit/${event.id}`
-                                                    )
-                                                }
-                                            >
-                                                <EditOutlined />
-                                                <span>Chỉnh sửa</span>
-                                            </button>
-                                        )}
                                         <button
                                             style={styles.actionButton}
                                             className='action-btn'
@@ -504,7 +484,6 @@ const EventManagement = () => {
                 )}
             </Row>
 
-            {/* Phân trang căn phải giống Admin sử dụng Flexbox */}
             <div
                 style={{
                     marginTop: '32px',
