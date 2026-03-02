@@ -1,39 +1,69 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
     Table,
     Tag,
     Space,
     Button,
     Typography,
-    message,
     Modal,
     Descriptions,
-    Skeleton
+    Skeleton,
+    Input,
+    Select,
+    App,
+    Form,
+    InputNumber,
+    Radio
 } from 'antd';
 import {
-    UserAddOutlined,
     EditOutlined,
     DeleteOutlined,
-    EyeOutlined, // Import icon xem chi tiết
-    ExclamationCircleOutlined
+    EyeOutlined,
+    ExclamationCircleOutlined,
+    SearchOutlined,
+    PlusOutlined
 } from '@ant-design/icons';
 import classNames from 'classnames/bind';
+import debounce from 'lodash/debounce';
 
 import styles from './UserManagement.module.scss';
-import { callFetchAllUsers, callGetUserById } from '@apis/userApi'; // Import thêm hàm lấy chi tiết
+import {
+    callFetchAllUsers,
+    callGetUserById,
+    callCreateUser
+} from '@apis/userApi';
+import { ROLE_ID } from '@constants/roles';
 
 const cx = classNames.bind(styles);
 const { Title } = Typography;
-const { confirm } = Modal;
+const { Option } = Select;
 
-function UserManagement() {
+const removeAccents = str => {
+    return str
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/đ/g, 'd')
+        .replace(/Đ/g, 'D');
+};
+
+function UserManagementContent() {
+    const { message, modal } = App.useApp();
+    const [form] = Form.useForm();
+
     const [users, setUsers] = useState([]);
     const [loading, setLoading] = useState(false);
 
-    // State cho Modal chi tiết
+    // States cho Detail Modal
     const [isDetailOpen, setIsDetailOpen] = useState(false);
     const [selectedUser, setSelectedUser] = useState(null);
     const [detailLoading, setDetailLoading] = useState(false);
+
+    // States cho Add Modal
+    const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+    const [addLoading, setAddLoading] = useState(false);
+
+    const [searchText, setSearchText] = useState('');
+    const [filterRole, setFilterRole] = useState('ALL');
 
     const [pagination, setPagination] = useState({
         current: 1,
@@ -41,16 +71,28 @@ function UserManagement() {
         total: 0
     });
 
-    useEffect(() => {
-        fetchUsers(pagination.current, pagination.pageSize);
-    }, []);
-
-    const fetchUsers = async (page, size) => {
+    const fetchUsers = async (page, size, search = '', role = 'ALL') => {
         setLoading(true);
         try {
-            const query = `page=${page}&size=${size}`;
-            const res = await callFetchAllUsers(query);
+            let query = `page=${page}&size=${size}`;
+            let filterParts = [];
 
+            if (role !== 'ALL') {
+                filterParts.push(`role.id : ${role}`);
+            }
+
+            if (search) {
+                const searchVal = removeAccents(search);
+                filterParts.push(
+                    `(name ~ '${searchVal}' or email ~ '${searchVal}')`
+                );
+            }
+
+            if (filterParts.length > 0) {
+                query += `&filter=${encodeURIComponent(filterParts.join(' and '))}`;
+            }
+
+            const res = await callFetchAllUsers(query);
             if (res && res.result) {
                 setUsers(res.result);
                 setPagination({
@@ -66,7 +108,64 @@ function UserManagement() {
         }
     };
 
-    // Hàm xử lý xem chi tiết
+    const debounceSearch = useCallback(
+        debounce((nextValue, currentRole) => {
+            fetchUsers(1, pagination.pageSize, nextValue, currentRole);
+        }, 500),
+        [pagination.pageSize]
+    );
+
+    useEffect(() => {
+        fetchUsers(
+            pagination.current,
+            pagination.pageSize,
+            searchText,
+            filterRole
+        );
+    }, []);
+
+    const handleSearchChange = e => {
+        const value = e.target.value;
+        setSearchText(value);
+        debounceSearch(value, filterRole);
+    };
+
+    const handleRoleChange = value => {
+        setFilterRole(value);
+        fetchUsers(1, pagination.pageSize, searchText, value);
+    };
+
+    const handleTableChange = newPagination => {
+        fetchUsers(
+            newPagination.current,
+            newPagination.pageSize,
+            searchText,
+            filterRole
+        );
+    };
+
+    // Xử lý Thêm Admin
+    const handleAddAdmin = async values => {
+        setAddLoading(true);
+        try {
+            const data = {
+                ...values,
+                role: { id: ROLE_ID.ADMIN } // Cố định role là Admin
+            };
+            const res = await callCreateUser(data);
+            if (res) {
+                message.success('Tạo tài khoản Admin thành công!');
+                setIsAddModalOpen(false);
+                form.resetFields();
+                fetchUsers(1, pagination.pageSize, searchText, filterRole);
+            }
+        } catch (error) {
+            message.error(error.response?.data?.message || 'Lỗi khi tạo Admin');
+        } finally {
+            setAddLoading(false);
+        }
+    };
+
     const handleViewDetail = async id => {
         setIsDetailOpen(true);
         setDetailLoading(true);
@@ -81,12 +180,8 @@ function UserManagement() {
         }
     };
 
-    const handleTableChange = newPagination => {
-        fetchUsers(newPagination.current, newPagination.pageSize);
-    };
-
     const handleDelete = user => {
-        confirm({
+        modal.confirm({
             title: 'Xác nhận xóa người dùng?',
             icon: <ExclamationCircleOutlined />,
             content: `Bạn có chắc chắn muốn xóa ${user.name}?`,
@@ -94,9 +189,24 @@ function UserManagement() {
             okType: 'danger',
             cancelText: 'Hủy',
             onOk() {
-                message.success('Đã xóa thành công!');
+                message.success('Tính năng xóa đang được đồng bộ...');
             }
         });
+    };
+
+    const renderRoleTag = roleId => {
+        switch (roleId) {
+            case ROLE_ID.ADMIN:
+                return <Tag color='gold'>Quản trị viên</Tag>;
+            case ROLE_ID.CUSTOMER:
+                return <Tag color='cyan'>Khách hàng</Tag>;
+            case ROLE_ID.ORGANIZER:
+                return <Tag color='blue'>Nhà tổ chức</Tag>;
+            case ROLE_ID.STAFF:
+                return <Tag color='purple'>Nhân viên</Tag>;
+            default:
+                return <Tag>N/A</Tag>;
+        }
     };
 
     const columns = [
@@ -105,15 +215,21 @@ function UserManagement() {
             title: 'Họ và tên',
             dataIndex: 'name',
             key: 'name',
-            render: text => <strong style={{ color: '#393f4e' }}>{text}</strong>
+            render: text => <strong>{text}</strong>
         },
         { title: 'Email', dataIndex: 'email', key: 'email' },
+        {
+            title: 'Vai trò',
+            dataIndex: ['role', 'id'],
+            key: 'role',
+            render: (_, record) =>
+                renderRoleTag(record.role?.id || record.roleId)
+        },
         {
             title: 'Thao tác',
             key: 'actions',
             render: (_, record) => (
                 <Space className={cx('action-btns')}>
-                    {/* Nút Xem Chi Tiết */}
                     <Button
                         type='text'
                         icon={<EyeOutlined style={{ color: '#1890ff' }} />}
@@ -143,10 +259,41 @@ function UserManagement() {
                 <Title level={3} className={cx('user-management__title')}>
                     Quản lý người dùng
                 </Title>
+
+                <Space size='middle'>
+                    <Input
+                        placeholder='Tìm tên hoặc email...'
+                        prefix={<SearchOutlined />}
+                        value={searchText}
+                        onChange={handleSearchChange}
+                        style={{ width: 250 }}
+                        allowClear
+                    />
+                    <Select
+                        defaultValue='ALL'
+                        style={{ width: 160 }}
+                        onChange={handleRoleChange}
+                        value={filterRole}
+                    >
+                        <Option value='ALL'>Tất cả vai trò</Option>
+                        <Option value={ROLE_ID.ADMIN}>Quản trị viên</Option>
+                        <Option value={ROLE_ID.ORGANIZER}>Nhà tổ chức</Option>
+                        <Option value={ROLE_ID.CUSTOMER}>Khách hàng</Option>
+                    </Select>
+                    <Button
+                        type='primary'
+                        icon={<PlusOutlined />}
+                        className={cx('btn-primary')}
+                        onClick={() => setIsAddModalOpen(true)}
+                    >
+                        Thêm Admin
+                    </Button>
+                </Space>
             </div>
 
             <div className={cx('user-management__container')}>
                 <Table
+                    className={cx('user-management__table')}
                     columns={columns}
                     dataSource={users}
                     rowKey='id'
@@ -155,15 +302,124 @@ function UserManagement() {
                         current: pagination.current,
                         pageSize: pagination.pageSize,
                         total: pagination.total,
-                        showTotal: total => `Tổng cộng ${total} người dùng`
+                        showTotal: total => (
+                            <span style={{ color: '#fff' }}>
+                                Tổng cộng {total} người dùng
+                            </span>
+                        )
                     }}
                     onChange={handleTableChange}
                 />
             </div>
 
-            {/* Modal hiển thị chi tiết người dùng */}
+            {/* Modal Thêm mới Admin */}
             <Modal
-                title='Chi tiết người dùng'
+                title={
+                    <span style={{ color: '#fff' }}>
+                        Thêm mới Quản trị viên
+                    </span>
+                }
+                open={isAddModalOpen}
+                onCancel={() => {
+                    setIsAddModalOpen(false);
+                    form.resetFields();
+                }}
+                onOk={() => form.submit()}
+                confirmLoading={addLoading}
+                okText='Lưu'
+                cancelText='Hủy'
+                width={600}
+                className={cx('user-management__modal')}
+            >
+                <Form
+                    form={form}
+                    layout='vertical'
+                    onFinish={handleAddAdmin}
+                    initialValues={{ gender: 'MALE', age: 18 }}
+                >
+                    <Form.Item
+                        label={<span style={{ color: '#fff' }}>Họ và tên</span>}
+                        name='name'
+                        rules={[
+                            { required: true, message: 'Vui lòng nhập họ tên' }
+                        ]}
+                    >
+                        <Input placeholder='Nhập tên đầy đủ' />
+                    </Form.Item>
+
+                    <Form.Item
+                        label={<span style={{ color: '#fff' }}>Email</span>}
+                        name='email'
+                        rules={[
+                            { required: true, message: 'Vui lòng nhập email' },
+                            { type: 'email', message: 'Email không hợp lệ' }
+                        ]}
+                    >
+                        <Input placeholder='admin@example.com' />
+                    </Form.Item>
+
+                    <Form.Item
+                        label={<span style={{ color: '#fff' }}>Mật khẩu</span>}
+                        name='password'
+                        rules={[
+                            {
+                                required: true,
+                                message: 'Vui lòng nhập mật khẩu'
+                            },
+                            { min: 6, message: 'Tối thiểu 6 ký tự' }
+                        ]}
+                    >
+                        <Input.Password placeholder='Nhập mật khẩu an toàn' />
+                    </Form.Item>
+
+                    <div style={{ display: 'flex', gap: '20px' }}>
+                        <Form.Item
+                            label={<span style={{ color: '#fff' }}>Tuổi</span>}
+                            name='age'
+                            style={{ flex: 1 }}
+                        >
+                            <InputNumber
+                                min={1}
+                                max={100}
+                                style={{ width: '100%' }}
+                            />
+                        </Form.Item>
+
+                        <Form.Item
+                            label={
+                                <span style={{ color: '#fff' }}>Giới tính</span>
+                            }
+                            name='gender'
+                            style={{ flex: 1 }}
+                        >
+                            <Radio.Group>
+                                <Radio value='MALE'>
+                                    <span style={{ color: '#fff' }}>Nam</span>
+                                </Radio>
+                                <Radio value='FEMALE'>
+                                    <span style={{ color: '#fff' }}>Nữ</span>
+                                </Radio>
+                            </Radio.Group>
+                        </Form.Item>
+                    </div>
+
+                    <Form.Item
+                        label={<span style={{ color: '#fff' }}>Địa chỉ</span>}
+                        name='address'
+                    >
+                        <Input.TextArea
+                            rows={2}
+                            placeholder='Nhập địa chỉ cư trú'
+                        />
+                    </Form.Item>
+                </Form>
+            </Modal>
+
+            {/* Modal Chi tiết */}
+            <Modal
+                title={
+                    <span style={{ color: '#fff' }}>Chi tiết người dùng</span>
+                }
                 open={isDetailOpen}
                 onCancel={() => setIsDetailOpen(false)}
                 footer={[
@@ -172,13 +428,19 @@ function UserManagement() {
                     </Button>
                 ]}
                 width={700}
+                className={cx('user-management__modal')}
             >
                 <Skeleton loading={detailLoading} active>
                     {selectedUser && (
                         <Descriptions
                             bordered
                             column={1}
-                            labelStyle={{ fontWeight: 'bold', width: '150px' }}
+                            labelStyle={{
+                                fontWeight: 'bold',
+                                width: '150px',
+                                color: '#fff'
+                            }}
+                            contentStyle={{ color: '#fff' }}
                         >
                             <Descriptions.Item label='ID'>
                                 {selectedUser.id}
@@ -189,11 +451,10 @@ function UserManagement() {
                             <Descriptions.Item label='Email'>
                                 {selectedUser.email}
                             </Descriptions.Item>
-                            <Descriptions.Item label='Số điện thoại'>
-                                {selectedUser.phone || 'Chưa cập nhật'}
-                            </Descriptions.Item>
-                            <Descriptions.Item label='Tuổi'>
-                                {selectedUser.age || 'N/A'}
+                            <Descriptions.Item label='Vai trò'>
+                                {renderRoleTag(
+                                    selectedUser.role?.id || selectedUser.roleId
+                                )}
                             </Descriptions.Item>
                             <Descriptions.Item label='Giới tính'>
                                 <Tag
@@ -205,19 +466,25 @@ function UserManagement() {
                                 >
                                     {selectedUser.gender === 'MALE'
                                         ? 'Nam'
-                                        : selectedUser.gender === 'FEMALE'
-                                          ? 'Nữ'
-                                          : 'Khác'}
+                                        : 'Nữ'}
                                 </Tag>
                             </Descriptions.Item>
                             <Descriptions.Item label='Địa chỉ'>
-                                {selectedUser.address || 'Chưa cập nhật'}
+                                {selectedUser.address || 'N/A'}
                             </Descriptions.Item>
                         </Descriptions>
                     )}
                 </Skeleton>
             </Modal>
         </div>
+    );
+}
+
+function UserManagement() {
+    return (
+        <App>
+            <UserManagementContent />
+        </App>
     );
 }
 
