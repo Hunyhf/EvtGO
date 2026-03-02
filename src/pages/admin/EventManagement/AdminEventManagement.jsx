@@ -21,9 +21,7 @@ import {
     CloseCircleOutlined,
     SearchOutlined,
     EnvironmentOutlined,
-    ClockCircleOutlined,
-    InfoCircleOutlined,
-    FileTextOutlined
+    InfoCircleOutlined
 } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import { eventApi } from '@apis/eventApi';
@@ -33,7 +31,6 @@ import { getEventImageUrl } from '@utils/imageHelper';
 const { Title, Text } = Typography;
 const { Option } = Select;
 
-// Hàm hỗ trợ loại bỏ dấu tiếng Việt
 const removeAccents = str => {
     return str
         .normalize('NFD')
@@ -50,9 +47,6 @@ function AdminEventManagement() {
     const [searchText, setSearchText] = useState('');
     const [filterStatus, setFilterStatus] = useState('ALL');
 
-    const [isRejectModalOpen, setIsRejectModalOpen] = useState(false);
-    const [currentEventId, setCurrentEventId] = useState(null);
-
     const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
     const [selectedEvent, setSelectedEvent] = useState(null);
 
@@ -65,7 +59,6 @@ function AdminEventManagement() {
                 res?.content ||
                 res?.data ||
                 (Array.isArray(res) ? res : []);
-            const now = dayjs();
 
             const mappedData = rawEvents.map(event => {
                 const posterObj =
@@ -73,42 +66,52 @@ function AdminEventManagement() {
                     event.images?.[0];
                 const posterUrl = getEventImageUrl(event.id, posterObj?.url);
 
-                const fullStartTimeStr = event.startDate
-                    ? `${event.startDate} ${event.startTime || '00:00:00'}`
-                    : null;
-                const fullEndTimeStr = event.endDate
-                    ? `${event.endDate} ${event.endTime || '00:00:00'}`
-                    : null;
-
-                const eventStartTime = fullStartTimeStr
-                    ? dayjs(fullStartTimeStr)
-                    : null;
-                const eventEndTime = fullEndTimeStr
-                    ? dayjs(fullEndTimeStr)
-                    : null;
-
                 const isPublished = event.isPublished || event.published;
                 const isActive = event.isActive || event.active;
-                const isPast = eventEndTime
-                    ? eventEndTime.isBefore(now)
-                    : eventStartTime && eventStartTime.isBefore(now);
 
+                // Logic trạng thái
                 let derivedStatus = 'PENDING';
-                if (isPast) derivedStatus = 'PAST';
-                else if (isPublished) derivedStatus = 'APPROVED';
-                else if (isActive) derivedStatus = 'REJECTED';
-                else derivedStatus = 'PENDING';
+                if (!isPublished && isActive) {
+                    derivedStatus = 'PAST';
+                } else if (isPublished && isActive) {
+                    derivedStatus = 'OPEN';
+                } else if (isPublished && !isActive) {
+                    derivedStatus = 'UPCOMING';
+                } else {
+                    derivedStatus = 'PENDING';
+                }
+
+                // Xử lý thời gian bắt đầu và kết thúc
+                const fullStartTime = event.startDate
+                    ? `${event.startDate} ${event.startTime || '00:00:00'}`
+                    : null;
+
+                const fullEndTime = event.endDate
+                    ? `${event.endDate} ${event.endTime || '23:59:59'}`
+                    : event.endTime && event.startDate
+                      ? `${event.startDate} ${event.endTime}`
+                      : null;
 
                 return {
                     ...event,
                     key: event.id,
                     posterUrl,
                     derivedStatus,
-                    fullStartTime: fullStartTimeStr,
-                    fullEndTime: fullEndTimeStr,
+                    isPublished,
+                    isActive,
+                    fullStartTime,
+                    fullEndTime,
                     organizerName: event.createdBy || 'N/A'
                 };
             });
+
+            // Sắp xếp sự kiện từ mới nhất đến cũ nhất dựa trên fullStartTime
+            mappedData.sort((a, b) => {
+                const timeA = dayjs(a.fullStartTime).unix();
+                const timeB = dayjs(b.fullStartTime).unix();
+                return timeB - timeA;
+            });
+
             setDataSource(mappedData);
         } catch (error) {
             message.error('Không thể tải danh sách sự kiện.');
@@ -121,53 +124,27 @@ function AdminEventManagement() {
         fetchEvents();
     }, []);
 
+    const updateStatus = async (apiFunc, successMsg) => {
+        try {
+            await apiFunc();
+            message.success(successMsg);
+            fetchEvents();
+        } catch (error) {
+            message.error(error.response?.data?.message || 'Lỗi thao tác.');
+        }
+    };
+
     const handleViewDetail = record => {
         setSelectedEvent(record);
         setIsDetailModalOpen(true);
     };
 
-    const handleApprove = async id => {
-        try {
-            await eventApi.approve(id);
-            message.success('Đã duyệt sự kiện thành công!');
-            fetchEvents();
-        } catch (error) {
-            message.error(
-                error.response?.data?.message || 'Lỗi khi duyệt sự kiện.'
-            );
-        }
-    };
-
-    const handleRejectConfirm = async () => {
-        try {
-            await eventApi.toggleActive(currentEventId);
-            message.success('Đã chuyển sự kiện vào danh sách từ chối.');
-            setIsRejectModalOpen(false);
-            fetchEvents();
-        } catch (error) {
-            message.error('Lỗi khi thực hiện thao tác.');
-        }
-    };
-
-    // Logic lọc dữ liệu hỗ trợ không dấu
     const filteredData = dataSource.filter(item => {
         const matchStatus =
             filterStatus === 'ALL' || item.derivedStatus === filterStatus;
-
-        // Chuyển từ khóa tìm kiếm sang không dấu
         const searchNormalized = removeAccents(searchText.toLowerCase());
-
-        // Chuyển tên sự kiện và ban tổ chức sang không dấu
         const nameNormalized = removeAccents((item.name || '').toLowerCase());
-        const organizerNormalized = removeAccents(
-            (item.organizerName || '').toLowerCase()
-        );
-
-        const matchSearch =
-            nameNormalized.includes(searchNormalized) ||
-            organizerNormalized.includes(searchNormalized);
-
-        return matchStatus && matchSearch;
+        return matchStatus && nameNormalized.includes(searchNormalized);
     });
 
     const columns = [
@@ -175,12 +152,12 @@ function AdminEventManagement() {
             title: 'Sự kiện',
             dataIndex: 'name',
             key: 'name',
-            width: 350,
+            width: 300,
             render: (text, record) => (
                 <div
                     style={{
                         display: 'flex',
-                        gap: '15px',
+                        gap: '12px',
                         alignItems: 'center'
                     }}
                 >
@@ -188,8 +165,8 @@ function AdminEventManagement() {
                         src={record.posterUrl}
                         alt='cover'
                         style={{
-                            width: '100px',
-                            height: '65px',
+                            width: '80px',
+                            height: '50px',
                             objectFit: 'cover',
                             borderRadius: '4px'
                         }}
@@ -199,7 +176,9 @@ function AdminEventManagement() {
                         }}
                     />
                     <div>
-                        <div style={{ fontWeight: 'bold' }}>{text}</div>
+                        <div style={{ fontWeight: 'bold', fontSize: '13px' }}>
+                            {text}
+                        </div>
                         <div style={{ fontSize: '11px', color: '#1677ff' }}>
                             <EnvironmentOutlined /> {record.location}
                         </div>
@@ -208,33 +187,31 @@ function AdminEventManagement() {
             )
         },
         {
-            title: 'Ban tổ chức',
-            dataIndex: 'organizerName',
-            key: 'organizer',
-            width: 150
-        },
-        {
             title: 'Thời gian',
             key: 'time',
-            width: 200,
+            width: 220,
             render: (_, record) => (
                 <div style={{ fontSize: '12px' }}>
                     <div>
-                        <ClockCircleOutlined style={{ color: '#52c41a' }} />{' '}
+                        <Text type='secondary' style={{ fontSize: '11px' }}>
+                            BĐ:{' '}
+                        </Text>
                         {record.fullStartTime
                             ? dayjs(record.fullStartTime).format(
                                   'HH:mm DD/MM/YYYY'
                               )
                             : '--'}
                     </div>
-                    {record.fullEndTime && (
-                        <div style={{ color: '#888', paddingLeft: '17px' }}>
-                            đến{' '}
-                            {dayjs(record.fullEndTime).format(
-                                'HH:mm DD/MM/YYYY'
-                            )}
-                        </div>
-                    )}
+                    <div>
+                        <Text type='secondary' style={{ fontSize: '11px' }}>
+                            KT:{' '}
+                        </Text>
+                        {record.fullEndTime
+                            ? dayjs(record.fullEndTime).format(
+                                  'HH:mm DD/MM/YYYY'
+                              )
+                            : '--'}
+                    </div>
                 </div>
             )
         },
@@ -242,19 +219,21 @@ function AdminEventManagement() {
             title: 'Trạng thái',
             dataIndex: 'derivedStatus',
             key: 'status',
-            width: 120,
+            width: 140,
             render: status => {
                 const statusConfig = {
-                    PENDING: { color: 'warning', text: 'Chờ duyệt' },
-                    APPROVED: { color: 'success', text: 'Đã duyệt' },
-                    PAST: { color: 'default', text: 'Đã qua' },
-                    REJECTED: { color: 'error', text: 'Bị từ chối' }
+                    PENDING: { color: 'default', text: 'Chờ duyệt' },
+                    UPCOMING: { color: 'processing', text: 'Sắp mở bán' },
+                    OPEN: { color: 'success', text: 'Đang mở bán' },
+                    PAST: { color: 'orange', text: 'Đã diễn ra' }
                 };
                 const config = statusConfig[status] || {
                     color: 'default',
                     text: 'Khác'
                 };
-                return <Tag color={config.color}>{config.text}</Tag>;
+                return (
+                    <Tag color={config.color}>{config.text.toUpperCase()}</Tag>
+                );
             }
         },
         {
@@ -268,33 +247,37 @@ function AdminEventManagement() {
                             onClick={() => handleViewDetail(record)}
                         />
                     </Tooltip>
-                    {record.derivedStatus === 'PENDING' && (
-                        <>
-                            <Popconfirm
-                                title='Duyệt sự kiện này?'
-                                onConfirm={() => handleApprove(record.id)}
-                                okText='Duyệt'
-                                cancelText='Hủy'
-                            >
-                                <Button
-                                    type='primary'
-                                    ghost
-                                    icon={<CheckCircleOutlined />}
-                                >
-                                    Duyệt
-                                </Button>
-                            </Popconfirm>
+
+                    {record.derivedStatus !== 'PAST' && (
+                        <Tooltip
+                            title={
+                                record.isPublished
+                                    ? 'Gỡ hiển thị'
+                                    : 'Duyệt sự kiện'
+                            }
+                        >
                             <Button
-                                danger
-                                icon={<CloseCircleOutlined />}
-                                onClick={() => {
-                                    setCurrentEventId(record.id);
-                                    setIsRejectModalOpen(true);
-                                }}
-                            >
-                                Từ chối
-                            </Button>
-                        </>
+                                type={
+                                    record.isPublished ? 'default' : 'primary'
+                                }
+                                icon={
+                                    record.isPublished ? (
+                                        <CloseCircleOutlined />
+                                    ) : (
+                                        <CheckCircleOutlined />
+                                    )
+                                }
+                                onClick={() =>
+                                    updateStatus(
+                                        () =>
+                                            eventApi.togglePublished(record.id),
+                                        record.isPublished
+                                            ? 'Đã gỡ hiển thị'
+                                            : 'Đã duyệt hiển thị'
+                                    )
+                                }
+                            />
+                        </Tooltip>
                     )}
                 </Space>
             )
@@ -317,11 +300,11 @@ function AdminEventManagement() {
                         style={{ width: 150 }}
                         onChange={setFilterStatus}
                     >
-                        <Option value='ALL'>Tất cả</Option>
+                        <Option value='ALL'>Tất cả trạng thái</Option>
                         <Option value='PENDING'>Chờ duyệt</Option>
-                        <Option value='APPROVED'>Đã duyệt</Option>
-                        <Option value='REJECTED'>Từ chối</Option>
-                        <Option value='PAST'>Đã qua</Option>
+                        <Option value='UPCOMING'>Sắp mở bán</Option>
+                        <Option value='OPEN'>Đang mở bán</Option>
+                        <Option value='PAST'>Đã diễn ra</Option>
                     </Select>
                 </div>
             </div>
@@ -340,7 +323,7 @@ function AdminEventManagement() {
                 title={
                     <Space>
                         <InfoCircleOutlined />
-                        <span>Thông tin chi tiết sự kiện</span>
+                        <span>Chi tiết sự kiện</span>
                     </Space>
                 }
                 open={isDetailModalOpen}
@@ -356,13 +339,7 @@ function AdminEventManagement() {
                 width={800}
             >
                 {selectedEvent && (
-                    <div
-                        style={{
-                            maxHeight: '70vh',
-                            overflowY: 'auto',
-                            paddingRight: '10px'
-                        }}
-                    >
+                    <div style={{ maxHeight: '70vh', overflowY: 'auto' }}>
                         <div
                             style={{
                                 display: 'flex',
@@ -378,134 +355,54 @@ function AdminEventManagement() {
                                     borderRadius: '8px',
                                     objectFit: 'cover'
                                 }}
-                                fallback='https://placehold.co/400x300?text=No+Image'
                             />
                             <div>
                                 <Title level={4} style={{ margin: 0 }}>
                                     {selectedEvent.name}
                                 </Title>
-                                <Text type='secondary'>
-                                    ID: {selectedEvent.id}
-                                </Text>
-                                <div style={{ marginTop: '10px' }}>
-                                    <Tag
-                                        color={
-                                            selectedEvent.derivedStatus ===
-                                            'APPROVED'
-                                                ? 'green'
-                                                : 'orange'
-                                        }
-                                    >
-                                        {selectedEvent.derivedStatus}
-                                    </Tag>
-                                </div>
+                                <Tag
+                                    color={
+                                        selectedEvent.derivedStatus === 'PAST'
+                                            ? 'orange'
+                                            : 'blue'
+                                    }
+                                >
+                                    {selectedEvent.derivedStatus.toUpperCase()}
+                                </Tag>
                             </div>
                         </div>
-
                         <Descriptions
-                            title='Thông tin tổ chức'
+                            title='Thông tin'
                             bordered
                             column={1}
                             size='small'
                         >
                             <Descriptions.Item label='Địa điểm'>
-                                <EnvironmentOutlined /> {selectedEvent.location}
+                                {selectedEvent.location}
                             </Descriptions.Item>
-                            <Descriptions.Item label='Thời gian bắt đầu'>
-                                {selectedEvent.fullStartTime
-                                    ? dayjs(selectedEvent.fullStartTime).format(
-                                          'HH:mm - dddd, DD/MM/YYYY'
-                                      )
-                                    : '--'}
+                            <Descriptions.Item label='Bắt đầu'>
+                                {dayjs(selectedEvent.fullStartTime).format(
+                                    'HH:mm DD/MM/YYYY'
+                                )}
                             </Descriptions.Item>
-                            <Descriptions.Item label='Thời gian kết thúc'>
+                            <Descriptions.Item label='Kết thúc'>
                                 {selectedEvent.fullEndTime
                                     ? dayjs(selectedEvent.fullEndTime).format(
-                                          'HH:mm - dddd, DD/MM/YYYY'
+                                          'HH:mm DD/MM/YYYY'
                                       )
                                     : '--'}
                             </Descriptions.Item>
-                            <Descriptions.Item label='Người tạo'>
-                                {selectedEvent.organizerName}
-                            </Descriptions.Item>
                         </Descriptions>
-
-                        <Divider orientation='left'>
-                            <FileTextOutlined /> Thông tin pháp lý
-                        </Divider>
-                        <Descriptions bordered column={2} size='small'>
-                            <Descriptions.Item label='Số giấy phép'>
-                                {selectedEvent.permitNumber || 'N/A'}
-                            </Descriptions.Item>
-                            <Descriptions.Item label='Nơi cấp'>
-                                {selectedEvent.permitIssuedBy || 'N/A'}
-                            </Descriptions.Item>
-                            <Descriptions.Item label='Ngày cấp'>
-                                {selectedEvent.permitIssuedAt
-                                    ? dayjs(
-                                          selectedEvent.permitIssuedAt
-                                      ).format('DD/MM/YYYY')
-                                    : 'N/A'}
-                            </Descriptions.Item>
-                        </Descriptions>
-
-                        <Divider orientation='left'>Mô tả sự kiện</Divider>
+                        <Divider />
                         <div
-                            style={{
-                                padding: '10px',
-                                background: '#f5f5f5',
-                                borderRadius: '4px'
-                            }}
                             dangerouslySetInnerHTML={{
                                 __html:
                                     selectedEvent.description ||
                                     'Không có mô tả.'
                             }}
                         />
-
-                        {selectedEvent.images &&
-                            selectedEvent.images.length > 1 && (
-                                <>
-                                    <Divider orientation='left'>
-                                        Hình ảnh khác
-                                    </Divider>
-                                    <Space wrap>
-                                        {selectedEvent.images
-                                            .filter(img => !img.isCover)
-                                            .map((img, index) => (
-                                                <Image
-                                                    key={index}
-                                                    width={120}
-                                                    src={getEventImageUrl(
-                                                        selectedEvent.id,
-                                                        img.url
-                                                    )}
-                                                    style={{
-                                                        borderRadius: '4px',
-                                                        objectFit: 'cover'
-                                                    }}
-                                                />
-                                            ))}
-                                    </Space>
-                                </>
-                            )}
                     </div>
                 )}
-            </Modal>
-
-            <Modal
-                title='Xác nhận từ chối sự kiện'
-                open={isRejectModalOpen}
-                onOk={handleRejectConfirm}
-                onCancel={() => setIsRejectModalOpen(false)}
-                okText='Từ chối'
-                okButtonProps={{ danger: true }}
-                cancelText='Hủy'
-            >
-                <p>
-                    Bạn có chắc chắn muốn từ chối sự kiện này? Sự kiện sẽ được
-                    chuyển vào mục <b>Từ chối</b>.
-                </p>
             </Modal>
         </div>
     );

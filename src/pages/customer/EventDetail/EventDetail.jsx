@@ -1,3 +1,4 @@
+// src/pages/customer/EventDetail/EventDetail.jsx
 import React, { useState, useEffect, useContext } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
@@ -38,7 +39,6 @@ const cx = classNames.bind(styles);
 const { Title, Text } = Typography;
 const { Panel } = Collapse;
 
-// Mapping nhãn hiển thị cho các loại vé từ Enum của Backend
 const TICKET_LABELS = {
     VIP: 'Vé VIP: ',
     STANDARD: 'Vé tiêu chuẩn: '
@@ -68,9 +68,6 @@ const EventDetail = () => {
         const fetchDetailData = async () => {
             try {
                 setLoading(true);
-                setEvent(null);
-                setTickets([]);
-
                 const [resEvent, resTicket] = await Promise.all([
                     eventApi.getById(id),
                     ticketApi.getAll({ filter: `event.id:${id}` })
@@ -135,6 +132,7 @@ const EventDetail = () => {
 
     const lowestPrice =
         tickets.length > 0 ? Math.min(...tickets.map(t => t.price || 0)) : 0;
+
     const startTime = dayjs(
         `${event.startDate} ${event.startTime || '00:00:00'}`
     );
@@ -142,15 +140,16 @@ const EventDetail = () => {
         ? dayjs(`${event.startDate} ${event.endTime}`)
         : null;
 
-    // --- LOGIC TRẠNG THÁI NÚT ---
-    const isPast = endTime
-        ? dayjs().isAfter(endTime)
-        : dayjs().isAfter(startTime.endOf('day'));
+    // --- LOGIC TRẠNG THÁI NÚT THEO ORGANIZER & ADMIN ---
+    const isPublished = event.isPublished || event.published;
+    const isActive = event.isActive || event.active;
 
-    // Kiểm tra nếu có ngày mở bán và thời gian hiện tại chưa đến ngày đó
-    const isUpcoming = event.saleStartDate
-        ? dayjs().isBefore(dayjs(event.saleStartDate))
-        : false;
+    // 1. Đã diễn ra: Cập nhật logic dựa trên thời gian bắt đầu
+    // Ngay khi hiện tại vượt quá startTime, isPast sẽ thành true
+    const isPast = dayjs().isAfter(startTime);
+
+    // 2. Sắp mở bán: Nếu sự kiện chưa bắt đầu nhưng chưa được Admin duyệt hoặc Organizer chưa kích hoạt
+    const isUpcoming = !isPast && (!isPublished || !isActive);
 
     return (
         <main className={cx('eventDetail')}>
@@ -310,7 +309,6 @@ const EventDetail = () => {
                                                                 'tierLabel'
                                                             )}
                                                         >
-                                                            {/* Cập nhật sử dụng ticketType từ Backend */}
                                                             {TICKET_LABELS[
                                                                 ticket
                                                                     .ticketType
@@ -332,7 +330,6 @@ const EventDetail = () => {
                                                                 )}{' '}
                                                                 đ
                                                             </Text>
-
                                                             <BookingButton
                                                                 isPast={isPast}
                                                                 isUpcoming={

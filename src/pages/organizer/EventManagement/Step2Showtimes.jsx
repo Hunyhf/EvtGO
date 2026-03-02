@@ -30,40 +30,71 @@ const { Title, Text } = Typography;
 const { Option } = Select;
 
 const Step2Showtimes = ({ setOnNextAction, formData, setFormData }) => {
+    // 1. Khởi tạo tickets từ formData để giữ dữ liệu khi quay lại từ Step 3, 4
     const [tickets, setTickets] = useState(formData?.tickets || []);
     const [isTicketModalOpen, setIsTicketModalOpen] = useState(false);
     const [editingTicketIndex, setEditingTicketIndex] = useState(null);
     const [ticketForm] = Form.useForm();
     const [isFreeTicket, setIsFreeTicket] = useState(false);
 
+    // 2. Tự động đồng bộ tickets cục bộ vào formData của cha mỗi khi có thay đổi
+    useEffect(() => {
+        setParentFormData(prev => ({ ...prev, tickets }));
+    }, [tickets]);
+
+    // Hàm bọc setParentFormData để đảm bảo logic ổn định
+    const setParentFormData = updateFn => {
+        if (typeof setFormData === 'function') {
+            setFormData(updateFn);
+        }
+    };
+
     useEffect(() => {
         setOnNextAction(() => () => async () => {
-            if (!formData.startTime || !formData.endTime) {
+            const now = dayjs();
+            const start = formData.startTime ? dayjs(formData.startTime) : null;
+            const end = formData.endTime ? dayjs(formData.endTime) : null;
+
+            // Kiểm tra nhập đủ ngày tháng
+            if (!start || !end) {
                 message.error(
-                    'Vui lòng chọn thời gian bắt đầu và kết thúc sự kiện!'
+                    'Vui lòng chọn đầy đủ thời gian bắt đầu và kết thúc sự kiện!'
                 );
                 return false;
             }
+
+            // VALIDATE 1: Thời gian bắt đầu không được nhỏ hơn thời gian hiện tại
+            if (start.isBefore(now)) {
+                message.error(
+                    'Thời gian bắt đầu sự kiện không được nhỏ hơn thời gian hiện tại!'
+                );
+                return false;
+            }
+
+            // VALIDATE 2: Thời gian bắt đầu phải nhỏ hơn thời gian kết thúc
+            if (start.isAfter(end) || start.isSame(end)) {
+                message.error(
+                    'Ngày và giờ bắt đầu phải nhỏ hơn ngày và giờ kết thúc!'
+                );
+                return false;
+            }
+
+            // Kiểm tra đã tạo vé chưa
             if (tickets.length === 0) {
                 message.error('Vui lòng tạo ít nhất 1 loại vé cho sự kiện!');
                 return false;
             }
-            setFormData(prev => ({ ...prev, tickets }));
+
             return true;
         });
         return () => setOnNextAction(null);
-    }, [
-        tickets,
-        formData.startTime,
-        formData.endTime,
-        setFormData,
-        setOnNextAction
-    ]);
+    }, [tickets, formData.startTime, formData.endTime, setOnNextAction]);
 
     const handleTimeChange = (field, value) => {
-        setFormData(prev => ({
+        setParentFormData(prev => ({
             ...prev,
-            [field]: value ? value.toISOString() : null
+            // SỬA TẠI ĐÂY: Sử dụng format để giữ đúng giờ địa phương thay vì toISOString()
+            [field]: value ? value.format('YYYY-MM-DDTHH:mm:ss') : null
         }));
     };
 
@@ -71,20 +102,11 @@ const Step2Showtimes = ({ setOnNextAction, formData, setFormData }) => {
         setEditingTicketIndex(index);
         if (index !== null) {
             const ticket = tickets[index];
-            ticketForm.setFieldsValue({
-                ...ticket,
-                saleTime: [
-                    ticket.saleStart ? dayjs(ticket.saleStart) : null,
-                    ticket.saleEnd ? dayjs(ticket.saleEnd) : null
-                ]
-            });
+            ticketForm.setFieldsValue({ ...ticket });
             setIsFreeTicket(ticket.price === 0);
         } else {
             ticketForm.resetFields();
-            ticketForm.setFieldsValue({
-                ticketType: 'STANDARD',
-                ticketStatus: 'PUBLISHED'
-            });
+            ticketForm.setFieldsValue({ ticketType: 'STANDARD' });
             setIsFreeTicket(false);
         }
         setIsTicketModalOpen(true);
@@ -96,14 +118,9 @@ const Step2Showtimes = ({ setOnNextAction, formData, setFormData }) => {
             const newTicket = {
                 ...values,
                 price: isFreeTicket ? 0 : values.price,
-                saleStart: values.saleTime
-                    ? values.saleTime[0].toISOString()
-                    : null,
-                saleEnd: values.saleTime
-                    ? values.saleTime[1].toISOString()
-                    : null
+                // Mặc định luôn là PUBLISHED vì đã bỏ trường chọn trạng thái
+                ticketStatus: 'PUBLISHED'
             };
-            delete newTicket.saleTime;
 
             if (editingTicketIndex !== null) {
                 const updatedTickets = [...tickets];
@@ -130,8 +147,14 @@ const Step2Showtimes = ({ setOnNextAction, formData, setFormData }) => {
         setTickets(tickets.filter((_, idx) => idx !== index));
     };
 
+    // Vô hiệu hóa các ngày trong quá khứ trên lịch để cải thiện UX
+    const disabledDate = current => {
+        return current && current < dayjs().startOf('day');
+    };
+
     return (
         <div style={{ maxWidth: 1000, margin: '0 auto' }}>
+            {/* --- KHỐI THỜI GIAN --- */}
             <div
                 style={{
                     marginBottom: 32,
@@ -162,6 +185,7 @@ const Step2Showtimes = ({ setOnNextAction, formData, setFormData }) => {
                                 format='HH:mm DD/MM/YYYY'
                                 style={{ width: '100%' }}
                                 size='large'
+                                disabledDate={disabledDate} // Chặn chọn ngày quá khứ
                                 value={
                                     formData.startTime
                                         ? dayjs(formData.startTime)
@@ -188,6 +212,7 @@ const Step2Showtimes = ({ setOnNextAction, formData, setFormData }) => {
                                 format='HH:mm DD/MM/YYYY'
                                 style={{ width: '100%' }}
                                 size='large'
+                                disabledDate={disabledDate}
                                 value={
                                     formData.endTime
                                         ? dayjs(formData.endTime)
@@ -203,6 +228,7 @@ const Step2Showtimes = ({ setOnNextAction, formData, setFormData }) => {
                 </Row>
             </div>
 
+            {/* --- KHỐI DANH SÁCH VÉ --- */}
             <div style={{ marginBottom: 16 }}>
                 <Title level={4} style={{ color: '#fff', margin: 0 }}>
                     Cấu hình loại vé
@@ -280,12 +306,7 @@ const Step2Showtimes = ({ setOnNextAction, formData, setFormData }) => {
                                                 marginTop: 8
                                             }}
                                         >
-                                            Số lượng: {ticket.totalQuantity}{' '}
-                                            <br />
-                                            Trạng thái:{' '}
-                                            {ticket.ticketStatus === 'PUBLISHED'
-                                                ? 'Đang mở bán'
-                                                : 'Tạm ngưng'}
+                                            Số lượng: {ticket.totalQuantity}
                                         </div>
                                     </div>
                                 }
@@ -309,12 +330,13 @@ const Step2Showtimes = ({ setOnNextAction, formData, setFormData }) => {
                 </div>
             </div>
 
+            {/* --- MODAL TẠO VÉ (Đã bỏ Trạng thái) --- */}
             <Modal
                 title={<span style={{ color: '#fff' }}>Thông tin loại vé</span>}
                 open={isTicketModalOpen}
                 onCancel={() => setIsTicketModalOpen(false)}
                 footer={null}
-                width={600}
+                width={500}
                 centered
                 styles={{
                     content: {
@@ -332,138 +354,87 @@ const Step2Showtimes = ({ setOnNextAction, formData, setFormData }) => {
                     layout='vertical'
                     onFinish={handleSaveTicket}
                 >
-                    <Row gutter={16}>
-                        <Col span={12}>
+                    <Form.Item
+                        name='ticketType'
+                        label={<span style={{ color: '#fff' }}>Hạng vé</span>}
+                        rules={[{ required: true }]}
+                    >
+                        <Select size='large'>
+                            <Option value='STANDARD'>
+                                Phổ thông (Standard)
+                            </Option>
+                            <Option value='VIP'>Cao cấp (VIP)</Option>
+                        </Select>
+                    </Form.Item>
+
+                    <Form.Item
+                        label={<span style={{ color: '#fff' }}>Giá vé</span>}
+                        required
+                    >
+                        <div
+                            style={{
+                                display: 'flex',
+                                gap: 10,
+                                alignItems: 'center'
+                            }}
+                        >
                             <Form.Item
-                                name='ticketType'
-                                label={
-                                    <span style={{ color: '#fff' }}>
-                                        Hạng vé
-                                    </span>
-                                }
-                                rules={[{ required: true }]}
-                            >
-                                <Select size='large'>
-                                    <Option value='STANDARD'>
-                                        Phổ thông (Standard)
-                                    </Option>
-                                    <Option value='VIP'>Cao cấp (VIP)</Option>
-                                </Select>
-                            </Form.Item>
-                        </Col>
-                        <Col span={12}>
-                            <Form.Item
-                                label={
-                                    <span style={{ color: '#fff' }}>
-                                        Giá vé
-                                    </span>
-                                }
-                                required
-                            >
-                                <div
-                                    style={{
-                                        display: 'flex',
-                                        gap: 10,
-                                        alignItems: 'center'
-                                    }}
-                                >
-                                    <Form.Item
-                                        name='price'
-                                        noStyle
-                                        rules={[
-                                            {
-                                                required: !isFreeTicket,
-                                                message: 'Nhập giá'
-                                            }
-                                        ]}
-                                    >
-                                        <InputNumber
-                                            style={{ flex: 1 }}
-                                            size='large'
-                                            disabled={isFreeTicket}
-                                            formatter={v =>
-                                                `${v}`.replace(
-                                                    /\B(?=(\d{3})+(?!\d))/g,
-                                                    ','
-                                                )
-                                            }
-                                            parser={v =>
-                                                v.replace(/\$\s?|(,*)/g, '')
-                                            }
-                                        />
-                                    </Form.Item>
-                                    <Checkbox
-                                        checked={isFreeTicket}
-                                        onChange={e => {
-                                            setIsFreeTicket(e.target.checked);
-                                            ticketForm.setFieldValue(
-                                                'price',
-                                                0
-                                            );
-                                        }}
-                                        style={{ color: '#fff' }}
-                                    >
-                                        Miễn phí
-                                    </Checkbox>
-                                </div>
-                            </Form.Item>
-                        </Col>
-                    </Row>
-                    <Row gutter={16}>
-                        <Col span={12}>
-                            <Form.Item
-                                name='totalQuantity'
-                                label={
-                                    <span style={{ color: '#fff' }}>
-                                        Số lượng vé
-                                    </span>
-                                }
-                                rules={[{ required: true, message: 'Nhập SL' }]}
+                                name='price'
+                                noStyle
+                                rules={[
+                                    {
+                                        required: !isFreeTicket,
+                                        message: 'Nhập giá'
+                                    }
+                                ]}
                             >
                                 <InputNumber
-                                    style={{ width: '100%' }}
+                                    style={{ flex: 1 }}
                                     size='large'
-                                    min={1}
+                                    disabled={isFreeTicket}
+                                    min={0}
+                                    formatter={v =>
+                                        `${v}`.replace(
+                                            /\B(?=(\d{3})+(?!\d))/g,
+                                            ','
+                                        )
+                                    }
+                                    parser={v => v.replace(/\$\s?|(,*)/g, '')}
                                 />
                             </Form.Item>
-                        </Col>
-                        <Col span={12}>
-                            <Form.Item
-                                name='ticketStatus'
-                                label={
-                                    <span style={{ color: '#fff' }}>
-                                        Trạng thái
-                                    </span>
-                                }
-                                rules={[{ required: true }]}
+                            <Checkbox
+                                checked={isFreeTicket}
+                                onChange={e => {
+                                    setIsFreeTicket(e.target.checked);
+                                    ticketForm.setFieldValue('price', 0);
+                                }}
+                                style={{ color: '#fff' }}
                             >
-                                <Select size='large'>
-                                    <Option value='PUBLISHED'>
-                                        Mở bán (Published)
-                                    </Option>
-                                    <Option value='STOPPED'>
-                                        Tạm ngưng (Stopped)
-                                    </Option>
-                                </Select>
-                            </Form.Item>
-                        </Col>
-                    </Row>
+                                Miễn phí
+                            </Checkbox>
+                        </div>
+                    </Form.Item>
+
                     <Form.Item
-                        name='saleTime'
+                        name='totalQuantity'
                         label={
-                            <span style={{ color: '#fff' }}>
-                                Thời gian bán vé
-                            </span>
+                            <span style={{ color: '#fff' }}>Số lượng vé</span>
                         }
-                        rules={[{ required: true, message: 'Chọn thời gian' }]}
+                        rules={[
+                            {
+                                required: true,
+                                message: 'Vui lòng nhập số lượng'
+                            }
+                        ]}
                     >
-                        <DatePicker.RangePicker
-                            showTime
-                            format='HH:mm DD/MM/YYYY'
+                        <InputNumber
                             style={{ width: '100%' }}
                             size='large'
+                            min={1}
+                            placeholder='VD: 100'
                         />
                     </Form.Item>
+
                     <Button
                         type='primary'
                         htmlType='submit'
@@ -472,7 +443,8 @@ const Step2Showtimes = ({ setOnNextAction, formData, setFormData }) => {
                         style={{
                             background: '#2dc275',
                             borderColor: '#2dc275',
-                            height: 48
+                            height: 48,
+                            marginTop: 16
                         }}
                     >
                         Lưu vé

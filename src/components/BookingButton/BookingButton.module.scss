@@ -1,7 +1,7 @@
 @use '@styles/variables';
 
 .bookingBtn {
-    font-weight: $font-weight-bold; // Sử dụng 700
+    font-weight: $font-weight-bold; //  700
     transition: all 0.3s ease;
     border: none;
 
@@ -14,10 +14,6 @@
 
         &:hover:not(:disabled) {
             transform: translateY(-2px);
-            background: darken(
-                $primary-color,
-                5%
-            ); // Làm đậm màu chính khi hover
         }
     }
 
