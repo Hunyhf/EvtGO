@@ -3,15 +3,21 @@
 
 .eventDetail {
     min-height: 100vh;
-    background: #0f0c29;
-    background: linear-gradient(135deg, #0f0c29 0%, #1a1a2e 50%, #0f2e1f 100%);
+    background: linear-gradient(
+        135deg,
+        #0f0c29 0%,
+        #1a1a2e 50%,
+        variables.$third-color 100%
+    );
     color: variables.$white-color;
     padding-bottom: 80px;
 
     .wrapper {
-        max-width: 1200px;
-        margin: 0 auto;
+        @include mixins.grid-wide;
         padding: 40px 20px;
+        @include mixins.mobile-width {
+            padding: 20px 15px;
+        }
     }
 
     .hero {
@@ -19,130 +25,63 @@
         border-radius: 16px;
         overflow: hidden;
         box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
-        display: flex;
-
-        :global(.ant-row) {
-            width: 100%;
-            align-items: stretch;
-        }
 
         .infoCard {
             background: #161b22;
-            height: 100%;
             padding: 40px;
+            height: 100%;
             display: flex;
             flex-direction: column;
             justify-content: center;
-            border-right: 1px solid rgba(255, 255, 255, 0.05);
 
             .eventTitle {
                 color: variables.$white-color !important;
                 font-weight: 800;
-                font-size: 28px;
-                margin-bottom: 30px;
+                font-size: variables.$font-size-h2;
                 line-height: 1.2;
+                @include mixins.mobile-width {
+                    font-size: variables.$font-size-h3;
+                }
             }
 
-            .metaList {
-                margin-bottom: 40px;
-                .metaItem {
-                    display: flex;
-                    gap: 15px;
-                    align-items: flex-start;
-                    .icon {
-                        color: variables.$primary-color;
-                        font-size: 20px;
-                        margin-top: 3px;
-                    }
-                    .text {
-                        color: #cbd5e0;
-                        font-size: 16px;
-                    }
-                    .locName {
-                        display: block;
-                        color: variables.$white-color;
-                        font-size: 16px;
-                        margin-bottom: 4px;
+            .metaList .metaItem {
+                display: flex;
+                gap: 15px;
+                margin-bottom: 15px;
+                .icon {
+                    color: variables.$primary-color;
+                    font-size: variables.$icon-size-md;
+                }
+                .text,
+                .locName {
+                    font-size: variables.$font-size-md;
+                    @include mixins.mobile-width {
+                        font-size: variables.$font-size-sm;
                     }
                 }
             }
 
-            .priceSection {
-                margin-bottom: 25px;
-                .priceLabel {
-                    color: #8b949e;
-                    font-size: 12px;
-                    text-transform: uppercase;
-                    letter-spacing: 1px;
-                }
-                .priceValue {
-                    color: variables.$primary-color !important;
-                    margin: 0 !important;
-                    font-size: 32px;
-                }
-            }
-
-            .ctaBtn {
-                background: variables.$primary-color;
-                border: none;
-                height: 55px;
-                font-weight: 700;
-                font-size: 16px;
-                box-shadow: 0 4px 14px rgba(45, 194, 117, 0.4);
-                transition: all 0.3s ease;
-
-                &:hover:not(:disabled) {
-                    transform: translateY(-2px);
-                    background: #26a965;
-                }
-
-                // STYLE KHI SỰ KIỆN ĐÃ QUA
-                &.isPastBtn {
-                    background: #4a5568 !important; // Chuyển sang màu xám
-                    color: #a0aec0 !important;
-                    box-shadow: none;
-                    cursor: not-allowed;
-                    opacity: 0.8;
-
-                    &:hover {
-                        transform: none;
-                    }
+            .priceSection .priceValue {
+                color: variables.$primary-color !important;
+                font-size: variables.$font-size-h1;
+                @include mixins.mobile-width {
+                    font-size: variables.$font-size-h2;
                 }
             }
         }
 
         .posterContainer {
-            position: relative; // Cần thiết để nhãn overlay căn chỉnh theo div này
+            position: relative;
             width: 100%;
             height: 100%;
-            background: #000;
-            overflow: hidden;
-
             .heroPoster {
                 width: 100%;
                 height: 100%;
                 object-fit: cover;
                 display: block;
             }
-
-            // STYLE NHÃN "ĐÃ DIỄN RA" TRÊN ẢNH
-            .pastLabel {
-                position: absolute;
-                top: 20px;
-                right: 20px;
-                background: rgba(239, 68, 68, 0.9); // Màu đỏ thông báo nổi bật
-                color: #fff;
-                padding: 8px 16px;
-                border-radius: 6px;
-                font-weight: 700;
-                font-size: 14px;
-                text-transform: uppercase;
-                letter-spacing: 1px;
-                z-index: 10;
-                box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
-                backdrop-filter: blur(4px);
-                border: 1px solid rgba(255, 255, 255, 0.2);
-                pointer-events: none;
+            @include mixins.mobile-width {
+                aspect-ratio: 16 / 9;
             }
         }
     }
@@ -151,136 +90,65 @@
         background: rgba(255, 255, 255, 0.03);
         border: 1px solid rgba(255, 255, 255, 0.08);
         border-radius: 16px;
-        margin-bottom: 24px;
         backdrop-filter: blur(10px);
-
-        :global(.ant-card-head) {
-            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-            .ant-card-head-title {
-                color: variables.$white-color;
-                font-weight: 600;
-                font-size: 18px;
+        :global(.ant-card-head-title) {
+            color: variables.$white-color;
+            font-size: variables.$font-size-lg;
+            @include mixins.mobile-width {
+                font-size: variables.$font-size-md;
             }
-        }
-        .cardIcon {
-            color: variables.$primary-color;
-        }
-    }
-
-    .description {
-        color: #cbd5e0;
-        line-height: 1.8;
-        font-size: 15px;
-        img {
-            max-width: 100%;
-            border-radius: 12px;
-            margin: 15px 0;
-        }
-    }
-
-    // --- REFACTORED SHOWTIME SECTION ---
-    .showtimeCollapse {
-        .panelHeader {
-            display: flex;
-            flex-direction: column;
-            gap: 4px;
-            width: 100%;
-            padding-right: 10px;
-
-            .timeGroup {
-                display: flex;
-                align-items: center;
-                gap: 12px;
-
-                .stTime {
-                    font-size: 18px;
-                    color: variables.$primary-color;
-                    font-weight: 700;
-                }
-                .stDay {
-                    font-size: 16px;
-                    color: variables.$white-color;
-                    text-transform: capitalize;
-                }
-            }
-
-            .dateGroup {
-                .stFullDate {
-                    color: #8b949e;
-                    font-size: 14px;
-                }
-            }
-        }
-
-        .ticketTiers {
-            padding: 10px 0;
-            .tierRow {
-                display: flex;
-                justify-content: space-between;
-                align-items: center;
-                padding: 15px 0;
-                border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-                &:last-child {
-                    border: none;
-                }
-                .tierLabel {
-                    color: variables.$white-color;
-                    font-weight: 500;
-                }
-                .tierPrice {
-                    color: variables.$primary-color;
-                    font-weight: 700;
-                    font-size: 16px;
-                }
-                .buyBtn {
-                    border-color: variables.$primary-color;
-                    color: variables.$primary-color;
-
-                    // STYLE KHI NÚT CHỌN VÉ BỊ VÔ HIỆU HÓA
-                    &:disabled {
-                        border-color: #4a5568;
-                        color: #8b949e;
-                        background: transparent;
-                        cursor: not-allowed;
-                    }
-                }
-            }
-        }
-    }
-
-    .organizerInfo {
-        display: flex;
-        gap: 20px;
-        align-items: center;
-        .orgLogo {
-            width: 80px;
-            height: 80px;
-            border-radius: 50%;
-            object-fit: cover;
-            border: 2px solid variables.$primary-color;
-        }
-        .orgName {
-            color: variables.$white-color !important;
-            margin: 0 !important;
-        }
-        .orgSub {
-            color: #8b949e;
-            font-size: 13px;
-            display: block;
         }
     }
 }
 
-// Mobile Optimization
-@media (max-width: 992px) {
-    .eventDetail .hero .posterContainer {
-        height: auto;
-        aspect-ratio: 16 / 9;
+:global {
+    body.is-event-detail {
+        --f-bg: #{variables.$third-color};
+        --f-text: #{variables.$white-color};
+
+        .content {
+            background: transparent !important;
+            padding-top: 0 !important;
+        }
+    }
+}
+.organizerInfo {
+    display: flex;
+    gap: 20px;
+    align-items: center;
+
+    .orgLogo {
+        // Đảm bảo kích thước cố định
+        width: 80px !important;
+        height: 80px !important;
+        flex-shrink: 0; // Ngăn không cho ảnh bị bóp méo hoặc co giãn trong flexbox
+        border-radius: 50%;
+        object-fit: cover;
+        border: 2px solid variables.$primary-color;
+
+        // Đảm bảo trên Mobile không bị thay đổi kích thước
+        @include mixins.mobile-width {
+            width: 60px !important; // Bạn có thể để 80px hoặc 60px tùy ý, nhưng nên dùng !important để giữ size
+            height: 60px !important;
+        }
     }
 
-    .eventDetail .hero .infoCard {
-        padding: 25px;
-        border-right: none;
-        border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    .orgMeta {
+        .orgName {
+            color: variables.$white-color !important;
+            margin: 0 !important;
+            font-size: variables.$font-size-lg;
+
+            @include mixins.mobile-width {
+                font-size: variables.$font-size-md;
+            }
+        }
+
+        .orgSub {
+            color: variables.$text-color;
+            font-size: variables.$font-size-sm;
+            display: block;
+            margin-top: 4px;
+        }
     }
 }

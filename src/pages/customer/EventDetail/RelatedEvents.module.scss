@@ -1,0 +1,36 @@
+@use '@styles/variables';
+@use '@styles/mixins';
+.relatedSection {
+    @include grid-wide();
+    margin: 40px auto 80px;
+    padding: 0 20px;
+
+    .header {
+        margin-bottom: 24px;
+        border-left: 4px solid $primary-color;
+        padding-left: 15px;
+
+        .title {
+            margin: 0;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+        }
+    }
+
+    .footerAction {
+        margin-top: 40px;
+        text-align: center;
+
+        button {
+            border-radius: 8px;
+            font-weight: 600;
+            min-width: 200px;
+            height: 50px;
+        }
+    }
+}
+
+.loadingCenter {
+    padding: 50px;
+    text-align: center;
+}

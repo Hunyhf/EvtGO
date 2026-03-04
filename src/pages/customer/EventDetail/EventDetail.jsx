@@ -25,14 +25,15 @@ import 'dayjs/locale/vi';
 import classNames from 'classnames/bind';
 
 import styles from './EventDetail.module.scss';
-import Nav from '@components/Nav/Nav.jsx';
+// ĐÃ XÓA import Nav vì CustomerLayout đã có Header
 import BookingButton from '@components/BookingButton/BookingButton';
 import { eventApi } from '@apis/eventApi';
 import { ticketApi } from '@apis/ticketApi';
 import { getEventImageUrl, getAvatarUrl } from '@utils/imageHelper';
 import { AuthContext } from '@contexts/AuthContext';
 import AuthModal from '@components/AuthModal/AuthModal';
-
+import RelatedEvents from './RelatedEvents';
+import Nav from '@components/Nav/Nav.jsx';
 dayjs.locale('vi');
 
 const cx = classNames.bind(styles);
@@ -53,7 +54,18 @@ const EventDetail = () => {
     const [tickets, setTickets] = useState([]);
     const [loading, setLoading] = useState(true);
     const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+    useEffect(() => {
+        // Thêm class để đổi màu Footer
+        document.body.classList.add('is-event-detail');
 
+        // Logic cuộn lên đầu trang và fetch data
+        window.scrollTo(0, 0);
+
+        return () => {
+            // Xóa class khi rời trang để các trang khác Footer quay về mặc định
+            document.body.classList.remove('is-event-detail');
+        };
+    }, [id]);
     const handleGoToBooking = () => {
         if (!isAuthenticated) {
             setIsAuthModalOpen(true);
@@ -107,7 +119,7 @@ const EventDetail = () => {
     if (loading)
         return (
             <div className={cx('loadingWrapper')}>
-                <Nav />
+                {/* ĐÃ XÓA <Nav /> */}
                 <div className={cx('container')}>
                     <Skeleton active paragraph={{ rows: 15 }} />
                 </div>
@@ -140,25 +152,23 @@ const EventDetail = () => {
         ? dayjs(`${event.startDate} ${event.endTime}`)
         : null;
 
-    // --- LOGIC TRẠNG THÁI NÚT THEO ORGANIZER & ADMIN ---
     const isPublished = event.isPublished || event.published;
     const isActive = event.isActive || event.active;
-
-    // 1. Đã diễn ra: Cập nhật logic dựa trên thời gian bắt đầu
-    // Ngay khi hiện tại vượt quá startTime, isPast sẽ thành true
     const isPast = dayjs().isAfter(startTime);
-
-    // 2. Sắp mở bán: Nếu sự kiện chưa bắt đầu nhưng chưa được Admin duyệt hoặc Organizer chưa kích hoạt
     const isUpcoming = !isPast && (!isPublished || !isActive);
 
     return (
-        <main className={cx('eventDetail')}>
+        // ĐỔI từ <main> sang <div> để không bị lồng thẻ <main> của Layout
+        <div className={cx('eventDetail')}>
             <Nav />
-
             <div className={cx('wrapper')}>
                 <section className={cx('hero')}>
                     <Row gutter={[0, 0]} align='stretch'>
-                        <Col xs={24} lg={9}>
+                        <Col
+                            xs={{ span: 24, order: 2 }}
+                            lg={{ span: 9, order: 1 }}
+                        >
+                            {' '}
                             <div className={cx('infoCard')}>
                                 <Title level={1} className={cx('eventTitle')}>
                                     {event.name?.toUpperCase()}
@@ -285,6 +295,7 @@ const EventDetail = () => {
                                                     {endTime
                                                         ? ` - ${endTime.format('HH:mm')}`
                                                         : ''}
+                                                    :{' '}
                                                 </Text>
                                                 <Text>
                                                     Ngày{' '}
@@ -392,13 +403,20 @@ const EventDetail = () => {
                         </Col>
                     </Row>
                 </section>
+
+                {/* RelatedEvents nằm ở cuối wrapper */}
+                <RelatedEvents
+                    genreId={event.genre?.id}
+                    currentEventId={Number(id)}
+                    genreName={event.genre?.name}
+                />
             </div>
 
             <AuthModal
                 isOpen={isAuthModalOpen}
                 onClose={() => setIsAuthModalOpen(false)}
             />
-        </main>
+        </div>
     );
 };
 

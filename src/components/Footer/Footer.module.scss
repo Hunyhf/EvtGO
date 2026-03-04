@@ -1,8 +1,22 @@
+// src/components/Footer/Footer.module.scss
 @use '@styles/mixins';
 @use '@styles/variables';
-.Footer {
-    background-color: $third-color;
-    @include mobile-width {
+
+.footerContainer {
+    // Mặc định dùng $third-color, nhưng cho phép ghi đè bằng biến --f-bg
+    background-color: var(--f-bg, $third-color);
+    color: var(--f-text, $text-color);
+    padding: 40px 0; // Thêm padding để thấy rõ Footer
+    transition: all 0.3s ease;
+
+    .content {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 0 20px;
+        text-align: center;
+    }
+
+    @include mixins.mobile-width {
         display: none;
     }
 }

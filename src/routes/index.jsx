@@ -36,7 +36,7 @@ export const BREADCRUMB_LABELS = {
     '/': 'Trang chủ',
     '/genre': 'Thể loại',
     '/event': 'Chi tiết sự kiện',
-    '/booking': 'Chọn vé', // Nhãn cho trang đặt vé mới
+    '/booking': 'Chọn vé',
     '/my-tickets': 'Vé của tôi',
     '/profile': 'Hồ sơ cá nhân',
     '/organizer': 'Quản lý sự kiện',
@@ -61,7 +61,6 @@ export const routes = createBrowserRouter([
                     { index: true, element: <Home /> },
                     { path: 'genre', element: <Genre /> },
                     { path: 'event/:id', element: <EventDetail /> },
-                    // ROUTE MỚI: Trang chọn vé sau khi nhấn "Mua vé"
                     {
                         path: 'booking/:eventId',
                         element: <Ticket />

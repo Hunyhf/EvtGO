@@ -186,12 +186,12 @@ function AdminEventManagement() {
             title: 'Sự kiện',
             dataIndex: 'name',
             key: 'name',
-            width: 300,
+            width: 400, // Tăng chiều rộng cột
             render: (text, record) => (
                 <div
                     style={{
                         display: 'flex',
-                        gap: '12px',
+                        gap: '16px',
                         alignItems: 'center'
                     }}
                 >
@@ -199,10 +199,10 @@ function AdminEventManagement() {
                         src={record.posterUrl}
                         alt='cover'
                         style={{
-                            width: '80px',
-                            height: '50px',
+                            width: '140px', // Tăng kích thước ảnh (gốc: 80px)
+                            height: '90px', // Tăng kích thước ảnh (gốc: 50px)
                             objectFit: 'cover',
-                            borderRadius: '4px'
+                            borderRadius: '6px'
                         }}
                         onError={e => {
                             e.target.src =
@@ -210,10 +210,22 @@ function AdminEventManagement() {
                         }}
                     />
                     <div>
-                        <div style={{ fontWeight: 'bold', fontSize: '13px' }}>
+                        <div
+                            style={{
+                                fontWeight: 'bold',
+                                fontSize: '15px',
+                                lineHeight: '1.4'
+                            }}
+                        >
                             {text}
                         </div>
-                        <div style={{ fontSize: '11px', color: '#1677ff' }}>
+                        <div
+                            style={{
+                                fontSize: '12px',
+                                color: '#1677ff',
+                                marginTop: '4px'
+                            }}
+                        >
                             <EnvironmentOutlined /> {record.location}
                         </div>
                     </div>
@@ -273,10 +285,12 @@ function AdminEventManagement() {
         {
             title: 'Hành động',
             key: 'action',
+            width: 120,
             render: (_, record) => (
-                <Space size='small'>
+                <Space size='middle'>
                     <Tooltip title='Xem chi tiết'>
                         <Button
+                            size='small' // Thu nhỏ nút (gốc: mặc định)
                             icon={<EyeOutlined />}
                             onClick={() => handleViewDetail(record)}
                         />
@@ -290,6 +304,7 @@ function AdminEventManagement() {
                             }
                         >
                             <Button
+                                size='small' // Thu nhỏ nút (gốc: mặc định)
                                 type={
                                     record.isPublished ? 'default' : 'primary'
                                 }
