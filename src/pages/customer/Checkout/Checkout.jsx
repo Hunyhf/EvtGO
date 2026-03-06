@@ -33,8 +33,7 @@ const { Title, Text } = Typography;
 
 const TICKET_LABELS = {
     VIP: 'VÉ VIP',
-    STANDARD: 'VÉ TIÊU CHUẨN',
-    NORMAL: 'VÉ THƯỜNG'
+    STANDARD: 'VÉ TIÊU CHUẨN'
 };
 
 const Checkout = () => {
@@ -101,9 +100,10 @@ const Checkout = () => {
     };
 
     /**
-     * Logic xử lý thanh toán:
-     * 1. Gọi API tạo đơn hàng (createOrder)
-     * 2. Gọi API thanh toán (payOrder) để hoàn tất
+     * Logic xử lý thanh toán thành công:
+     * 1. Gọi createOrder (PENDING)
+     * 2. Gọi payOrder (PAID)
+     * 3. Điều hướng về Profile và mở sẵn tab vé
      */
     const handleConfirmOrder = async () => {
         if (!agreed) {
@@ -130,7 +130,7 @@ const Checkout = () => {
             const createRes = await orderApi.createOrder(orderData);
 
             if (createRes && createRes.id) {
-                // Bước 2: Thanh toán đơn hàng
+                // Bước 2: Thanh toán đơn hàng (giả lập thanh toán thành công theo BE)
                 const paymentData = {
                     orderId: createRes.id
                 };
@@ -138,7 +138,7 @@ const Checkout = () => {
                 const payRes = await orderApi.payOrder(paymentData);
 
                 if (payRes && payRes.orderStatus === 'PAID') {
-                    // Hiển thị thông báo thành công (Đã bỏ phần hiển thị thời gian)
+                    // Thông báo thành công gọn gàng theo yêu cầu
                     message.success(
                         'Thanh toán thành công! Vé đã được lưu vào tài khoản của bạn.'
                     );
@@ -146,9 +146,11 @@ const Checkout = () => {
                     // Xóa bộ đếm ngược
                     localStorage.removeItem(`checkout_expiration_${event.id}`);
 
-                    // Chuyển hướng sau 1.5 giây
+                    // Chuyển hướng sang trang Profile và chỉ định mở tab 'tickets'
                     setTimeout(() => {
-                        navigate('/profile');
+                        navigate('/my-tickets', {
+                            state: { activeTab: 'tickets' }
+                        });
                     }, 1500);
                 }
             }
@@ -257,7 +259,7 @@ const Checkout = () => {
                                     <Text type='secondary'>
                                         Vé điện tử và mã QR sẽ được gửi về địa
                                         chỉ email này sau khi thanh toán thành
-                                        công.
+                                        tông.
                                     </Text>
                                 </div>
                             </div>
@@ -266,14 +268,16 @@ const Checkout = () => {
                                 <Title level={5}>
                                     <WalletOutlined /> Phương thức thanh toán
                                 </Title>
-                                <Text type='secondary' italic>
-                                    Hệ thống hiện hỗ trợ xác nhận thanh toán
-                                    trực tiếp. Khi nhấn nút
-                                    <strong> "Thanh toán ngay"</strong>, đơn
-                                    hàng sẽ được chuyển sang trạng thái{' '}
-                                    <strong>PAID (Đã thanh toán)</strong> và hệ
-                                    thống sẽ tự động xuất vé cho bạn.
-                                </Text>
+                                <div className={cx('cardBody')}>
+                                    <Text type='secondary' italic>
+                                        Hệ thống hiện hỗ trợ xác nhận thanh toán
+                                        trực tiếp. Khi nhấn nút
+                                        <strong> "Thanh toán ngay"</strong>, đơn
+                                        hàng sẽ được chuyển sang trạng thái{' '}
+                                        <strong>PAID (Đã thanh toán)</strong> và
+                                        hệ thống sẽ tự động xuất vé cho bạn.
+                                    </Text>
+                                </div>
                             </div>
                         </Space>
                     </Col>
