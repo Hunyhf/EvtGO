@@ -153,6 +153,21 @@
         }
     }
 }
+.selectedQuantity {
+    @include flex(flex-start, center, 10px);
+    margin-top: 10px;
+
+    .ticketIcon {
+        width: 24px;
+        height: auto;
+        display: block;
+    }
+
+    .ticketCountText {
+        font-size: 14px;
+        color: variables.$primary-color; /* Hoặc màu sắc bạn muốn */
+    }
+}
 
 // Responsive
 @include mobile-tablet-width {

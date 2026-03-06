@@ -54,6 +54,7 @@ const EventDetail = () => {
     const [tickets, setTickets] = useState([]);
     const [loading, setLoading] = useState(true);
     const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+
     useEffect(() => {
         // Thêm class để đổi màu Footer
         document.body.classList.add('is-event-detail');
@@ -66,6 +67,7 @@ const EventDetail = () => {
             document.body.classList.remove('is-event-detail');
         };
     }, [id]);
+
     const handleGoToBooking = () => {
         if (!isAuthenticated) {
             setIsAuthModalOpen(true);
@@ -119,7 +121,6 @@ const EventDetail = () => {
     if (loading)
         return (
             <div className={cx('loadingWrapper')}>
-                {/* ĐÃ XÓA <Nav /> */}
                 <div className={cx('container')}>
                     <Skeleton active paragraph={{ rows: 15 }} />
                 </div>
@@ -158,7 +159,6 @@ const EventDetail = () => {
     const isUpcoming = !isPast && (!isPublished || !isActive);
 
     return (
-        // ĐỔI từ <main> sang <div> để không bị lồng thẻ <main> của Layout
         <div className={cx('eventDetail')}>
             <Nav />
             <div className={cx('wrapper')}>
@@ -168,7 +168,6 @@ const EventDetail = () => {
                             xs={{ span: 24, order: 2 }}
                             lg={{ span: 9, order: 1 }}
                         >
-                            {' '}
                             <div className={cx('infoCard')}>
                                 <Title level={1} className={cx('eventTitle')}>
                                     {event.name?.toUpperCase()}
@@ -184,9 +183,12 @@ const EventDetail = () => {
                                             className={cx('icon')}
                                         />
                                         <Text className={cx('text')}>
-                                            {startTime.format(
-                                                'HH:mm - dddd, DD/MM/YYYY'
-                                            )}
+                                            {/* CẬP NHẬT: Hiển thị giờ bắt đầu - giờ kết thúc */}
+                                            {startTime.format('HH:mm')}
+                                            {endTime
+                                                ? ` - ${endTime.format('HH:mm')}`
+                                                : ''}
+                                            {` | ${startTime.format('dddd, DD/MM/YYYY')}`}
                                         </Text>
                                     </div>
                                     <div className={cx('metaItem')}>
@@ -404,7 +406,6 @@ const EventDetail = () => {
                     </Row>
                 </section>
 
-                {/* RelatedEvents nằm ở cuối wrapper */}
                 <RelatedEvents
                     genreId={event.genre?.id}
                     currentEventId={Number(id)}

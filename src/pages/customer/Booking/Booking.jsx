@@ -1,3 +1,4 @@
+// src/pages/customer/Booking/Booking.jsx
 import React, { useState, useEffect, useContext } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
@@ -17,13 +18,18 @@ import {
     ArrowLeftOutlined
 } from '@ant-design/icons';
 import dayjs from 'dayjs';
+import 'dayjs/locale/vi';
 import classNames from 'classnames/bind';
 
 import styles from './Booking.module.scss';
 import { eventApi } from '@apis/eventApi';
 import { ticketApi } from '@apis/ticketApi';
-import orderApi from '@apis/orderApi';
+import orderApi from '@apis/orderApi'; // Import orderApi
 import { AuthContext } from '@contexts/AuthContext';
+// Import icon vé từ assets
+import ticketIcon from '@icons/svgs/ticketIcon.svg';
+
+dayjs.locale('vi');
 
 const cx = classNames.bind(styles);
 const { Title, Text } = Typography;
@@ -37,7 +43,7 @@ const TICKET_LABELS = {
 const Booking = () => {
     const { id } = useParams();
     const navigate = useNavigate();
-    const { user, isAuthenticated } = useContext(AuthContext);
+    const { isAuthenticated } = useContext(AuthContext);
 
     const [event, setEvent] = useState(null);
     const [tickets, setTickets] = useState([]);
@@ -49,43 +55,33 @@ const Booking = () => {
         const fetchData = async () => {
             try {
                 setLoading(true);
-
-                // Gọi API lấy thông tin sự kiện và danh sách vé
                 const [resEvent, resTicket] = await Promise.all([
                     eventApi.getById(id),
-                    ticketApi.getAll({ filter: `event.id=${id}` })
+                    ticketApi.getAll({ filter: `event.id:${id}` })
                 ]);
 
-                /**
-                 * LƯU Ý QUAN TRỌNG:
-                 * axiosClient.js của bạn đã có interceptor:
-                 * return response.data?.data !== undefined ? response.data.data : response.data;
-                 * * Do đó, resEvent và resTicket chính là nội dung bên trong trường 'data' của BE.
-                 */
+                const eventData = resEvent?.result || resEvent;
+                setEvent(eventData);
 
-                // 1. Gán dữ liệu sự kiện
-                // resEvent lúc này chính là đối tượng Event (hoặc ResEventDTO)
-                setEvent(resEvent);
+                const ticketList =
+                    resTicket?.result?.content ||
+                    resTicket?.result ||
+                    resTicket?.data ||
+                    [];
+                setTickets(Array.isArray(ticketList) ? ticketList : []);
 
-                // 2. Gán dữ liệu vé
-                // resTicket lúc này chính là đối tượng ResultPaginationDTO, chứa mảng 'result'
-                const ticketList = resTicket?.result || [];
-                setTickets(ticketList);
-
-                // 3. Khởi tạo số lượng chọn mặc định là 0
                 const initQty = {};
-                ticketList.forEach(t => (initQty[t.id] = 0));
+                (Array.isArray(ticketList) ? ticketList : []).forEach(
+                    t => (initQty[t.id] = 0)
+                );
                 setQuantities(initQty);
             } catch (error) {
-                console.error('>>> Check Fetch Error:', error);
-                message.error(
-                    'Không thể tải thông tin vé. Vui lòng thử lại sau.'
-                );
+                console.error('>>> Fetch Error:', error);
+                message.error('Không thể tải thông tin vé.');
             } finally {
                 setLoading(false);
             }
         };
-
         if (id) fetchData();
     }, [id]);
 
@@ -99,36 +95,50 @@ const Booking = () => {
         0
     );
 
+    // THAY ĐỔI LOGIC TẠI ĐÂY: Gọi API trước khi chuyển trang
     const handleCheckout = async () => {
         if (!isAuthenticated) {
-            message.warning('Vui lòng đăng nhập để tiến hành mua vé');
+            message.warning('Vui lòng đăng nhập để mua vé');
             return;
         }
 
-        const selectedTickets = tickets
-            .filter(t => quantities[t.id] > 0)
-            .map(t => ({
-                ticketId: t.id,
-                quantity: quantities[t.id],
-                price: t.price
-            }));
-
-        const orderRequest = {
-            userId: user?.id,
-            items: selectedTickets,
-            totalAmount: totalPrice
-        };
-
         try {
             setSubmitting(true);
-            const response = await orderApi.createOrder(orderRequest);
-            // Kiểm tra response dựa trên cấu trúc interceptor (trả về trực tiếp data)
-            if (response) {
-                message.success('Tạo đơn hàng thành công!');
-                navigate('/my-tickets');
+
+            const selectedTicketsData = tickets
+                .filter(t => quantities[t.id] > 0)
+                .map(t => ({
+                    ticketId: t.id,
+                    quantity: quantities[t.id],
+                    price: t.price
+                }));
+
+            // Chuẩn bị dữ liệu gửi lên BE (Dùng 'items' để tránh lỗi 400 như trước)
+            const orderData = {
+                eventId: Number(id),
+                totalPrice: totalPrice,
+                items: selectedTicketsData
+            };
+
+            // Gọi API lưu đơn hàng vào DB (Status: PENDING)
+            const res = await orderApi.createOrder(orderData);
+
+            if (res) {
+                // Nếu thành công, chuyển sang Checkout và truyền data kèm orderId
+                navigate(`/booking/${id}/checkout`, {
+                    state: {
+                        event,
+                        selectedTickets: selectedTicketsData,
+                        totalPrice,
+                        orderId: res.id || res.result?.id // Truyền ID đơn hàng để Checkout xử lý tiếp
+                    }
+                });
             }
         } catch (error) {
-            const errorMsg = error?.message || 'Có lỗi xảy ra khi đặt vé';
+            console.error('Lỗi tạo đơn hàng:', error);
+            const errorMsg =
+                error.response?.data?.message ||
+                'Không thể khởi tạo đơn hàng. Vui lòng thử lại.';
             message.error(errorMsg);
         } finally {
             setSubmitting(false);
@@ -141,16 +151,23 @@ const Booking = () => {
                 className={cx('loader')}
                 style={{ padding: '100px 0', textAlign: 'center' }}
             >
-                <Spin size='large' tip='Đang tải thông tin vé...' />
+                <Spin size='large' tip='Đang tải...' />
             </div>
         );
 
     if (!event)
         return (
             <div className={cx('error')} style={{ padding: '50px' }}>
-                <Empty description='Không tìm thấy thông tin sự kiện' />
+                <Empty description='Không tìm thấy sự kiện' />
             </div>
         );
+
+    const startTime = dayjs(
+        `${event.startDate} ${event.startTime || '00:00:00'}`
+    );
+    const endTime = event.endTime
+        ? dayjs(`${event.startDate} ${event.endTime}`)
+        : null;
 
     return (
         <div className={cx('bookingContainer')}>
@@ -168,19 +185,19 @@ const Booking = () => {
             <Row gutter={[32, 32]}>
                 <Col xs={24} lg={16}>
                     <div className={cx('ticketList')}>
-                        {tickets && tickets.length > 0 ? (
+                        {tickets.length > 0 ? (
                             tickets.map((ticket, index) => (
                                 <div key={ticket.id}>
                                     <div className={cx('ticketCard')}>
                                         <div className={cx('ticketInfo')}>
-                                            <Text
-                                                strong
+                                            <Title
+                                                level={5}
                                                 className={cx('ticketName')}
                                             >
                                                 {TICKET_LABELS[
                                                     ticket.ticketType
                                                 ] || ticket.ticketType}
-                                            </Text>
+                                            </Title>
                                             <Text className={cx('ticketPrice')}>
                                                 {ticket.price?.toLocaleString(
                                                     'vi-VN'
@@ -203,7 +220,8 @@ const Booking = () => {
                                         <div className={cx('qtySelector')}>
                                             <Button
                                                 disabled={
-                                                    quantities[ticket.id] === 0
+                                                    quantities[ticket.id] ===
+                                                        0 || submitting
                                                 }
                                                 onClick={() =>
                                                     handleQtyChange(
@@ -213,16 +231,18 @@ const Booking = () => {
                                                     )
                                                 }
                                             >
-                                                -
+                                                {' '}
+                                                -{' '}
                                             </Button>
                                             <span className={cx('qtyCounter')}>
                                                 {quantities[ticket.id] || 0}
                                             </span>
                                             <Button
                                                 disabled={
+                                                    submitting ||
                                                     quantities[ticket.id] >=
-                                                    ticket.totalQuantity -
-                                                        ticket.soldQuantity
+                                                        ticket.totalQuantity -
+                                                            ticket.soldQuantity
                                                 }
                                                 onClick={() =>
                                                     handleQtyChange(
@@ -232,7 +252,8 @@ const Booking = () => {
                                                     )
                                                 }
                                             >
-                                                +
+                                                {' '}
+                                                +{' '}
                                             </Button>
                                         </div>
                                     </div>
@@ -242,11 +263,7 @@ const Booking = () => {
                                 </div>
                             ))
                         ) : (
-                            <div
-                                style={{ textAlign: 'center', padding: '20px' }}
-                            >
-                                <Empty description='Sự kiện này hiện chưa có vé để bán hoặc đã hết vé.' />
-                            </div>
+                            <Empty description='Hết vé' />
                         )}
                     </div>
                 </Col>
@@ -256,17 +273,30 @@ const Booking = () => {
                         <Title level={4}>{event.name}</Title>
                         <Space direction='vertical' className={cx('meta')}>
                             <div>
-                                <CalendarOutlined />{' '}
-                                {event.startTime
-                                    ? dayjs(event.startTime).format(
-                                          'HH:mm - DD/MM/YYYY'
-                                      )
-                                    : 'Chưa cập nhật'}
+                                <CalendarOutlined /> {startTime.format('HH:mm')}
+                                {endTime ? ` - ${endTime.format('HH:mm')}` : ''}
+                                {` | ${startTime.format('DD/MM/YYYY')}`}
                             </div>
                             <div>
                                 <EnvironmentOutlined />{' '}
                                 {event.location || 'Chưa có địa điểm'}
                             </div>
+
+                            {totalTickets > 0 && (
+                                <div className={cx('selectedQuantity')}>
+                                    <img
+                                        src={ticketIcon}
+                                        alt='ticket'
+                                        className={cx('ticketIcon')}
+                                    />
+                                    <Text
+                                        strong
+                                        className={cx('ticketCountText')}
+                                    >
+                                        x {totalTickets} vé đã chọn
+                                    </Text>
+                                </div>
+                            )}
                         </Space>
                         <Divider />
                         <div className={cx('totalRow')}>

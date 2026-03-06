@@ -1,0 +1,233 @@
+@use '@styles/variables';
+@use '@styles/mixins';
+
+.checkoutPage {
+    background: $secondary-color;
+    min-height: 100vh;
+    padding-bottom: 60px;
+    font-family: $font-family;
+}
+
+.eventBanner {
+    height: 300px;
+    position: relative;
+    overflow: hidden;
+
+    .blurBg {
+        position: absolute;
+        inset: 0;
+        background-size: cover;
+        background-position: center;
+        filter: blur(20px);
+        transform: scale(1.1);
+    }
+
+    .overlay {
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(
+            to bottom,
+            rgba(0, 0, 0, 0.4),
+            rgba($secondary-color, 1)
+        );
+        @include flex(center, center);
+    }
+
+    .bannerContent {
+        @include grid-wide(1200px);
+        width: 100%;
+        padding: 0 20px;
+        display: grid;
+        grid-template-columns: auto 1fr auto;
+        align-items: center;
+        gap: 32px;
+
+        .backBtn {
+            background: rgba($white-color, 0.1);
+            color: $white-color;
+            border: none;
+            @include radius-common(8px);
+        }
+
+        .eventName {
+            color: $white-color;
+            margin: 0;
+        }
+
+        .eventMeta {
+            color: $text-color;
+            font-size: $font-size-md;
+        }
+
+        .countdownBox {
+            background: $error-color;
+            color: $white-color;
+            padding: 12px 20px;
+            @include radius-common(12px);
+            @include flex(center, center, 8px);
+            font-weight: $font-weight-bold;
+            box-shadow: 0 4px 15px rgba($error-color, 0.3);
+        }
+    }
+}
+
+.mainContent {
+    @include grid-wide(1200px);
+    padding: 0 20px;
+    margin-top: -20px;
+    position: relative;
+
+    .sectionTitle {
+        color: $white-color;
+        margin-bottom: 30px;
+        letter-spacing: 1px;
+    }
+}
+
+.checkoutCard {
+    background: $sub-color;
+    padding: 24px;
+    @include radius-common(16px);
+    border: 1px solid rgba($white-color, 0.05);
+
+    h5 {
+        color: $white-color;
+        margin-bottom: 16px;
+        @include flex(flex-start, center, 10px);
+    }
+
+    .cardBody {
+        color: $text-color;
+    }
+
+    .promoRow {
+        @include flex(space-between, center);
+    }
+}
+
+.paymentList {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+
+    .paymentItem {
+        width: 100%;
+        height: 60px;
+        background: $third-color;
+        border: 1px solid transparent !important;
+        @include radius-common(12px);
+        @include flex(flex-start, center, 15px);
+        padding: 0 20px;
+        transition: all 0.3s;
+
+        &:hover {
+            border-color: $primary-color !important;
+        }
+
+        img {
+            height: 30px;
+            width: 30px;
+            object-fit: contain;
+        }
+
+        span {
+            color: $white-color;
+            font-size: $font-size-md;
+        }
+
+        &::before {
+            display: none;
+        }
+    }
+}
+
+.ticketInfo {
+    .summaryRow {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 12px;
+
+        .ticketText {
+            color: $primary-color;
+            font-weight: 500;
+        }
+    }
+}
+.orderSummary {
+    background: $white-color;
+    padding: 30px;
+    @include radius-common(20px);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+    position: sticky;
+    top: 100px;
+
+    h4 {
+        color: $secondary-color;
+        margin-bottom: 24px;
+    }
+
+    .summaryRow {
+        @include flex(space-between, center);
+        margin-bottom: 12px;
+        color: $third-color;
+
+        &.total {
+            margin-top: 16px;
+            .highlightText {
+                color: $primary-color;
+                font-size: $font-size-h3;
+                font-weight: $font-weight-bold;
+            }
+        }
+    }
+
+    .lightDivider {
+        border-top: 1px solid $border-color;
+        margin: 20px 0;
+    }
+
+    .terms {
+        margin: 24px 0;
+        :global(.ant-checkbox-wrapper) {
+            color: $text-color;
+            font-size: $font-size-sm;
+        }
+    }
+
+    .payBtn {
+        height: 56px;
+        background: $primary-color;
+        @include radius-common(12px);
+        font-weight: $font-weight-bold;
+        font-size: $font-size-lg;
+        border: none;
+        box-shadow: 0 4px 12px rgba($primary-color, 0.3);
+
+        &:hover {
+            background: darken($primary-color, 5%) !important;
+            transform: translateY(-2px);
+        }
+    }
+}
+
+// Responsive
+@include mobile-tablet-width {
+    .eventBanner .bannerContent {
+        grid-template-columns: 1fr;
+        text-align: center;
+        .backBtn {
+            display: none;
+        }
+        .countdownBox {
+            width: fit-content;
+            margin: 0 auto;
+        }
+    }
+
+    .orderSummary {
+        position: static;
+        margin-top: 32px;
+    }
+}

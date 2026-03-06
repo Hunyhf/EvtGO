@@ -15,6 +15,7 @@ import Home from '@pages/customer/Home/Home.jsx';
 import Genre from '@pages/customer/Genre/Genre';
 import Profile from '@pages/customer/Profile/Profile.jsx';
 import Booking from '@pages/customer/Booking/Booking';
+import Checkout from '@pages/customer/Checkout/Checkout'; // Đã import
 import NotFound from '@pages/customer/NotFound/NotFound.jsx';
 import EventDetail from '@pages/customer/EventDetail/EventDetail';
 
@@ -27,6 +28,7 @@ import AdminEventManagement from '@pages/admin/EventManagement/AdminEventManagem
 import EventManagement from '@pages/organizer/EventManagement/EventManagement';
 import CreateEvent from '@pages/organizer/EventManagement/CreateEvent';
 import EditEvent from '@pages/organizer/EventManagement/EditEvent';
+
 // Import Protection, Context & Constants
 import ProtectedRoute from '@components/ProtectedRoute';
 import { AuthProvider } from '@contexts/AuthContext';
@@ -37,6 +39,7 @@ export const BREADCRUMB_LABELS = {
     '/genre': 'Thể loại',
     '/event': 'Chi tiết sự kiện',
     '/booking': 'Chọn vé',
+    '/booking/:id/checkout': 'Thanh toán', // << THÊM DÒNG NÀY ĐỂ HIỂN THỊ BREADCRUMB
     '/my-tickets': 'Vé của tôi',
     '/profile': 'Hồ sơ cá nhân',
     '/organizer': 'Quản lý sự kiện',
@@ -66,11 +69,18 @@ export const routes = createBrowserRouter([
                         element: <Booking />
                     },
                     {
+                        path: 'booking/:id/checkout',
+                        element: (
+                            // BỌC TRONG PROTECTEDROUTE ĐỂ BẢO VỆ TRANG THANH TOÁN
+                            <ProtectedRoute allowedRoles={[ROLE_ID.CUSTOMER]}>
+                                <Checkout />
+                            </ProtectedRoute>
+                        )
+                    },
+                    {
                         path: 'my-tickets',
                         element: (
                             <ProtectedRoute allowedRoles={[ROLE_ID.CUSTOMER]}>
-                                {/* Lưu ý: Bạn có thể cần 1 component khác cho 'Vé đã mua' 
-                                    vì Ticket hiện tại đang là trang chọn vé */}
                                 <div>Trang danh sách vé đã mua của tôi</div>
                             </ProtectedRoute>
                         )
