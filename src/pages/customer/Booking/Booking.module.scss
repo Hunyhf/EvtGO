@@ -1,0 +1,166 @@
+@use '@styles/variables';
+@use '@styles/mixins';
+
+.bookingContainer {
+    padding: 40px 20px;
+    font-family: $font-family;
+    background: $secondary-color;
+    .header {
+        position: relative;
+        text-align: center;
+        margin-bottom: 40px;
+
+        .backBtn {
+            position: absolute;
+            left: 20px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: $text-color;
+            font-size: $font-size-md;
+        }
+
+        .title {
+            margin: 0;
+            font-weight: $font-weight-bold;
+        }
+    }
+}
+
+.ticketCard {
+    background: $third-color;
+    padding: 24px;
+    @include radius-common(16px);
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 16px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    transition: transform 0.2s ease;
+
+    &:hover {
+        transform: translateY(-2px);
+    }
+
+    .ticketInfo {
+        display: flex;
+        flex-direction: column;
+
+        .ticketName {
+            color: $white-color;
+            font-weight: $font-weight-bold;
+            font-size: $font-size-lg;
+        }
+
+        .ticketPrice {
+            color: $primary-color;
+            font-size: $font-size-xl;
+            font-weight: $font-weight-bold;
+        }
+    }
+
+    .qtySelector {
+        @include flex(center, center, 12px);
+
+        button {
+            background: $primary-color;
+            border: none;
+            &:hover {
+                background: $primary-color !important;
+                color: white !important;
+            }
+        }
+
+        .qtyCounter {
+            color: $white-color;
+            font-weight: $font-weight-bold;
+            font-size: $font-size-lg;
+            min-width: 20px;
+            text-align: center;
+        }
+    }
+
+    .infoBox {
+        grid-column: span 2;
+        background: rgba($white-color, 0.05);
+        padding: 12px;
+        @include radius-common(8px);
+        @include flex(flex-start, flex-start, 8px);
+
+        .infoIcon {
+            color: $text-color;
+            margin-top: 3px;
+        }
+
+        .descList {
+            margin: 0;
+            padding-left: 20px;
+            color: $text-color;
+            font-size: $font-size-xs;
+            li {
+                margin-bottom: 4px;
+            }
+        }
+    }
+}
+
+.dottedDivider {
+    border-top: 2px dotted #3f3f46;
+    margin: 32px 0;
+}
+
+.summaryCard {
+    background: $sub-color;
+    padding: 24px;
+    @include radius-common(16px);
+    position: sticky;
+    top: 100px;
+    color: $white-color;
+
+    .eventTitle {
+        color: $white-color;
+        margin-bottom: 16px;
+    }
+
+    .metaItem {
+        @include flex(flex-start, center, 10px);
+        color: $text-color;
+        font-size: $font-size-sm;
+    }
+
+    .priceSummary {
+        margin-bottom: 24px;
+
+        .priceRow,
+        .totalRow {
+            @include flex(space-between, center);
+            margin-bottom: 12px;
+            .greenText {
+                color: $primary-color;
+                margin: 0;
+            }
+        }
+    }
+
+    .checkoutBtn {
+        background: $primary-color;
+        border: none;
+        height: 50px;
+        @include radius-common(12px);
+        font-weight: $font-weight-bold;
+
+        &:disabled {
+            background: #3f3f46;
+            color: #71717a;
+        }
+    }
+}
+
+// Responsive
+@include mobile-tablet-width {
+    .mainRow {
+        flex-direction: column-reverse;
+    }
+    .summaryCard {
+        position: static;
+        margin-bottom: 32px;
+    }
+}

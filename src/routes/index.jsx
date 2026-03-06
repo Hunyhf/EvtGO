@@ -14,7 +14,7 @@ import Staff from '@pages/staff/Staff.jsx';
 import Home from '@pages/customer/Home/Home.jsx';
 import Genre from '@pages/customer/Genre/Genre';
 import Profile from '@pages/customer/Profile/Profile.jsx';
-import Ticket from '@pages/customer/Ticket/Ticket.jsx';
+import Booking from '@pages/customer/Booking/Booking';
 import NotFound from '@pages/customer/NotFound/NotFound.jsx';
 import EventDetail from '@pages/customer/EventDetail/EventDetail';
 
@@ -62,8 +62,8 @@ export const routes = createBrowserRouter([
                     { path: 'genre', element: <Genre /> },
                     { path: 'event/:id', element: <EventDetail /> },
                     {
-                        path: 'booking/:eventId',
-                        element: <Ticket />
+                        path: 'booking/:id',
+                        element: <Booking />
                     },
                     {
                         path: 'my-tickets',
