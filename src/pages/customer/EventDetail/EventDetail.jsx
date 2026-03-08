@@ -25,7 +25,6 @@ import 'dayjs/locale/vi';
 import classNames from 'classnames/bind';
 
 import styles from './EventDetail.module.scss';
-// ĐÃ XÓA import Nav vì CustomerLayout đã có Header
 import BookingButton from '@components/BookingButton/BookingButton';
 import { eventApi } from '@apis/eventApi';
 import { ticketApi } from '@apis/ticketApi';
@@ -34,6 +33,7 @@ import { AuthContext } from '@contexts/AuthContext';
 import AuthModal from '@components/AuthModal/AuthModal';
 import RelatedEvents from './RelatedEvents';
 import Nav from '@components/Nav/Nav.jsx';
+
 dayjs.locale('vi');
 
 const cx = classNames.bind(styles);
@@ -56,14 +56,9 @@ const EventDetail = () => {
     const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
 
     useEffect(() => {
-        // Thêm class để đổi màu Footer
         document.body.classList.add('is-event-detail');
-
-        // Logic cuộn lên đầu trang và fetch data
         window.scrollTo(0, 0);
-
         return () => {
-            // Xóa class khi rời trang để các trang khác Footer quay về mặc định
             document.body.classList.remove('is-event-detail');
         };
     }, [id]);
@@ -111,8 +106,6 @@ const EventDetail = () => {
         };
 
         fetchDetailData();
-        window.scrollTo(0, 0);
-
         return () => {
             active = false;
         };
@@ -145,6 +138,10 @@ const EventDetail = () => {
 
     const lowestPrice =
         tickets.length > 0 ? Math.min(...tickets.map(t => t.price || 0)) : 0;
+
+    const isEventSoldOut =
+        tickets.length > 0 &&
+        tickets.every(t => t.ticketStatus?.toUpperCase() === 'SOLD_OUT');
 
     const startTime = dayjs(
         `${event.startDate} ${event.startTime || '00:00:00'}`
@@ -183,7 +180,6 @@ const EventDetail = () => {
                                             className={cx('icon')}
                                         />
                                         <Text className={cx('text')}>
-                                            {/* CẬP NHẬT: Hiển thị giờ bắt đầu - giờ kết thúc */}
                                             {startTime.format('HH:mm')}
                                             {endTime
                                                 ? ` - ${endTime.format('HH:mm')}`
@@ -216,13 +212,16 @@ const EventDetail = () => {
                                     </Title>
                                 </div>
 
+                                {/* Nút chính Hero */}
                                 <BookingButton
                                     isPast={isPast}
                                     isUpcoming={isUpcoming}
+                                    isSoldOut={isEventSoldOut}
                                     onClick={handleGoToBooking}
                                     variant='primary'
                                     block
                                     size='large'
+                                    soldOutLabel='HẾT VÉ'
                                 />
                             </div>
                         </Col>
@@ -343,10 +342,15 @@ const EventDetail = () => {
                                                                 )}{' '}
                                                                 đ
                                                             </Text>
+                                                            {/* Nút cho từng hạng vé cụ thể */}
                                                             <BookingButton
                                                                 isPast={isPast}
                                                                 isUpcoming={
                                                                     isUpcoming
+                                                                }
+                                                                isSoldOut={
+                                                                    ticket.ticketStatus?.toUpperCase() ===
+                                                                    'SOLD_OUT'
                                                                 }
                                                                 onClick={
                                                                     handleGoToBooking
@@ -355,6 +359,7 @@ const EventDetail = () => {
                                                                 label='Chọn'
                                                                 pastLabel='Hết hạn'
                                                                 upcomingLabel='Chờ bán'
+                                                                soldOutLabel='Hết vé'
                                                                 size='small'
                                                             />
                                                         </Space>
