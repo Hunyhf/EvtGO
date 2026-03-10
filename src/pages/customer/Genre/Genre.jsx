@@ -253,7 +253,6 @@ function Genre() {
                         {currentFilters.genreId && (
                             <Tag
                                 className={cx('genreTag')}
-                                color='cyan'
                                 closable
                                 onClose={() =>
                                     updateQueryParams(
