@@ -7,7 +7,6 @@
     background-color: $primary-color;
 
     .headerInner {
-        // Đổi từ __inner
         height: 100%;
         @include grid-wide();
         position: relative;

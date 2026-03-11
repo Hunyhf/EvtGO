@@ -1,0 +1,261 @@
+@use '@styles/variables';
+@use '@styles/mixins';
+
+.container {
+    @include mixins.grid-wide(1000px);
+    margin-top: 40px;
+    margin-bottom: 40px;
+    padding: 0 20px;
+
+    @include mixins.mobile-tablet-width {
+        width: 100%;
+        padding: 0 15px;
+        margin-top: 20px;
+        margin-bottom: 20px;
+        overflow-x: hidden; // Đảm bảo tuyệt đối không sinh ra cuộn ngang
+    }
+}
+
+.pageTitle {
+    font-size: variables.$font-size-h3;
+    margin-bottom: 30px;
+    color: variables.$secondary-color;
+    border-bottom: 2px solid variables.$border-color;
+    padding-bottom: 10px;
+    font-weight: variables.$font-weight-bold;
+
+    @include mixins.mobile-width {
+        font-size: variables.$font-size-xl;
+        margin-bottom: 20px;
+    }
+}
+
+.ticketList {
+    @include mixins.flex(initial, initial, 20px);
+    flex-direction: column;
+
+    @include mixins.mobile-width {
+        gap: 15px;
+    }
+}
+
+.ticketRow {
+    @include mixins.flex(initial, stretch);
+    background: variables.$white-color;
+    @include mixins.radius-common(12px);
+    overflow: hidden;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+    border: 1px solid variables.$border-color;
+    transition: all 0.3s ease;
+    cursor: pointer;
+
+    &:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.12);
+        border-color: variables.$primary-color;
+    }
+
+    @include mixins.mobile-tablet-width {
+        flex-direction: column;
+        &:hover {
+            transform: none;
+        }
+    }
+}
+
+.leftSection {
+    width: 200px;
+    position: relative;
+    flex-shrink: 0;
+
+    img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+
+    @include mixins.mobile-tablet-width {
+        width: auto; // Sửa lỗi tràn ngang: Dùng auto thay vì 100%
+        align-self: stretch; // Tự động kéo giãn tràn thẻ cha an toàn
+        height: 180px;
+    }
+
+    .statusBadge {
+        position: absolute;
+        top: 10px;
+        left: 10px;
+        padding: 4px 8px;
+        @include mixins.radius-common(4px);
+        font-size: variables.$font-size-xs;
+        font-weight: variables.$font-weight-bold;
+        text-transform: uppercase;
+        background: rgba(0, 0, 0, 0.6);
+        color: variables.$white-color;
+
+        &.valid {
+            background: variables.$primary-color;
+        }
+        &.used {
+            background: variables.$text-color;
+        }
+    }
+}
+
+.middleSection {
+    flex: 1;
+    padding: 20px;
+    border-right: 1px dashed variables.$border-color;
+
+    @include mixins.mobile-tablet-width {
+        border-right: none;
+        border-bottom: 1px dashed variables.$border-color;
+        padding: 15px;
+    }
+
+    .eventName {
+        font-size: variables.$font-size-lg;
+        margin-bottom: 12px;
+        color: variables.$secondary-color;
+        font-weight: variables.$font-weight-bold;
+
+        @include mixins.mobile-width {
+            font-size: variables.$font-size-md;
+        }
+    }
+
+    .infoGrid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
+
+        @include mixins.mobile-width {
+            // Đã thay thế @media tay bằng mixin
+            grid-template-columns: 1fr;
+        }
+
+        p {
+            margin: 0;
+            font-size: variables.$font-size-sm;
+            color: variables.$text-color;
+            strong {
+                color: variables.$sub-color;
+            }
+        }
+
+        .price {
+            color: variables.$error-color;
+            font-weight: variables.$font-weight-bold;
+            font-size: variables.$font-size-sm;
+        }
+    }
+}
+
+.rightSection {
+    width: 160px;
+    @include mixins.flex(center, center);
+    flex-direction: column;
+    padding: 15px;
+    background: variables.$bg-admin;
+
+    @include mixins.mobile-tablet-width {
+        width: auto; // Khắc phục lỗi tràn nội dung bên phải
+        align-self: stretch;
+        flex-direction: row;
+        justify-content: space-between;
+        padding: 10px 20px;
+        background: variables.$white-color;
+    }
+
+    .qrContainer {
+        padding: 5px;
+        background: variables.$white-color;
+        border: 1px solid variables.$border-color;
+
+        @include mixins.mobile-tablet-width {
+            width: 60px;
+            height: 60px;
+            canvas {
+                width: 100% !important;
+                height: 100% !important;
+            }
+        }
+    }
+
+    .qrCodeText {
+        margin-top: 8px;
+        font-size: variables.$font-size-xs;
+        font-weight: variables.$font-weight-bold;
+        color: variables.$text-color;
+        font-family: monospace;
+
+        @include mixins.mobile-tablet-width {
+            margin-top: 0;
+            font-size: variables.$font-size-sm;
+        }
+    }
+}
+
+// Lớp CSS cho Modal QR đã được định nghĩa nhưng chưa được JSX sử dụng
+.qrModalContent {
+    text-align: center;
+    padding: 10px 0;
+
+    h2 {
+        font-size: variables.$font-size-lg;
+        margin-bottom: 20px;
+        color: variables.$secondary-color;
+    }
+
+    .modalQrWrapper {
+        display: inline-block;
+        padding: 15px;
+        background: variables.$white-color;
+        border: 1px solid variables.$border-color;
+        @include mixins.radius-common(8px);
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+
+        @include mixins.mobile-width {
+            padding: 10px;
+            canvas {
+                width: 200px !important;
+                height: 200px !important;
+            }
+        }
+    }
+
+    .modalQrText {
+        margin-top: 20px;
+        font-size: variables.$font-size-xl;
+        font-weight: variables.$font-weight-bold;
+        letter-spacing: 4px;
+        color: variables.$secondary-color;
+        font-family: monospace;
+
+        @include mixins.mobile-width {
+            font-size: variables.$font-size-md;
+            letter-spacing: 2px;
+        }
+    }
+
+    .modalHint {
+        margin-top: 10px;
+        color: variables.$text-color;
+        font-size: variables.$font-size-sm;
+    }
+}
+
+.paginationWrapper {
+    margin-top: 40px;
+    @include mixins.flex(center, center);
+
+    @include mixins.mobile-width {
+        margin-top: 20px;
+    }
+}
+
+.loading,
+.noData {
+    text-align: center;
+    padding: 50px;
+    color: variables.$text-color;
+}

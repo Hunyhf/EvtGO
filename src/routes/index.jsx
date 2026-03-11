@@ -15,9 +15,10 @@ import Home from '@pages/customer/Home/Home.jsx';
 import Genre from '@pages/customer/Genre/Genre';
 import Profile from '@pages/customer/Profile/Profile.jsx';
 import Booking from '@pages/customer/Booking/Booking';
-import Checkout from '@pages/customer/Checkout/Checkout'; // Đã import
+import Checkout from '@pages/customer/Checkout/Checkout';
 import NotFound from '@pages/customer/NotFound/NotFound.jsx';
 import EventDetail from '@pages/customer/EventDetail/EventDetail';
+import Ticket from '@pages/customer/Ticket/Ticket';
 
 // ADMIN PAGES
 import AdminDashBoard from '@pages/admin/AdminDashBoard/AdminDashBoard.jsx';
@@ -39,7 +40,7 @@ export const BREADCRUMB_LABELS = {
     '/genre': 'Thể loại',
     '/event': 'Chi tiết sự kiện',
     '/booking': 'Chọn vé',
-    '/booking/:id/checkout': 'Thanh toán', // << THÊM DÒNG NÀY ĐỂ HIỂN THỊ BREADCRUMB
+    '/booking/:id/checkout': 'Thanh toán',
     '/my-tickets': 'Vé của tôi',
     '/profile': 'Hồ sơ cá nhân',
     '/organizer': 'Quản lý sự kiện',
@@ -81,7 +82,7 @@ export const routes = createBrowserRouter([
                         path: 'my-tickets',
                         element: (
                             <ProtectedRoute allowedRoles={[ROLE_ID.CUSTOMER]}>
-                                <div>Trang danh sách vé đã mua của tôi</div>
+                                <Ticket />
                             </ProtectedRoute>
                         )
                     },
