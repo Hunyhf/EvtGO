@@ -6,7 +6,7 @@ import dayjs from 'dayjs';
 import orderApi from '@apis/orderApi';
 import { eventApi } from '@apis/eventApi';
 import { getEventImageUrl } from '@utils/imageHelper';
-import useModal from '@hooks/useModal'; // 1. Import hook
+import useModal from '@hooks/useModal';
 
 import styles from './Ticket.module.scss';
 
@@ -16,7 +16,6 @@ function Ticket() {
     const [eventImages, setEventImages] = useState({});
     const [selectedTicket, setSelectedTicket] = useState(null);
 
-    // 2. Khởi tạo useModal (Đổi tên để tường minh logic QR)
     const {
         isOpen: isQrModalOpen,
         open: openQrModal,
