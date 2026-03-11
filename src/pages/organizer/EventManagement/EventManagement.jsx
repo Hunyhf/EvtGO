@@ -472,6 +472,11 @@ const EventManagement = () => {
                                         <button
                                             style={styles.actionButton}
                                             className='action-btn'
+                                            onClick={() =>
+                                                navigate(
+                                                    `/organizer/orders?eventId=${event.id}`
+                                                )
+                                            }
                                         >
                                             <FileTextOutlined />
                                             <span>Đơn hàng</span>

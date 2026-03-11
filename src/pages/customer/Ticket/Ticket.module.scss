@@ -195,7 +195,6 @@
     }
 }
 
-// Lớp CSS cho Modal QR đã được định nghĩa nhưng chưa được JSX sử dụng
 .qrModalContent {
     text-align: center;
     padding: 10px 0;
@@ -203,7 +202,7 @@
     h2 {
         font-size: variables.$font-size-lg;
         margin-bottom: 20px;
-        color: variables.$secondary-color;
+        color: variables.$white-color;
     }
 
     .modalQrWrapper {
@@ -228,7 +227,7 @@
         font-size: variables.$font-size-xl;
         font-weight: variables.$font-weight-bold;
         letter-spacing: 4px;
-        color: variables.$secondary-color;
+        color: variables.$white-color;
         font-family: monospace;
 
         @include mixins.mobile-width {
@@ -239,7 +238,7 @@
 
     .modalHint {
         margin-top: 10px;
-        color: variables.$text-color;
+        color: $white-color;
         font-size: variables.$font-size-sm;
     }
 }

@@ -2,19 +2,26 @@ import React, { useEffect, useState } from 'react';
 import { QRCodeCanvas } from 'qrcode.react';
 import { Pagination, Modal } from 'antd';
 import dayjs from 'dayjs';
+
 import orderApi from '@apis/orderApi';
 import { eventApi } from '@apis/eventApi';
 import { getEventImageUrl } from '@utils/imageHelper';
+import useModal from '@hooks/useModal'; // 1. Import hook
+
 import styles from './Ticket.module.scss';
 
 function Ticket() {
     const [tickets, setTickets] = useState([]);
     const [loading, setLoading] = useState(true);
     const [eventImages, setEventImages] = useState({});
-
-    // State quản lý hiển thị QR Modal
-    const [isModalOpen, setIsModalOpen] = useState(false);
     const [selectedTicket, setSelectedTicket] = useState(null);
+
+    // 2. Khởi tạo useModal (Đổi tên để tường minh logic QR)
+    const {
+        isOpen: isQrModalOpen,
+        open: openQrModal,
+        close: closeQrModal
+    } = useModal();
 
     const [currentPage, setCurrentPage] = useState(1);
     const pageSize = 12;
@@ -34,6 +41,7 @@ function Ticket() {
                 );
                 setTickets(ticketData);
 
+                // Logic fetch ảnh bổ sung cho các event thiếu ảnh
                 const uniqueEventIdsMissingImg = [
                     ...new Set(
                         ticketData
@@ -46,7 +54,6 @@ function Ticket() {
                     try {
                         const res = await eventApi.getById(id);
                         const eventDetail = res?.result || res;
-
                         const detailImageName =
                             eventDetail?.image || eventDetail?.images?.[0]?.url;
 
@@ -72,6 +79,7 @@ function Ticket() {
         fetchMyTickets();
     }, []);
 
+    // Logic phân trang local
     const indexOfLastTicket = currentPage * pageSize;
     const indexOfFirstTicket = indexOfLastTicket - pageSize;
     const currentTickets = tickets.slice(indexOfFirstTicket, indexOfLastTicket);
@@ -81,15 +89,15 @@ function Ticket() {
         window.scrollTo(0, 0);
     };
 
-    // Hàm mở Modal
+    // 3. Cập nhật hàm mở Modal
     const handleOpenQr = ticket => {
         setSelectedTicket(ticket);
-        setIsModalOpen(true);
+        openQrModal();
     };
 
-    // Hàm đóng Modal
+    // 4. Cập nhật hàm đóng Modal (Vẫn cần reset selectedTicket)
     const handleCloseQr = () => {
-        setIsModalOpen(false);
+        closeQrModal();
         setSelectedTicket(null);
     };
 
@@ -104,7 +112,6 @@ function Ticket() {
                     currentTickets.map(item => {
                         const currentImageName =
                             item.event?.image || eventImages[item.event?.id];
-
                         const imageUrl = currentImageName
                             ? getEventImageUrl(item.event.id, currentImageName)
                             : 'https://images.unsplash.com/photo-1492684223066-81342ee5ff30';
@@ -114,7 +121,6 @@ function Ticket() {
                                 key={item.id}
                                 className={styles.ticketRow}
                                 onClick={() => handleOpenQr(item)}
-                                // Đã xóa style={{ cursor: 'pointer' }} do đã xử lý trong SCSS
                             >
                                 <div className={styles.leftSection}>
                                     <img
@@ -173,7 +179,6 @@ function Ticket() {
                                             value={item.qrCode || 'NO-CODE'}
                                             size={100}
                                             level={'H'}
-                                            includeMargin={false}
                                         />
                                     </div>
                                     <p className={styles.qrCodeText}>
@@ -191,10 +196,10 @@ function Ticket() {
                 )}
             </div>
 
-            {/* Modal hiển thị QR phóng to - Đã ÁP DỤNG SCSS CLASS THAY VÌ STYLE CỨNG */}
+            {/* 5. Sử dụng biến và hàm từ hook vào Modal */}
             <Modal
                 title='Mã vé QR'
-                open={isModalOpen}
+                open={isQrModalOpen}
                 onCancel={handleCloseQr}
                 footer={null}
                 centered
@@ -203,7 +208,6 @@ function Ticket() {
                 {selectedTicket && (
                     <div className={styles.qrModalContent}>
                         <h2>{selectedTicket.event?.name}</h2>
-
                         <div className={styles.modalQrWrapper}>
                             <QRCodeCanvas
                                 value={selectedTicket.qrCode || 'NO-CODE'}
@@ -211,11 +215,9 @@ function Ticket() {
                                 level={'H'}
                             />
                         </div>
-
                         <p className={styles.modalQrText}>
                             {selectedTicket.qrCode?.toUpperCase()}
                         </p>
-
                         <p className={styles.modalHint}>
                             Sử dụng mã này để check-in tại sự kiện
                         </p>

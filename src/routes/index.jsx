@@ -29,6 +29,7 @@ import AdminEventManagement from '@pages/admin/EventManagement/AdminEventManagem
 import EventManagement from '@pages/organizer/EventManagement/EventManagement';
 import CreateEvent from '@pages/organizer/EventManagement/CreateEvent';
 import EditEvent from '@pages/organizer/EventManagement/EditEvent';
+import OrderManagement from '@pages/organizer/OrderManagement/OrderManagement';
 
 // Import Protection, Context & Constants
 import ProtectedRoute from '@components/ProtectedRoute';
@@ -167,7 +168,8 @@ export const routes = createBrowserRouter([
                     {
                         path: 'terms',
                         element: <div>Trang điều khoản</div>
-                    }
+                    },
+                    { path: 'orders', element: <OrderManagement /> }
                 ]
             },
 
