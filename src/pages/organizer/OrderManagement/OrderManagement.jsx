@@ -30,6 +30,17 @@ const baseColumns = [
         render: user => user?.email || 'N/A'
     },
     {
+        title: 'Số lượng',
+        key: 'totalQuantity',
+        render: (_, record) => {
+            // Tính tổng quantity từ danh sách items trong ResOrderDTO
+            const total =
+                record.items?.reduce((acc, item) => acc + item.quantity, 0) ||
+                0;
+            return <span>{total} vé</span>;
+        }
+    },
+    {
         title: 'Tổng tiền',
         dataIndex: 'totalAmount',
         key: 'totalAmount',

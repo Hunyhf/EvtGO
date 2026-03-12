@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { QRCodeCanvas } from 'qrcode.react';
 import { Pagination, Modal } from 'antd';
 import dayjs from 'dayjs';
+import classNames from 'classnames/bind'; // Import classnames
 
 import orderApi from '@apis/orderApi';
 import { eventApi } from '@apis/eventApi';
@@ -9,6 +10,9 @@ import { getEventImageUrl } from '@utils/imageHelper';
 import useModal from '@hooks/useModal';
 
 import styles from './Ticket.module.scss';
+
+// Khởi tạo cx với bind styles
+const cx = classNames.bind(styles);
 
 function Ticket() {
     const [tickets, setTickets] = useState([]);
@@ -40,7 +44,6 @@ function Ticket() {
                 );
                 setTickets(ticketData);
 
-                // Logic fetch ảnh bổ sung cho các event thiếu ảnh
                 const uniqueEventIdsMissingImg = [
                     ...new Set(
                         ticketData
@@ -78,7 +81,6 @@ function Ticket() {
         fetchMyTickets();
     }, []);
 
-    // Logic phân trang local
     const indexOfLastTicket = currentPage * pageSize;
     const indexOfFirstTicket = indexOfLastTicket - pageSize;
     const currentTickets = tickets.slice(indexOfFirstTicket, indexOfLastTicket);
@@ -88,25 +90,23 @@ function Ticket() {
         window.scrollTo(0, 0);
     };
 
-    // 3. Cập nhật hàm mở Modal
     const handleOpenQr = ticket => {
         setSelectedTicket(ticket);
         openQrModal();
     };
 
-    // 4. Cập nhật hàm đóng Modal (Vẫn cần reset selectedTicket)
     const handleCloseQr = () => {
         closeQrModal();
         setSelectedTicket(null);
     };
 
-    if (loading) return <div className={styles.loading}>Đang tải vé...</div>;
+    if (loading) return <div className={cx('loading')}>Đang tải vé...</div>;
 
     return (
-        <div className={styles.container}>
-            <h1 className={styles.pageTitle}>Vé của tôi</h1>
+        <div className={cx('container')}>
+            <h1 className={cx('pageTitle')}>Vé của tôi</h1>
 
-            <div className={styles.ticketList}>
+            <div className={cx('ticketList')}>
                 {currentTickets.length > 0 ? (
                     currentTickets.map(item => {
                         const currentImageName =
@@ -118,10 +118,10 @@ function Ticket() {
                         return (
                             <div
                                 key={item.id}
-                                className={styles.ticketRow}
+                                className={cx('ticketRow')}
                                 onClick={() => handleOpenQr(item)}
                             >
-                                <div className={styles.leftSection}>
+                                <div className={cx('leftSection')}>
                                     <img
                                         src={imageUrl}
                                         alt={item.event?.name}
@@ -130,18 +130,22 @@ function Ticket() {
                                                 'https://placehold.co/400x600?text=No+Image';
                                         }}
                                     />
+                                    {/* Sử dụng cx để gộp class động dựa trên status */}
                                     <span
-                                        className={`${styles.statusBadge} ${styles[item.status?.toLowerCase()]}`}
+                                        className={cx(
+                                            'statusBadge',
+                                            item.status?.toLowerCase()
+                                        )}
                                     >
                                         {item.status}
                                     </span>
                                 </div>
 
-                                <div className={styles.middleSection}>
-                                    <h2 className={styles.eventName}>
+                                <div className={cx('middleSection')}>
+                                    <h2 className={cx('eventName')}>
                                         {item.event?.name}
                                     </h2>
-                                    <div className={styles.infoGrid}>
+                                    <div className={cx('infoGrid')}>
                                         <p>
                                             <strong>Địa điểm:</strong>{' '}
                                             {item.event?.location}
@@ -162,7 +166,7 @@ function Ticket() {
                                                 'DD/MM/YYYY'
                                             )}
                                         </p>
-                                        <p className={styles.price}>
+                                        <p className={cx('price')}>
                                             <strong>Giá:</strong>{' '}
                                             {item.ticket?.price?.toLocaleString(
                                                 'vi-VN'
@@ -172,15 +176,15 @@ function Ticket() {
                                     </div>
                                 </div>
 
-                                <div className={styles.rightSection}>
-                                    <div className={styles.qrContainer}>
+                                <div className={cx('rightSection')}>
+                                    <div className={cx('qrContainer')}>
                                         <QRCodeCanvas
                                             value={item.qrCode || 'NO-CODE'}
                                             size={100}
                                             level={'H'}
                                         />
                                     </div>
-                                    <p className={styles.qrCodeText}>
+                                    <p className={cx('qrCodeText')}>
                                         #
                                         {item.qrCode
                                             ?.split('-')[0]
@@ -191,11 +195,10 @@ function Ticket() {
                         );
                     })
                 ) : (
-                    <div className={styles.noData}>Bạn chưa sở hữu vé nào.</div>
+                    <div className={cx('noData')}>Bạn chưa sở hữu vé nào.</div>
                 )}
             </div>
 
-            {/* 5. Sử dụng biến và hàm từ hook vào Modal */}
             <Modal
                 title='Mã vé QR'
                 open={isQrModalOpen}
@@ -205,19 +208,19 @@ function Ticket() {
                 width={350}
             >
                 {selectedTicket && (
-                    <div className={styles.qrModalContent}>
+                    <div className={cx('qrModalContent')}>
                         <h2>{selectedTicket.event?.name}</h2>
-                        <div className={styles.modalQrWrapper}>
+                        <div className={cx('modalQrWrapper')}>
                             <QRCodeCanvas
                                 value={selectedTicket.qrCode || 'NO-CODE'}
                                 size={250}
                                 level={'H'}
                             />
                         </div>
-                        <p className={styles.modalQrText}>
+                        <p className={cx('modalQrText')}>
                             {selectedTicket.qrCode?.toUpperCase()}
                         </p>
-                        <p className={styles.modalHint}>
+                        <p className={cx('modalHint')}>
                             Sử dụng mã này để check-in tại sự kiện
                         </p>
                     </div>
@@ -225,7 +228,7 @@ function Ticket() {
             </Modal>
 
             {tickets.length > pageSize && (
-                <div className={styles.paginationWrapper}>
+                <div className={cx('paginationWrapper')}>
                     <Pagination
                         current={currentPage}
                         pageSize={pageSize}

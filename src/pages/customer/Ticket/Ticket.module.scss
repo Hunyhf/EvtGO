@@ -2,14 +2,12 @@
 @use '@styles/mixins';
 
 .container {
-    @include grid-wide(1000px);
+    @include grid-wide();
     margin-top: 40px;
     margin-bottom: 40px;
-    padding: 0 20px;
 
     @include mobile-tablet-width {
         width: 100%;
-        padding: 0 15px;
         margin-top: 20px;
         margin-bottom: 20px;
         overflow-x: hidden;

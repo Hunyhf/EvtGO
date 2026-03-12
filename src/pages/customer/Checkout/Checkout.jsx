@@ -48,7 +48,7 @@ const Checkout = () => {
     const event = state?.event;
     const selectedTickets = state?.selectedTickets || [];
     const totalPrice = state?.totalPrice || 0;
-
+    const orderId = state?.orderId;
     const totalQuantity = selectedTickets.reduce(
         (sum, item) => sum + item.quantity,
         0
@@ -99,12 +99,6 @@ const Checkout = () => {
         navigate(-1);
     };
 
-    /**
-     * Logic xử lý thanh toán thành công:
-     * 1. Gọi createOrder (PENDING)
-     * 2. Gọi payOrder (PAID)
-     * 3. Điều hướng về Profile và mở sẵn tab vé
-     */
     const handleConfirmOrder = async () => {
         if (!agreed) {
             message.warning(
@@ -113,46 +107,36 @@ const Checkout = () => {
             return;
         }
 
+        if (!orderId) {
+            message.error('Không tìm thấy mã đơn hàng. Vui lòng đặt vé lại!');
+            return;
+        }
+
         try {
             setIsSubmitting(true);
 
-            const orderData = {
-                eventId: event.id,
-                totalPrice: totalPrice,
-                items: selectedTickets.map(item => ({
-                    ticketId: item.ticketId,
-                    quantity: item.quantity,
-                    price: item.price
-                }))
+            // BỎ BƯỚC 1 (Không gọi createOrder nữa)
+
+            // BƯỚC 2: Gọi API thanh toán cho đơn hàng đã tạo ở trang Booking
+            const paymentData = {
+                orderId: orderId // Sử dụng orderId lấy từ state
             };
 
-            // Bước 1: Tạo đơn hàng
-            const createRes = await orderApi.createOrder(orderData);
+            const payRes = await orderApi.payOrder(paymentData);
 
-            if (createRes && createRes.id) {
-                // Bước 2: Thanh toán đơn hàng (giả lập thanh toán thành công theo BE)
-                const paymentData = {
-                    orderId: createRes.id
-                };
+            if (payRes && payRes.orderStatus === 'PAID') {
+                // Hoặc check payRes.result?.orderStatus tùy response BE của bạn
+                message.success(
+                    'Thanh toán thành công! Vé đã được lưu vào tài khoản của bạn.'
+                );
 
-                const payRes = await orderApi.payOrder(paymentData);
+                localStorage.removeItem(`checkout_expiration_${event.id}`);
 
-                if (payRes && payRes.orderStatus === 'PAID') {
-                    // Thông báo thành công gọn gàng theo yêu cầu
-                    message.success(
-                        'Thanh toán thành công! Vé đã được lưu vào tài khoản của bạn.'
-                    );
-
-                    // Xóa bộ đếm ngược
-                    localStorage.removeItem(`checkout_expiration_${event.id}`);
-
-                    // Chuyển hướng sang trang Profile và chỉ định mở tab 'tickets'
-                    setTimeout(() => {
-                        navigate('/my-tickets', {
-                            state: { activeTab: 'tickets' }
-                        });
-                    }, 1500);
-                }
+                setTimeout(() => {
+                    navigate('/my-tickets', {
+                        state: { activeTab: 'tickets' }
+                    });
+                }, 1500);
             }
         } catch (error) {
             console.error('Lỗi quy trình thanh toán:', error);
