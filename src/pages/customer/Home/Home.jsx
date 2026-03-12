@@ -4,6 +4,7 @@ import { Link } from 'react-router-dom';
 import classNames from 'classnames/bind';
 import { Swiper, SwiperSlide } from 'swiper/react';
 import { Navigation, Pagination, Autoplay } from 'swiper/modules';
+import { Empty } from 'antd'; // Sử dụng component Empty để hiển thị khi không có dữ liệu
 import dayjs from 'dayjs';
 
 import 'swiper/css';
@@ -22,9 +23,6 @@ const cx = classNames.bind(styles);
 
 /**
  * Tạo slug từ chuỗi tiếng Việt
- * - Chuẩn hóa Unicode
- * - Xóa ký tự đặc biệt
- * - Thay khoảng trắng bằng dấu "-"
  */
 const createSlug = str => {
     if (!str) return '';
@@ -57,117 +55,64 @@ const swiperConfig = {
 };
 
 function Home() {
-    /**
-     * Ref dùng để điều khiển scroll ngang của Trending Section
-     */
     const trendingRef = useRef(null);
-
-    /**
-     * State lưu danh sách các section theo thể loại
-     */
     const [sections, setSections] = useState([]);
-
-    /**
-     * State kiểm soát trạng thái loading dữ liệu
-     */
     const [loading, setLoading] = useState(true);
 
-    /**
-     * Tải dữ liệu trang Home:
-     * - Lấy danh sách thể loại
-     * - Lấy toàn bộ sự kiện
-     * - Lọc sự kiện đã duyệt và chưa diễn ra
-     * - Gom sự kiện theo từng thể loại
-     */
     useEffect(() => {
         const loadHomeData = async () => {
             try {
                 setLoading(true);
 
-                const now = dayjs();
-
-                const [genresRes, eventsRes] = await Promise.all([
-                    genresApi.getAll(),
-                    eventApi.getAll({ page: 1, size: 200 })
-                ]);
-
+                // 1. Lấy tất cả danh sách thể loại
+                const genresRes = await genresApi.getAll();
                 const genres = Array.isArray(genresRes)
                     ? genresRes
                     : genresRes?.result || [];
 
-                const allRawEvents =
-                    eventsRes?.result ||
-                    eventsRes?.content ||
-                    eventsRes?.data ||
-                    [];
+                // 2. Gọi API lấy sự kiện cho TẤT CẢ các thể loại
+                const sectionsWithRealData = await Promise.all(
+                    genres.map(async genre => {
+                        try {
+                            const res = await eventApi.getAll({
+                                page: 0,
+                                size: 4,
+                                filter: `isPublished:true and genre.id:${genre.id}`
+                            });
 
-                /**
-                 * Lọc sự kiện hợp lệ:
-                 * - Đã được duyệt (published === true)
-                 * - Thời gian bắt đầu còn trong tương lai
-                 */
-                const validRealEvents = allRawEvents.filter(e => {
-                    const isApproved = e.published === true;
+                            const eventsList =
+                                res?.result?.content || res?.result || [];
 
-                    const eventTime = dayjs(
-                        `${e.startDate} ${e.startTime || '00:00:00'}`
-                    );
-
-                    return isApproved && eventTime.isAfter(now);
-                });
-
-                /**
-                 * Xây dựng danh sách section theo từng thể loại
-                 */
-                const dataWithEvents = genres.map((genre, index) => {
-                    const realEventsInGenre = validRealEvents
-                        .filter(e => String(e.genreId) === String(genre.id))
-                        .map(e => {
-                            const posterObj =
-                                e.images?.find(img => img.isCover) ||
-                                e.images?.[0];
+                            const mappedEvents = eventsList.map(e => {
+                                const posterObj =
+                                    e.images?.find(img => img.isCover) ||
+                                    e.images?.[0];
+                                return {
+                                    ...e,
+                                    title: e.name,
+                                    price: e.minPrice || 0,
+                                    url: getEventImageUrl(e.id, posterObj?.url)
+                                };
+                            });
 
                             return {
-                                ...e,
-                                title: e.name,
-                                date: `${e.startDate} ${
-                                    e.startTime || '00:00:00'
-                                }`,
-                                startTime: null,
-                                price: 0,
-                                url: getEventImageUrl(e.id, posterObj?.url)
+                                ...genre,
+                                events: mappedEvents
                             };
-                        });
+                        } catch (error) {
+                            console.error(
+                                `Lỗi tải cho genre ${genre.id}:`,
+                                error
+                            );
+                            return { ...genre, events: [] };
+                        }
+                    })
+                );
 
-                    /**
-                     * Nếu có dữ liệu thực → lấy tối đa 4 sự kiện
-                     * Nếu không có → tạo mock để tránh UI trống
-                     */
-                    let finalEvents = [];
-
-                    if (realEventsInGenre.length > 0) {
-                        finalEvents = realEventsInGenre.slice(0, 4);
-                    } else {
-                        finalEvents = Array.from({ length: 4 }, (_, i) => ({
-                            id: `mock-${genre.id}-${i}`,
-                            title: `Sự kiện ${genre.name} tiêu biểu ${i + 1}`,
-                            date: '25/12/2026',
-                            price: i % 2 === 0 ? 250000 : 0,
-                            url: `https://picsum.photos/400/250?random=${
-                                index * 10 + i
-                            }`
-                        }));
-                    }
-
-                    return {
-                        ...genre,
-                        events: finalEvents
-                    };
-                });
-
-                setSections(dataWithEvents);
+                // Lưu toàn bộ danh sách, không lọc bỏ genre trống nữa
+                setSections(sectionsWithRealData);
             } catch (error) {
-                console.error('>>> [Home] Lỗi tải dữ liệu:', error);
+                console.error('>>> [Home] Lỗi tải dữ liệu tổng thể:', error);
             } finally {
                 setLoading(false);
             }
@@ -176,34 +121,24 @@ function Home() {
         loadHomeData();
     }, []);
 
-    /**
-     * Điều khiển scroll ngang của Trending Section
-     */
     const handleScroll = direction => {
         const { current } = trendingRef;
-
         if (current) {
             const scrollAmount = current.clientWidth * 0.8;
-
             const leftPos =
                 direction === 'left'
                     ? current.scrollLeft - scrollAmount
                     : current.scrollLeft + scrollAmount;
-
-            current.scrollTo({
-                left: leftPos,
-                behavior: 'smooth'
-            });
+            current.scrollTo({ left: leftPos, behavior: 'smooth' });
         }
     };
 
     return (
         <main className={cx('home')}>
-            {/* Thanh điều hướng chính */}
             <Nav />
 
             <div className={cx('wrapper')}>
-                {/* Section Banner hiển thị slider quảng cáo */}
+                {/* Banner Section */}
                 <section className={cx('bannerContainer')}>
                     <Swiper {...swiperConfig}>
                         {BANNER_DATA.map(banner => (
@@ -220,14 +155,13 @@ function Home() {
                     </Swiper>
                 </section>
 
-                {/* Section hiển thị sự kiện xu hướng */}
+                {/* Trending Section */}
                 <section className={cx('trendingSection')}>
                     <header className={cx('sectionHeader')}>
                         <h3 className={cx('sectionTitle')}>
                             Sự kiện đang xu hướng
                         </h3>
                     </header>
-
                     <div className={cx('trendingContent')}>
                         <button
                             className={cx('controlBtn', 'prev')}
@@ -235,7 +169,6 @@ function Home() {
                         >
                             ❮
                         </button>
-
                         <div
                             className={cx('eventGridManual')}
                             ref={trendingRef}
@@ -253,7 +186,6 @@ function Home() {
                                 </div>
                             ))}
                         </div>
-
                         <button
                             className={cx('controlBtn', 'next')}
                             onClick={() => handleScroll('right')}
@@ -263,7 +195,7 @@ function Home() {
                     </div>
                 </section>
 
-                {/* Section hiển thị sự kiện theo từng thể loại */}
+                {/* Dynamic Genre Sections */}
                 {loading ? (
                     <div
                         className={cx('loadingState')}
@@ -278,7 +210,6 @@ function Home() {
                 ) : (
                     sections.map(genre => {
                         const genreSlug = createSlug(genre.name);
-
                         return (
                             <section
                                 key={genre.id}
@@ -288,7 +219,6 @@ function Home() {
                                     <h3 className={cx('sectionTitle')}>
                                         {genre.name}
                                     </h3>
-
                                     <Link
                                         to={`/genre?id=${genre.id}&name=${genreSlug}`}
                                         className={cx('viewMore')}
@@ -298,16 +228,30 @@ function Home() {
                                     </Link>
                                 </header>
 
-                                <div className={cx('eventGridResponsive')}>
-                                    {genre.events.map(event => (
-                                        <div
-                                            key={event.id}
-                                            className={cx('gridItem')}
-                                        >
-                                            <EventCard data={event} />
-                                        </div>
-                                    ))}
-                                </div>
+                                {genre.events.length > 0 ? (
+                                    <div className={cx('eventGridResponsive')}>
+                                        {genre.events.map(event => (
+                                            <div
+                                                key={event.id}
+                                                className={cx('gridItem')}
+                                            >
+                                                <EventCard data={event} />
+                                            </div>
+                                        ))}
+                                    </div>
+                                ) : (
+                                    <div className={cx('emptyState')}>
+                                        <Empty
+                                            description={
+                                                <span style={{ color: '#aaa' }}>
+                                                    Chưa có sự kiện nào cho thể
+                                                    loại này
+                                                </span>
+                                            }
+                                            image={Empty.PRESENTED_IMAGE_SIMPLE}
+                                        />
+                                    </div>
+                                )}
                             </section>
                         );
                     })
