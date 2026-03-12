@@ -5,6 +5,7 @@
     padding: 40px 20px;
     font-family: $font-family;
     background: $secondary-color;
+
     .header {
         position: relative;
         text-align: center;
@@ -22,6 +23,7 @@
         .title {
             margin: 0;
             font-weight: $font-weight-bold;
+            font-size: $font-size-h3;
         }
     }
 }
@@ -35,10 +37,6 @@
     gap: 16px;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
     transition: transform 0.2s ease;
-
-    &:hover {
-        transform: translateY(-2px);
-    }
 
     .ticketInfo {
         display: flex;
@@ -65,7 +63,7 @@
             border: none;
             &:hover {
                 background: $primary-color !important;
-                color: white !important;
+                color: $white-color !important;
             }
         }
 
@@ -79,7 +77,6 @@
     }
 
     .infoBox {
-        grid-column: span 2;
         background: rgba($white-color, 0.05);
         padding: 12px;
         @include radius-common(8px);
@@ -103,7 +100,7 @@
 }
 
 .dottedDivider {
-    border-top: 2px dotted #3f3f46;
+    border-top: 2px dotted $third-color;
     margin: 32px 0;
 }
 
@@ -146,13 +143,16 @@
         height: 50px;
         @include radius-common(12px);
         font-weight: $font-weight-bold;
+        color: $white-color;
 
         &:disabled {
-            background: #3f3f46;
-            color: #71717a;
+            background: $third-color;
+            color: $text-color;
+            cursor: not-allowed;
         }
     }
 }
+
 .selectedQuantity {
     @include flex(flex-start, center, 10px);
     margin-top: 10px;
@@ -164,8 +164,8 @@
     }
 
     .ticketCountText {
-        font-size: 14px;
-        color: variables.$primary-color; /* Hoặc màu sắc bạn muốn */
+        font-size: $font-size-sm;
+        color: $primary-color;
     }
 }
 
