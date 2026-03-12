@@ -13,7 +13,8 @@ import {
 import {
     CalendarOutlined,
     FilterOutlined,
-    DownOutlined
+    DownOutlined,
+    CloseCircleOutlined
 } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import classNames from 'classnames/bind';
@@ -26,7 +27,6 @@ import { ticketApi } from '@apis/ticketApi';
 import { getEventImageUrl } from '@utils/imageHelper';
 
 const cx = classNames.bind(styles);
-
 const LOCATIONS = [
     'Toàn quốc',
     'Hồ Chí Minh',
@@ -45,11 +45,12 @@ function Genre() {
 
     const pageSize = 20;
 
+    // 1. Lấy filters trực tiếp từ URL (Source of Truth)
     const currentFilters = useMemo(
         () => ({
             genreId: searchParams.get('id') || '',
             genreName: searchParams.get('name') || '',
-            q: searchParams.get('q') || '',
+            q: searchParams.get('q') || '', // Keyword từ Header
             location: searchParams.get('location') || 'Toàn quốc',
             isFree: searchParams.get('isFree') === 'true',
             page: parseInt(searchParams.get('page') || '1', 10),
@@ -58,103 +59,70 @@ function Genre() {
         [searchParams]
     );
 
+    // State cho Modal filter
     const [tempFilters, setTempFilters] = useState({ ...currentFilters });
 
-    // --- LOGIC SẮP XẾP QUAN TRỌNG ---
-    const sortedEvents = useMemo(() => {
-        if (!events || events.length === 0) return [];
-
-        // 1. Chia mảng thành 2 nhóm: Chưa diễn ra và Đã diễn ra
-        const upcomingEvents = events.filter(e => !e.isPast);
-        const pastEvents = events.filter(e => e.isPast);
-
-        // 2. Sắp xếp nhóm Chưa diễn ra: Ngày gần hiện tại nhất lên đầu (Tăng dần)
-        upcomingEvents.sort((a, b) => {
-            const timeA = dayjs(a.fullStartTime).unix();
-            const timeB = dayjs(b.fullStartTime).unix();
-            return timeA - timeB;
-        });
-
-        // 3. Sắp xếp nhóm Đã diễn ra: Mới kết thúc gần đây lên đầu (Giảm dần)
-        pastEvents.sort((a, b) => {
-            const timeA = dayjs(a.fullStartTime).unix();
-            const timeB = dayjs(b.fullStartTime).unix();
-            return timeB - timeA;
-        });
-
-        // 4. Kết hợp: Sắp diễn ra trước, Đã qua sau
-        return [...upcomingEvents, ...pastEvents];
-    }, [events]);
-
-    useEffect(() => {
-        const loadGenres = async () => {
-            try {
-                const res = await genresApi.getAll();
-                setGenresList(
-                    res?.result || res?.data || (Array.isArray(res) ? res : [])
-                );
-            } catch (err) {
-                console.error('Lỗi tải thể loại', err);
-            }
+    /**
+     * Hàm cập nhật URL Params (Refactor cho DRY)
+     */
+    const updateURL = newParams => {
+        // Giữ lại q nếu không được truyền mới
+        const params = {
+            q: currentFilters.q,
+            ...newParams
         };
-        loadGenres();
-    }, []);
 
-    const updateQueryParams = (newFilters, newPage = 1) => {
-        const params = new URLSearchParams();
-        if (newFilters.q) params.set('q', newFilters.q);
+        const nextParams = new URLSearchParams();
 
-        if (newFilters.genreId) {
-            params.set('id', newFilters.genreId);
-            const genreObj = genresList.find(
-                g => String(g.id) === String(newFilters.genreId)
+        // Chỉ set các params có giá trị
+        if (params.q) nextParams.set('q', params.q);
+        if (params.genreId) {
+            nextParams.set('id', params.genreId);
+            const genre = genresList.find(
+                g => String(g.id) === String(params.genreId)
             );
-            const slugName = genreObj
-                ? genreObj.name.toLowerCase().replace(/\s+/g, '-')
-                : newFilters.genreName;
-            params.set('name', slugName);
+            if (genre)
+                nextParams.set(
+                    'name',
+                    genre.name.toLowerCase().replace(/\s+/g, '-')
+                );
         }
+        if (params.location && params.location !== 'Toàn quốc')
+            nextParams.set('location', params.location);
+        if (params.isFree) nextParams.set('isFree', 'true');
+        if (params.page > 1) nextParams.set('page', params.page.toString());
 
-        if (newFilters.location !== 'Toàn quốc')
-            params.set('location', newFilters.location);
-        if (newFilters.isFree) params.set('isFree', 'true');
-        if (newPage > 1) params.set('page', newPage.toString());
-
-        setSearchParams(params);
+        setSearchParams(nextParams);
     };
 
+    /**
+     * Fetch Events - Logic search được tích hợp vào filterString
+     */
     const fetchEvents = useCallback(async () => {
         setLoading(true);
         try {
             const now = dayjs();
-            let filterString = `isPublished:true`;
+            // Build filter string theo chuẩn RSQL hoặc syntax BE của bạn
+            let filters = [`isPublished:true`];
 
-            if (currentFilters.genreId) {
-                filterString += ` and genre.id:${currentFilters.genreId}`;
-            }
-
-            if (currentFilters.q) {
-                filterString += ` and name ~~ '%${currentFilters.q}%'`;
-            }
-
-            if (
-                currentFilters.location &&
-                currentFilters.location !== 'Toàn quốc'
-            ) {
-                filterString += ` and location ~~ '%${currentFilters.location}%'`;
-            }
+            if (currentFilters.genreId)
+                filters.push(`genre.id:${currentFilters.genreId}`);
+            if (currentFilters.q)
+                filters.push(`name ~~ '%${currentFilters.q}%'`);
+            if (currentFilters.location !== 'Toàn quốc')
+                filters.push(`location ~~ '%${currentFilters.location}%'`);
 
             const apiParams = {
                 page: currentFilters.page - 1,
                 size: pageSize,
-                filter: filterString
-                // Không sort ở API nữa vì ta sẽ tự sort ở FE theo logic phức tạp hơn
+                filter: filters.join(' and ')
             };
 
             const res = await eventApi.getAll(apiParams);
-            if (res?.meta) setTotalItems(res.meta.total);
-
             const eventsList = res?.result || res?.content || [];
+
+            // NOTE: Logic lấy ticket price này nên được BE trả về kèm trong API getAll
+            // để tối ưu performance (tránh N+1 requests).
             const mappedData = await Promise.all(
                 eventsList.map(async e => {
                     let standardPrice = 0;
@@ -164,14 +132,10 @@ function Genre() {
                         });
                         const tickets =
                             ticketRes?.result || ticketRes?.content || [];
-                        if (tickets.length > 0) {
+                        if (tickets.length > 0)
                             standardPrice = tickets[0].price;
-                        }
-                    } catch (ticketErr) {
-                        console.error(
-                            `Lỗi lấy giá vé cho event ${e.id}:`,
-                            ticketErr
-                        );
+                    } catch (err) {
+                        /* ignore */
                     }
 
                     const posterObj =
@@ -179,30 +143,20 @@ function Genre() {
                     const fullStartTime = e.startDate
                         ? `${e.startDate} ${e.startTime || '00:00:00'}`
                         : e.startTime;
-
-                    const startEvent = dayjs(fullStartTime);
                     const endEvent = dayjs(
                         e.endDate
                             ? `${e.endDate} ${e.endTime || '23:59:59'}`
                             : e.endTime
                     );
 
-                    // Xác định trạng thái Đã qua (Logic Data: false - true hoặc hết thời gian)
-                    const isPast =
-                        (!e.isPublished && e.isActive) || now.isAfter(endEvent);
-
                     return {
                         ...e,
                         title: e.name,
                         price: standardPrice,
-                        fullStartTime, // Lưu lại để dùng cho sort
-                        isAutoActive:
-                            e.isPublished &&
-                            now.isAfter(startEvent) &&
-                            now.isBefore(endEvent),
-                        isPast: isPast,
-                        date: startEvent.isValid()
-                            ? startEvent.format('DD/MM/YYYY')
+                        fullStartTime,
+                        isPast: now.isAfter(endEvent),
+                        date: dayjs(fullStartTime).isValid()
+                            ? dayjs(fullStartTime).format('DD/MM/YYYY')
                             : 'Sắp diễn ra',
                         url: getEventImageUrl(e.id, posterObj?.url)
                     };
@@ -210,17 +164,44 @@ function Genre() {
             );
 
             setEvents(mappedData);
-        } catch (e) {
-            console.error('Fetch Events Error:', e);
+            setTotalItems(res?.meta?.total || 0);
+        } catch (error) {
+            console.error('Search error:', error);
             setEvents([]);
         } finally {
             setLoading(false);
         }
     }, [currentFilters]);
 
+    // Sorting logic (Keep your logic)
+    const sortedEvents = useMemo(() => {
+        const upcoming = events
+            .filter(e => !e.isPast)
+            .sort(
+                (a, b) =>
+                    dayjs(a.fullStartTime).unix() -
+                    dayjs(b.fullStartTime).unix()
+            );
+        const past = events
+            .filter(e => e.isPast)
+            .sort(
+                (a, b) =>
+                    dayjs(b.fullStartTime).unix() -
+                    dayjs(a.fullStartTime).unix()
+            );
+        return [...upcoming, ...past];
+    }, [events]);
+
     useEffect(() => {
         fetchEvents();
     }, [fetchEvents]);
+
+    // Load Genres
+    useEffect(() => {
+        genresApi
+            .getAll()
+            .then(res => setGenresList(res?.result || res?.data || []));
+    }, []);
 
     return (
         <div className={cx('genrePage')}>
@@ -229,9 +210,16 @@ function Genre() {
                     <div className={cx('titleSection')}>
                         <span className={cx('neonText')}>
                             {currentFilters.q
-                                ? `Kết quả: "${currentFilters.q}"`
+                                ? `Kết quả cho: "${currentFilters.q}"`
                                 : 'Khám phá sự kiện'}
                         </span>
+                        {/* 2. Nút Xóa tìm kiếm - Tăng UX */}
+                        {currentFilters.q && (
+                            <CloseCircleOutlined
+                                className={cx('clearSearch')}
+                                onClick={() => updateURL({ q: '', page: 1 })}
+                            />
+                        )}
                     </div>
 
                     <div className={cx('controls')}>
@@ -255,18 +243,14 @@ function Genre() {
                                 className={cx('genreTag')}
                                 closable
                                 onClose={() =>
-                                    updateQueryParams(
-                                        { ...currentFilters, genreId: '' },
-                                        1
-                                    )
+                                    updateURL({ genreId: '', page: 1 })
                                 }
                             >
                                 {genresList.find(
                                     g =>
                                         String(g.id) ===
                                         String(currentFilters.genreId)
-                                )?.name ||
-                                    currentFilters.genreName.replace(/-/g, ' ')}
+                                )?.name || 'Thể loại'}
                             </Tag>
                         )}
                     </div>
@@ -290,33 +274,29 @@ function Genre() {
                             </div>
                         )}
 
-                        {sortedEvents.length > 0 && (
-                            <div className={cx('paginationContainer')}>
-                                <Pagination
-                                    current={currentFilters.page}
-                                    total={totalItems}
-                                    pageSize={pageSize}
-                                    onChange={p =>
-                                        updateQueryParams(currentFilters, p)
-                                    }
-                                    showSizeChanger={false}
-                                />
-                            </div>
-                        )}
+                        <div className={cx('paginationContainer')}>
+                            <Pagination
+                                current={currentFilters.page}
+                                total={totalItems}
+                                pageSize={pageSize}
+                                onChange={p => updateURL({ page: p })}
+                                showSizeChanger={false}
+                            />
+                        </div>
                     </>
                 )}
             </div>
 
-            {/* Modal Bộ lọc */}
+            {/* Modal Bộ lọc - Không thay đổi nhiều logic UI của bạn */}
             <Modal
                 title='Bộ lọc sự kiện'
                 open={isModalOpen}
                 onCancel={() => setIsModalOpen(false)}
                 footer={null}
                 centered
-                width={500}
             >
                 <div className={cx('modalBody')}>
+                    {/* Vị trí */}
                     <div className={cx('filterSection')}>
                         <h4>Vị trí</h4>
                         <Radio.Group
@@ -336,6 +316,7 @@ function Genre() {
                         </Radio.Group>
                     </div>
 
+                    {/* Miễn phí */}
                     <div className={cx('filterSection', 'flexBetween')}>
                         <h4>Sự kiện Miễn phí</h4>
                         <Switch
@@ -346,6 +327,7 @@ function Genre() {
                         />
                     </div>
 
+                    {/* Thể loại */}
                     <div className={cx('filterSection')}>
                         <h4>Thể loại</h4>
                         <div className={cx('chipGroup')}>
@@ -372,7 +354,6 @@ function Genre() {
 
                     <div className={cx('modalFooter')}>
                         <Button
-                            className={cx('btnReset')}
                             onClick={() =>
                                 setTempFilters({
                                     location: 'Toàn quốc',
@@ -385,9 +366,9 @@ function Genre() {
                             Thiết lập lại
                         </Button>
                         <Button
-                            className={cx('btnApply')}
+                            type='primary'
                             onClick={() => {
-                                updateQueryParams(tempFilters, 1);
+                                updateURL({ ...tempFilters, page: 1 });
                                 setIsModalOpen(false);
                             }}
                         >

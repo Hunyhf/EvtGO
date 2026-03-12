@@ -1,54 +1,58 @@
+// src/hooks/useSearch.js
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+
+const SEARCH_HISTORY_KEY = 'searchHistory';
+const MAX_HISTORY = 5;
 
 export const useSearch = () => {
     const [searchTerm, setSearchTerm] = useState('');
     const [searchHistory, setSearchHistory] = useState([]);
     const [showHistory, setShowHistory] = useState(false);
     const [isMobileSearchOpen, setIsMobileSearchOpen] = useState(false);
-
-    // Khởi tạo hàm chuyển hướng
     const navigate = useNavigate();
 
-    // Load lịch sử từ localStorage khi mount
+    // Load history từ storage
     useEffect(() => {
-        const history = JSON.parse(localStorage.getItem('searchHistory')) || [];
+        const history =
+            JSON.parse(localStorage.getItem(SEARCH_HISTORY_KEY)) || [];
         setSearchHistory(history);
     }, []);
 
-    // Hàm xử lý khi người dùng nhấn tìm kiếm
+    const saveToHistory = term => {
+        const trimmed = term.trim();
+        if (!trimmed) return;
+
+        const newHistory = [
+            trimmed,
+            ...searchHistory.filter(item => item !== trimmed)
+        ].slice(0, MAX_HISTORY);
+
+        setSearchHistory(newHistory);
+        localStorage.setItem(SEARCH_HISTORY_KEY, JSON.stringify(newHistory));
+    };
+
     const handleSearch = keyword => {
-        // Kiểm tra xem tham số truyền vào có phải là chuỗi không (tránh trường hợp nhận event click/keydown)
-        const term = typeof keyword === 'string' ? keyword : searchTerm;
-        const trimmedTerm = term.trim();
+        // Nếu keyword là chuỗi (từ history), dùng nó. Nếu không (từ event), dùng searchTerm
+        const finalTerm = typeof keyword === 'string' ? keyword : searchTerm;
+        const trimmed = finalTerm.trim();
 
-        // Chỉ lưu vào lịch sử nếu người dùng CÓ nhập nội dung
-        if (trimmedTerm) {
-            const newHistory = [
-                trimmedTerm,
-                ...searchHistory.filter(item => item !== trimmedTerm)
-            ].slice(0, 5);
+        saveToHistory(trimmed);
 
-            setSearchHistory(newHistory);
-            localStorage.setItem('searchHistory', JSON.stringify(newHistory));
-        }
+        // Chuyển hướng tới /genre kèm query parameter 'q'
+        // Đồng nhất với route path: 'genre' trong index.jsx
+        navigate(`/genre?q=${encodeURIComponent(trimmed)}`);
 
-        // Thực hiện điều hướng sang trang Category
-        // Dù trimmedTerm có rỗng ('') thì nó vẫn sẽ chuyển hướng sang /category?q=
-        navigate(`/category?q=${encodeURIComponent(trimmedTerm)}`);
-
-        // Cập nhật lại các state giao diện
-        setSearchTerm(term); // Vẫn giữ lại những gì đang hiển thị trên thanh input
+        setSearchTerm(trimmed);
         setShowHistory(false);
         setIsMobileSearchOpen(false);
     };
 
-    // Hàm xóa một mục trong lịch sử
     const removeHistoryItem = (e, itemToRemove) => {
         e.stopPropagation();
         const newHistory = searchHistory.filter(item => item !== itemToRemove);
         setSearchHistory(newHistory);
-        localStorage.setItem('searchHistory', JSON.stringify(newHistory));
+        localStorage.setItem(SEARCH_HISTORY_KEY, JSON.stringify(newHistory));
     };
 
     return {

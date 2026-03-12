@@ -1,4 +1,4 @@
-import { useState, useContext, useEffect, useRef } from 'react';
+import { useContext, useEffect, useRef } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import classNames from 'classnames/bind';
 import styles from './Header.module.scss';
@@ -13,13 +13,18 @@ import logo from '@images/logo.png';
 import { AuthContext } from '@contexts/AuthContext';
 import { callLogout } from '@apis/authApi';
 import { useSearch } from '@hooks/useSearch';
+import useModal from '@hooks/useModal';
 import { getAvatarUrl } from '@utils/imageHelper';
 
 const cx = classNames.bind(styles);
 
 function Header() {
-    // State điều khiển hiển thị modal đăng nhập
-    const [showAuthModal, setShowAuthModal] = useState(false);
+    // Sử dụng hook useModal để quản lý AuthModal
+    const {
+        isOpen: showAuthModal,
+        open: openAuthModal,
+        close: closeAuthModal
+    } = useModal(false);
 
     // Lấy đường dẫn hiện tại
     const { pathname } = useLocation();
@@ -66,8 +71,6 @@ function Header() {
 
     /**
      * Xử lý đăng xuất
-     * - Gọi API logout
-     * - Clear context
      */
     const handleLogout = async () => {
         try {
@@ -81,13 +84,11 @@ function Header() {
 
     /**
      * Xử lý các action yêu cầu đăng nhập
-     * - Nếu chưa login: mở AuthModal
-     * - Nếu đã login: cho phép điều hướng
      */
     const handleProtectedAction = (e, targetPath) => {
         if (!isAuthenticated) {
             e.preventDefault();
-            setShowAuthModal(true);
+            openAuthModal(); // Sử dụng hàm từ hook
         } else if (targetPath) {
             navigate(targetPath);
         }
@@ -98,14 +99,13 @@ function Header() {
             {/* ===== Header Desktop ===== */}
             <header className={cx('header')}>
                 <div className={cx('headerInner')}>
-                    {/* Logo + quay về trang chủ */}
                     <div className={cx('headerLogo')}>
                         <Link to='/'>
                             <img
                                 className={cx('logoImg', {
                                     hideMobile: !isHomePage
                                 })}
-                                src={logo} // Sử dụng biến logo đã import
+                                src={logo}
                                 alt='logo'
                             />
                             {!isHomePage && (
@@ -117,7 +117,7 @@ function Header() {
                     </div>
 
                     <div className={cx('headerRight')}>
-                        {/* ===== Search Bar (Desktop) ===== */}
+                        {/* ===== Search Bar ===== */}
                         <div className={cx('headerSearch')} ref={searchRef}>
                             <div
                                 className={cx('headerSearchIcon')}
@@ -141,13 +141,11 @@ function Header() {
                                 }
                             />
 
-                            {/* Dropdown lịch sử tìm kiếm */}
                             {showHistory && searchHistory.length > 0 && (
                                 <div className={cx('searchHistory')}>
                                     <div className={cx('searchHistoryTitle')}>
                                         Tìm kiếm gần đây
                                     </div>
-
                                     <ul className={cx('searchHistoryList')}>
                                         {searchHistory.map((item, index) => (
                                             <li
@@ -190,9 +188,8 @@ function Header() {
                             </button>
                         </div>
 
-                        {/* ===== Khu vực User / Guest ===== */}
+                        {/* ===== Actions ===== */}
                         <div className={cx('headerActions')}>
-                            {/* Vé của tôi (Desktop) */}
                             <Link
                                 to={isAuthenticated ? '/my-tickets' : '#'}
                                 className={cx('headerTickets')}
@@ -205,20 +202,15 @@ function Header() {
                             </Link>
 
                             {isAuthenticated ? (
-                                /**
-                                 * Dropdown tài khoản khi đã đăng nhập
-                                 */
                                 <div className={cx('headerUser')}>
                                     <img
                                         className={cx('userAvatar')}
                                         src={getAvatarUrl(user.id, user.avatar)}
                                         alt='avatar'
                                     />
-
                                     <span className={cx('textHide')}>
                                         Tài khoản
                                     </span>
-
                                     <div className={cx('userToggle')}>
                                         <DropDownIcon />
                                     </div>
@@ -233,7 +225,6 @@ function Header() {
                                             />
                                             Vé của tôi
                                         </Link>
-
                                         <Link
                                             to='/profile'
                                             className={cx('dropdownItem')}
@@ -246,7 +237,6 @@ function Header() {
                                             />
                                             Thông tin cá nhân
                                         </Link>
-
                                         <div
                                             className={cx('dropdownItem')}
                                             onClick={handleLogout}
@@ -262,12 +252,9 @@ function Header() {
                                     </div>
                                 </div>
                             ) : (
-                                /**
-                                 * Trạng thái Guest (chưa đăng nhập)
-                                 */
                                 <div
                                     className={cx('headerGuest')}
-                                    onClick={() => setShowAuthModal(true)}
+                                    onClick={openAuthModal} // Sử dụng hàm mở từ hook
                                 >
                                     <span>Đăng nhập</span>
                                     <span className={cx('textHide')}> | </span>
@@ -291,7 +278,6 @@ function Header() {
                         >
                             ←
                         </button>
-
                         <input
                             autoFocus
                             className={cx('mobileSearchInput')}
@@ -306,7 +292,6 @@ function Header() {
                         <div className={cx('searchHistoryTitle')}>
                             Tìm kiếm gần đây
                         </div>
-
                         {searchHistory.length > 0 ? (
                             <ul className={cx('searchHistoryList')}>
                                 {searchHistory.map((item, index) => (
@@ -373,10 +358,10 @@ function Header() {
                 </Link>
             </nav>
 
-            {/* Modal xác thực */}
+            {/* Modal xác thực sử dụng hook */}
             <AuthModal
                 isOpen={showAuthModal}
-                onClose={() => setShowAuthModal(false)}
+                onClose={closeAuthModal} // Truyền trực tiếp hàm close từ hook
             />
         </>
     );
