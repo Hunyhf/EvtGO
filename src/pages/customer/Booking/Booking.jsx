@@ -1,4 +1,3 @@
-// src/pages/customer/Booking/Booking.jsx
 import React, { useState, useEffect, useContext } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
@@ -24,9 +23,8 @@ import classNames from 'classnames/bind';
 import styles from './Booking.module.scss';
 import { eventApi } from '@apis/eventApi';
 import { ticketApi } from '@apis/ticketApi';
-import orderApi from '@apis/orderApi'; // Import orderApi
+import orderApi from '@apis/orderApi';
 import { AuthContext } from '@contexts/AuthContext';
-// Import icon vé từ assets
 import ticketIcon from '@icons/svgs/ticketIcon.svg';
 
 dayjs.locale('vi');
@@ -95,7 +93,6 @@ const Booking = () => {
         0
     );
 
-    // THAY ĐỔI LOGIC TẠI ĐÂY: Gọi API trước khi chuyển trang
     const handleCheckout = async () => {
         if (!isAuthenticated) {
             message.warning('Vui lòng đăng nhập để mua vé');

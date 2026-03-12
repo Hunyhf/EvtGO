@@ -1,4 +1,3 @@
-// src/pages/customer/Checkout/Checkout.jsx
 import React, { useState, useEffect, useContext } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import {
@@ -115,17 +114,13 @@ const Checkout = () => {
         try {
             setIsSubmitting(true);
 
-            // BỎ BƯỚC 1 (Không gọi createOrder nữa)
-
-            // BƯỚC 2: Gọi API thanh toán cho đơn hàng đã tạo ở trang Booking
             const paymentData = {
-                orderId: orderId // Sử dụng orderId lấy từ state
+                orderId: orderId
             };
 
             const payRes = await orderApi.payOrder(paymentData);
 
             if (payRes && payRes.orderStatus === 'PAID') {
-                // Hoặc check payRes.result?.orderStatus tùy response BE của bạn
                 message.success(
                     'Thanh toán thành công! Vé đã được lưu vào tài khoản của bạn.'
                 );

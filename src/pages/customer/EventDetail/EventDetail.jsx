@@ -1,4 +1,3 @@
-// src/pages/customer/EventDetail/EventDetail.jsx
 import React, { useState, useEffect, useContext } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {

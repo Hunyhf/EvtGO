@@ -69,14 +69,12 @@ function AdminEventManagement() {
                 (Array.isArray(res) ? res : []);
 
             const mappedData = rawEvents.map(event => {
-                // 1. Lấy Poster (Ưu tiên ảnh isCover/cover = true)
                 const posterObj =
                     event.images?.find(
                         img => img.isCover === true || img.cover === true
                     ) || event.images?.[0];
                 const posterUrl = getEventImageUrl(event.id, posterObj?.url);
 
-                // 2. Lấy Logo Ban tổ chức (Ưu tiên ảnh isCover/cover = false giống EventDetail)
                 const logoObj =
                     event.images?.find(
                         img => img.isCover === false || img.cover === false
@@ -120,7 +118,7 @@ function AdminEventManagement() {
                     isActive,
                     fullStartTime,
                     fullEndTime,
-                    // Hiển thị đơn vị tổ chức là người tạo sự kiện (createdBy)
+
                     organizerName: event.createdBy || 'N/A'
                 };
             });
@@ -186,7 +184,7 @@ function AdminEventManagement() {
             title: 'Sự kiện',
             dataIndex: 'name',
             key: 'name',
-            width: 400, // Tăng chiều rộng cột
+            width: 400,
             render: (text, record) => (
                 <div
                     style={{
@@ -199,8 +197,8 @@ function AdminEventManagement() {
                         src={record.posterUrl}
                         alt='cover'
                         style={{
-                            width: '140px', // Tăng kích thước ảnh (gốc: 80px)
-                            height: '90px', // Tăng kích thước ảnh (gốc: 50px)
+                            width: '140px',
+                            height: '90px',
                             objectFit: 'cover',
                             borderRadius: '6px'
                         }}
@@ -290,7 +288,7 @@ function AdminEventManagement() {
                 <Space size='middle'>
                     <Tooltip title='Xem chi tiết'>
                         <Button
-                            size='small' // Thu nhỏ nút (gốc: mặc định)
+                            size='small'
                             icon={<EyeOutlined />}
                             onClick={() => handleViewDetail(record)}
                         />
@@ -304,7 +302,7 @@ function AdminEventManagement() {
                             }
                         >
                             <Button
-                                size='small' // Thu nhỏ nút (gốc: mặc định)
+                                size='small'
                                 type={
                                     record.isPublished ? 'default' : 'primary'
                                 }

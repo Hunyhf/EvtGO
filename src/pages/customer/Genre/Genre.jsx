@@ -25,7 +25,7 @@ import { eventApi } from '@apis/eventApi';
 import { genresApi } from '@apis/genresApi';
 import { ticketApi } from '@apis/ticketApi';
 import { getEventImageUrl } from '@utils/imageHelper';
-import useModal from '@hooks/useModal'; // 1. Import hook useModal
+import useModal from '@hooks/useModal';
 
 const cx = classNames.bind(styles);
 const LOCATIONS = [

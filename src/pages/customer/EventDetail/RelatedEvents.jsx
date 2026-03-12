@@ -16,7 +16,7 @@ const { Title, Text } = Typography;
 const RelatedEvents = ({ genreId, currentEventId, genreName }) => {
     const navigate = useNavigate();
     const [relatedEvents, setRelatedEvents] = useState([]);
-    const [loading, setLoading] = useState(false); // Đổi thành false mặc định
+    const [loading, setLoading] = useState(false);
 
     useEffect(() => {
         const fetchRelated = async () => {
@@ -71,7 +71,6 @@ const RelatedEvents = ({ genreId, currentEventId, genreName }) => {
         fetchRelated();
     }, [genreId, currentEventId]);
 
-    // Luôn hiển thị tiêu đề, chỉ xoay ở phần danh sách
     return (
         <section className={cx('relatedSection')}>
             <div className={cx('header')}>
