@@ -9,7 +9,7 @@ import DropDownIcon from '@icons/svgs/dropdownIcon.svg?react';
 import UserIcon from '@icons/svgs/userIcon.svg?react';
 import LogOutIcon from '@icons/svgs/logOutIcon.svg?react';
 import HomeIcon from '@icons/svgs/homeIcon.svg?react';
-
+import logo from '@images/logo.png';
 import { AuthContext } from '@contexts/AuthContext';
 import { callLogout } from '@apis/authApi';
 import { useSearch } from '@hooks/useSearch';
@@ -17,14 +17,6 @@ import { getAvatarUrl } from '@utils/imageHelper';
 
 const cx = classNames.bind(styles);
 
-/**
- * Header chính của website
- * Bao gồm:
- * - Logo
- * - Thanh tìm kiếm (desktop + mobile)
- * - Khu vực user (login / dropdown)
- * - Bottom navigation cho mobile
- */
 function Header() {
     // State điều khiển hiển thị modal đăng nhập
     const [showAuthModal, setShowAuthModal] = useState(false);
@@ -39,13 +31,6 @@ function Header() {
     // Ref để xử lý click outside của search
     const searchRef = useRef(null);
 
-    /**
-     * Custom hook quản lý:
-     * - Từ khóa tìm kiếm
-     * - Lịch sử tìm kiếm
-     * - Hiển thị dropdown
-     * - Search mobile overlay
-     */
     const {
         searchTerm,
         setSearchTerm,
@@ -120,7 +105,7 @@ function Header() {
                                 className={cx('logoImg', {
                                     hideMobile: !isHomePage
                                 })}
-                                src='https://ticketbox.vn/_next/static/images/logo-for-tet.png'
+                                src={logo} // Sử dụng biến logo đã import
                                 alt='logo'
                             />
                             {!isHomePage && (
