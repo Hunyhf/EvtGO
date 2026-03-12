@@ -25,6 +25,7 @@ import { eventApi } from '@apis/eventApi';
 import { genresApi } from '@apis/genresApi';
 import { ticketApi } from '@apis/ticketApi';
 import { getEventImageUrl } from '@utils/imageHelper';
+import useModal from '@hooks/useModal'; // 1. Import hook useModal
 
 const cx = classNames.bind(styles);
 const LOCATIONS = [
@@ -40,17 +41,22 @@ function Genre() {
     const [genresList, setGenresList] = useState([]);
     const [events, setEvents] = useState([]);
     const [loading, setLoading] = useState(false);
-    const [isModalOpen, setIsModalOpen] = useState(false);
     const [totalItems, setTotalItems] = useState(0);
+
+    // 2. Sử dụng hook useModal để quản lý trạng thái modal bộ lọc
+    const {
+        isOpen: isModalOpen,
+        open: openModal,
+        close: closeModal
+    } = useModal(false);
 
     const pageSize = 20;
 
-    // 1. Lấy filters trực tiếp từ URL (Source of Truth)
     const currentFilters = useMemo(
         () => ({
             genreId: searchParams.get('id') || '',
             genreName: searchParams.get('name') || '',
-            q: searchParams.get('q') || '', // Keyword từ Header
+            q: searchParams.get('q') || '',
             location: searchParams.get('location') || 'Toàn quốc',
             isFree: searchParams.get('isFree') === 'true',
             page: parseInt(searchParams.get('page') || '1', 10),
@@ -59,14 +65,9 @@ function Genre() {
         [searchParams]
     );
 
-    // State cho Modal filter
     const [tempFilters, setTempFilters] = useState({ ...currentFilters });
 
-    /**
-     * Hàm cập nhật URL Params (Refactor cho DRY)
-     */
     const updateURL = newParams => {
-        // Giữ lại q nếu không được truyền mới
         const params = {
             q: currentFilters.q,
             ...newParams
@@ -74,7 +75,6 @@ function Genre() {
 
         const nextParams = new URLSearchParams();
 
-        // Chỉ set các params có giá trị
         if (params.q) nextParams.set('q', params.q);
         if (params.genreId) {
             nextParams.set('id', params.genreId);
@@ -95,14 +95,10 @@ function Genre() {
         setSearchParams(nextParams);
     };
 
-    /**
-     * Fetch Events - Logic search được tích hợp vào filterString
-     */
     const fetchEvents = useCallback(async () => {
         setLoading(true);
         try {
             const now = dayjs();
-            // Build filter string theo chuẩn RSQL hoặc syntax BE của bạn
             let filters = [`isPublished:true`];
 
             if (currentFilters.genreId)
@@ -121,8 +117,6 @@ function Genre() {
             const res = await eventApi.getAll(apiParams);
             const eventsList = res?.result || res?.content || [];
 
-            // NOTE: Logic lấy ticket price này nên được BE trả về kèm trong API getAll
-            // để tối ưu performance (tránh N+1 requests).
             const mappedData = await Promise.all(
                 eventsList.map(async e => {
                     let standardPrice = 0;
@@ -173,7 +167,6 @@ function Genre() {
         }
     }, [currentFilters]);
 
-    // Sorting logic (Keep your logic)
     const sortedEvents = useMemo(() => {
         const upcoming = events
             .filter(e => !e.isPast)
@@ -196,7 +189,6 @@ function Genre() {
         fetchEvents();
     }, [fetchEvents]);
 
-    // Load Genres
     useEffect(() => {
         genresApi
             .getAll()
@@ -213,7 +205,6 @@ function Genre() {
                                 ? `Kết quả cho: "${currentFilters.q}"`
                                 : 'Khám phá sự kiện'}
                         </span>
-                        {/* 2. Nút Xóa tìm kiếm - Tăng UX */}
                         {currentFilters.q && (
                             <CloseCircleOutlined
                                 className={cx('clearSearch')}
@@ -223,16 +214,11 @@ function Genre() {
                     </div>
 
                     <div className={cx('controls')}>
-                        <div className={cx('pill')}>
-                            <CalendarOutlined />{' '}
-                            <span>{currentFilters.date}</span>{' '}
-                            <DownOutlined style={{ fontSize: 10 }} />
-                        </div>
                         <div
                             className={cx('pill')}
                             onClick={() => {
                                 setTempFilters({ ...currentFilters });
-                                setIsModalOpen(true);
+                                openModal(); // Sử dụng hàm mở từ hook
                             }}
                         >
                             <FilterOutlined /> <span>Bộ lọc</span>
@@ -287,16 +273,14 @@ function Genre() {
                 )}
             </div>
 
-            {/* Modal Bộ lọc - Không thay đổi nhiều logic UI của bạn */}
             <Modal
                 title='Bộ lọc sự kiện'
-                open={isModalOpen}
-                onCancel={() => setIsModalOpen(false)}
+                open={isModalOpen} // Trạng thái từ hook
+                onCancel={closeModal} // Hàm đóng từ hook
                 footer={null}
                 centered
             >
                 <div className={cx('modalBody')}>
-                    {/* Vị trí */}
                     <div className={cx('filterSection')}>
                         <h4>Vị trí</h4>
                         <Radio.Group
@@ -316,7 +300,6 @@ function Genre() {
                         </Radio.Group>
                     </div>
 
-                    {/* Miễn phí */}
                     <div className={cx('filterSection', 'flexBetween')}>
                         <h4>Sự kiện Miễn phí</h4>
                         <Switch
@@ -327,7 +310,6 @@ function Genre() {
                         />
                     </div>
 
-                    {/* Thể loại */}
                     <div className={cx('filterSection')}>
                         <h4>Thể loại</h4>
                         <div className={cx('chipGroup')}>
@@ -369,7 +351,7 @@ function Genre() {
                             type='primary'
                             onClick={() => {
                                 updateURL({ ...tempFilters, page: 1 });
-                                setIsModalOpen(false);
+                                closeModal(); // Đóng modal sau khi áp dụng
                             }}
                         >
                             Áp dụng
