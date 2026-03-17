@@ -2,11 +2,10 @@ import { useState, useEffect, useContext } from 'react';
 import { NavLink } from 'react-router-dom';
 import classNames from 'classnames/bind';
 import styles from './Nav.module.scss';
-// Đảm bảo import đúng genresApi (Named import)
 import { genresApi } from '@apis/genresApi';
 import { AuthContext } from '@contexts/AuthContext';
 import Cookies from 'js-cookie';
-
+import { slugify } from '@utils/stringUtils';
 const cx = classNames.bind(styles);
 
 const DEFAULT_GENRES = [
@@ -17,23 +16,9 @@ const DEFAULT_GENRES = [
     { id: 5, name: 'Tham quan và Trải nghiệm' }
 ];
 
-const slugify = str => {
-    if (!str) return '';
-    return str
-        .normalize('NFD')
-        .replace(/[\u0300-\u036f]/g, '')
-        .replace(/đ/g, 'd')
-        .replace(/Đ/g, 'D')
-        .toLowerCase()
-        .trim()
-        .replace(/\s+/g, '-')
-        .replace(/[^\w-]+/g, '');
-};
-
 function Nav() {
     const [genres, setGenres] = useState(DEFAULT_GENRES);
 
-    // Thêm giá trị mặc định {} phòng trường hợp AuthContext bị undefined
     const { isAuthenticated, isLoading } = useContext(AuthContext) || {};
 
     useEffect(() => {
@@ -41,7 +26,6 @@ function Nav() {
             // Kiểm tra token
             const token = Cookies.get('access_token');
 
-            // Nếu không có token, dùng danh mục mặc định
             if (!token) {
                 setGenres(DEFAULT_GENRES);
                 return;
