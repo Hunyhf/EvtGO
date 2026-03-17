@@ -14,6 +14,7 @@ const cx = classNames.bind(styles);
 const { Title, Text } = Typography;
 
 const RelatedEvents = ({ genreId, currentEventId, genreName }) => {
+    console.log('Check Props:', { genreId, currentEventId });
     const navigate = useNavigate();
     const [relatedEvents, setRelatedEvents] = useState([]);
     const [loading, setLoading] = useState(false);
@@ -31,7 +32,7 @@ const RelatedEvents = ({ genreId, currentEventId, genreName }) => {
 
                 const rawData =
                     res?.result?.content || res?.data || res?.result || [];
-
+                console.log('Raw Related Events:', rawData);
                 const processedData = rawData
                     .map(event => {
                         const prices = event.tickets?.map(t => t.price) || [];
@@ -48,15 +49,7 @@ const RelatedEvents = ({ genreId, currentEventId, genreName }) => {
                         };
                     })
                     .filter(event => {
-                        const isNotSelf = event.id !== currentEventId;
-                        const eventStart = dayjs(
-                            `${event.startDate} ${event.startTime || '00:00:00'}`
-                        );
-                        const isNotPast = dayjs().isBefore(eventStart);
-                        const isVisible =
-                            (event.isPublished || event.published) &&
-                            (event.isActive || event.active);
-                        return isNotSelf && isNotPast && isVisible;
+                        return event.id !== currentEventId; // Chỉ lọc bỏ chính nó
                     })
                     .slice(0, 8);
 

@@ -8,11 +8,19 @@ const cx = classNames.bind(styles);
 
 const EventCard = ({ data }) => {
     /**
-     * Dữ liệu trả về từ DB là kiểu DateTime,
-     * nên ta chỉ cần parse trực tiếp startTime và endTime
+     * Dữ liệu từ DTO BE trả về đã tách riêng Date và Time (String).
+     * Cần ghép lại để dayjs hiểu được định dạng YYYY-MM-DD HH:mm:ss
      */
-    const fullStart = data.startTime ? dayjs(data.startTime) : null;
-    const fullEnd = data.endTime ? dayjs(data.endTime) : null;
+    // FIX TẠI ĐÂY: Ghép startDate và startTime
+    const startString = data.startDate
+        ? `${data.startDate} ${data.startTime || '00:00:00'}`
+        : null;
+    const endString = data.endDate
+        ? `${data.endDate} ${data.endTime || '23:59:59'}`
+        : null;
+
+    const fullStart = startString ? dayjs(startString) : null;
+    const fullEnd = endString ? dayjs(endString) : null;
 
     /**
      * Kiểm tra sự kiện đã kết thúc chưa
@@ -43,12 +51,11 @@ const EventCard = ({ data }) => {
 
     /**
      * Format ngày hiển thị theo DD/MM/YYYY HH:mm
-     * Hiển thị thêm giờ sẽ chuyên nghiệp hơn cho sự kiện
      */
     const displayDate =
         fullStart && fullStart.isValid()
             ? fullStart.format('DD/MM/YYYY HH:mm')
-            : data.date || 'Chưa rõ ngày';
+            : data.startDate || data.date || 'Chưa rõ ngày'; // Fallback về startDate nếu có
 
     return (
         <Link
