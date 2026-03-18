@@ -130,15 +130,6 @@ function Ticket() {
                                                 'https://placehold.co/400x600?text=No+Image';
                                         }}
                                     />
-                                    {/* Sử dụng cx để gộp class động dựa trên status */}
-                                    <span
-                                        className={cx(
-                                            'statusBadge',
-                                            item.status?.toLowerCase()
-                                        )}
-                                    >
-                                        {item.status}
-                                    </span>
                                 </div>
 
                                 <div className={cx('middleSection')}>

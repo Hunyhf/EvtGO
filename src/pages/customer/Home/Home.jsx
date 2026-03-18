@@ -1,4 +1,3 @@
-// src/pages/customer/Home/Home.jsx
 import { useRef, useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import classNames from 'classnames/bind';
@@ -18,7 +17,7 @@ import { genresApi } from '@apis/genresApi';
 import { eventApi } from '@apis/eventApi';
 import { BANNER_DATA, TRENDING_DATA } from './constants';
 import { getEventImageUrl } from '@utils/imageHelper';
-
+import { ticketApi } from '@apis/ticketApi';
 const cx = classNames.bind(styles);
 
 /**
@@ -63,64 +62,109 @@ function Home() {
         const loadHomeData = async () => {
             try {
                 setLoading(true);
+                const now = dayjs(); // Lấy thời điểm hiện tại để so sánh
 
-                // 1. Lấy tất cả danh sách thể loại
                 const genresRes = await genresApi.getAll();
                 const genres = Array.isArray(genresRes)
                     ? genresRes
                     : genresRes?.result || [];
 
-                // 2. Gọi API lấy sự kiện cho TẤT CẢ các thể loại
                 const sectionsWithRealData = await Promise.all(
                     genres.map(async genre => {
                         try {
                             const res = await eventApi.getAll({
                                 page: 0,
-                                size: 4,
+                                size: 10, // Tăng size một chút để có dữ liệu sort
                                 filter: `isPublished:true and genre.id:${genre.id}`
                             });
 
                             const eventsList =
                                 res?.result?.content || res?.result || [];
 
-                            const mappedEvents = eventsList.map(e => {
-                                const posterObj =
-                                    e.images?.find(img => img.isCover) ||
-                                    e.images?.[0];
-                                return {
-                                    ...e,
-                                    title: e.name,
-                                    price: e.minPrice || 0,
-                                    url: getEventImageUrl(e.id, posterObj?.url)
-                                };
+                            // 1. Map dữ liệu và lấy giá vé
+                            const mappedEvents = await Promise.all(
+                                eventsList.map(async e => {
+                                    let standardPrice = 0;
+                                    try {
+                                        const ticketRes =
+                                            await ticketApi.getAll({
+                                                filter: `event.id:${e.id} and ticketType:'STANDARD'`
+                                            });
+                                        const tickets =
+                                            ticketRes?.result ||
+                                            ticketRes?.content ||
+                                            [];
+                                        if (tickets.length > 0)
+                                            standardPrice = tickets[0].price;
+                                    } catch (err) {
+                                        console.error(err);
+                                    }
+
+                                    const posterObj =
+                                        e.images?.find(img => img.isCover) ||
+                                        e.images?.[0];
+
+                                    // Tạo mốc thời gian kết thúc để check quá khứ
+                                    const endEvent = dayjs(
+                                        e.endDate
+                                            ? `${e.endDate} ${e.endTime || '23:59:59'}`
+                                            : e.startDate
+                                    );
+                                    const startEvent = dayjs(
+                                        `${e.startDate} ${e.startTime || '00:00:00'}`
+                                    );
+
+                                    return {
+                                        ...e,
+                                        title: e.name,
+                                        price: standardPrice,
+                                        url: getEventImageUrl(
+                                            e.id,
+                                            posterObj?.url
+                                        ),
+                                        isPast: now.isAfter(endEvent), // Check nếu đã kết thúc
+                                        startMoment: startEvent
+                                    };
+                                })
+                            );
+
+                            // 2. Logic Sắp xếp theo yêu cầu của bạn
+                            const sortedEvents = mappedEvents.sort((a, b) => {
+                                // Nếu một cái đã qua, một cái chưa: Cái chưa qua lên trước
+                                if (a.isPast !== b.isPast) {
+                                    return a.isPast ? 1 : -1;
+                                }
+
+                                // Nếu cùng là tương lai: Sắp xếp gần nhất đứng trước (tăng dần)
+                                if (!a.isPast) {
+                                    return (
+                                        a.startMoment.unix() -
+                                        b.startMoment.unix()
+                                    );
+                                }
+
+                                // Nếu cùng là quá khứ: Sắp xếp mới kết thúc đứng trước (giảm dần)
+                                return (
+                                    b.startMoment.unix() - a.startMoment.unix()
+                                );
                             });
 
-                            return {
-                                ...genre,
-                                events: mappedEvents
-                            };
+                            return { ...genre, events: sortedEvents };
                         } catch (error) {
-                            console.error(
-                                `Lỗi tải cho genre ${genre.id}:`,
-                                error
-                            );
                             return { ...genre, events: [] };
                         }
                     })
                 );
 
-                // Lưu toàn bộ danh sách, không lọc bỏ genre trống nữa
                 setSections(sectionsWithRealData);
             } catch (error) {
-                console.error('>>> [Home] Lỗi tải dữ liệu tổng thể:', error);
+                console.error('>>> [Home] Lỗi tải dữ liệu:', error);
             } finally {
                 setLoading(false);
             }
         };
-
         loadHomeData();
     }, []);
-
     const handleScroll = direction => {
         const { current } = trendingRef;
         if (current) {
