@@ -1,3 +1,5 @@
+import { Navigation, Pagination, Autoplay } from 'swiper/modules';
+
 export const BANNER_DATA = [
     {
         id: 1,
@@ -19,3 +21,20 @@ export const TRENDING_DATA = Array.from({ length: 10 }).map((_, index) => ({
     title: `Sự kiện âm nhạc cực hot ${index + 1}`,
     date: '10/02/2026'
 }));
+
+/**
+ * Cấu hình chung cho Swiper Banner
+ */
+export const swiperConfig = {
+    modules: [Navigation, Pagination, Autoplay],
+    spaceBetween: 20,
+    slidesPerView: 1,
+    loop: true,
+    autoplay: { delay: 3500, disableOnInteraction: false },
+    navigation: true,
+    pagination: { clickable: true },
+    breakpoints: {
+        768: { slidesPerView: 2 },
+        1024: { slidesPerView: 2, spaceBetween: 30 }
+    }
+};
