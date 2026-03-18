@@ -1,22 +1,88 @@
-// src/components/Footer/Footer.module.scss
 @use '@styles/mixins';
-@use '@styles/variables';
+@use '@styles/variables' as v; // Alias để sử dụng biến dễ dàng
 
 .footerContainer {
-    // Mặc định dùng $third-color, nhưng cho phép ghi đè bằng biến --f-bg
-    background-color: var(--f-bg, $third-color);
-    color: var(--f-text, $text-color);
-    padding: 40px 0; // Thêm padding để thấy rõ Footer
+    background-color: var(--f-bg, v.$third-color);
+    color: var(--f-text, v.$text-color);
+    padding: 60px 0 40px;
     transition: all 0.3s ease;
+    font-family: v.$font-family;
 
     .content {
         max-width: 1200px;
         margin: 0 auto;
         padding: 0 20px;
-        text-align: center;
     }
 
-    @include mixins.mobile-width {
-        display: none;
+    .grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 40px;
+        text-align: left;
+    }
+
+    .column {
+        .title {
+            color: v.$white-color;
+            font-size: v.$font-size-md;
+            font-weight: v.$font-weight-bold;
+            margin-bottom: 15px;
+            text-transform: uppercase;
+
+            &.spacing {
+                margin-top: 25px;
+            }
+        }
+
+        .text {
+            font-size: v.$font-size-sm;
+            line-height: 1.6;
+            margin-bottom: 8px;
+        }
+
+        .highlight {
+            color: v.$primary-color;
+            font-size: v.$font-size-xl;
+            font-weight: v.$font-weight-bold;
+            margin: 5px 0;
+        }
+
+        .list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+
+            li {
+                margin-bottom: 10px;
+
+                a {
+                    color: v.$text-color;
+                    text-decoration: none;
+                    font-size: v.$font-size-sm;
+                    transition: color 0.2s;
+
+                    &:hover {
+                        color: v.$primary-color;
+                    }
+                }
+            }
+        }
+    }
+
+    // Responsive cho Tablet và Mobile
+    @media (max-width: v.$tablet-width) {
+        .grid {
+            grid-template-columns: repeat(2, 1fr);
+        }
+    }
+
+    @media (max-width: v.$mobile-width) {
+        .grid {
+            grid-template-columns: 1fr;
+            gap: 30px;
+        }
+
+        // Ghi đè thuộc tính cũ (display: none) nếu bạn muốn hiện footer trên mobile
+        display: block !important;
     }
 }

@@ -17,7 +17,8 @@ import {
     TeamOutlined,
     RightOutlined,
     GlobalOutlined,
-    ClockCircleOutlined
+    ClockCircleOutlined,
+    DownOutlined
 } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import 'dayjs/locale/vi';
@@ -53,7 +54,7 @@ const EventDetail = () => {
     const [tickets, setTickets] = useState([]);
     const [loading, setLoading] = useState(true);
     const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
-
+    const [isExpanded, setIsExpanded] = useState(false);
     useEffect(() => {
         document.body.classList.add('is-event-detail');
         window.scrollTo(0, 0);
@@ -258,11 +259,28 @@ const EventDetail = () => {
                                 bordered={false}
                             >
                                 <div
-                                    className={cx('description')}
-                                    dangerouslySetInnerHTML={{
-                                        __html: event.description
-                                    }}
-                                />
+                                    className={cx(
+                                        'descriptionWrapper',
+                                        isExpanded ? 'expanded' : 'collapsed'
+                                    )}
+                                >
+                                    <div
+                                        className={cx('description')}
+                                        dangerouslySetInnerHTML={{
+                                            __html: event.description
+                                        }}
+                                    />
+                                </div>
+                                <div
+                                    className={cx('showMoreBtn')}
+                                    onClick={() => setIsExpanded(!isExpanded)}
+                                >
+                                    <DownOutlined
+                                        className={cx('arrowIcon', {
+                                            rotated: isExpanded
+                                        })}
+                                    />
+                                </div>
                             </Card>
 
                             <Card
