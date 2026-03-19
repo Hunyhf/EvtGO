@@ -67,13 +67,14 @@
         grid-template-columns: repeat(4, 1fr);
         gap: 30px;
 
-        // Responsive grid sử dụng mixins
         @include tablet-width {
             grid-template-columns: repeat(2, 1fr);
         }
 
         @include mobile-width {
-            grid-template-columns: 1fr;
+            // SỬA TẠI ĐÂY: Thay đổi từ 1fr sang repeat(2, 1fr)
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px; // Thu nhỏ gap để phù hợp với màn hình điện thoại
         }
     }
 
@@ -170,7 +171,6 @@
     }
 }
 
-// Điều chỉnh thêm cho mobile
 @include mobile-width {
     .genrePage .toolbar {
         flex-direction: column;

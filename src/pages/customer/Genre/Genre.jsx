@@ -218,7 +218,7 @@ function Genre() {
                             className={cx('pill')}
                             onClick={() => {
                                 setTempFilters({ ...currentFilters });
-                                openModal(); // Sử dụng hàm mở từ hook
+                                openModal();
                             }}
                         >
                             <FilterOutlined /> <span>Bộ lọc</span>
