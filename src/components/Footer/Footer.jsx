@@ -16,7 +16,7 @@ function Footer() {
                         <p className={cx('highlight')}>1900.6408</p>
 
                         <h3 className={cx('title', 'spacing')}>Email</h3>
-                        <p className={cx('text')}>support@ticketbox.vn</p>
+                        <p className={cx('text')}>evtgo.support@gmail.com</p>
 
                         <h3 className={cx('title', 'spacing')}>
                             Văn phòng chính

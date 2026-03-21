@@ -152,9 +152,9 @@ function Ticket() {
                                             {item.ticket?.ticketType}
                                         </p>
                                         <p>
-                                            <strong>Ngày mua:</strong>{' '}
+                                            <strong>Thời gian mua:</strong>{' '}
                                             {dayjs(item.issuedAt).format(
-                                                'DD/MM/YYYY'
+                                                'HH:mm DD/MM/YYYY'
                                             )}
                                         </p>
                                         <p className={cx('price')}>

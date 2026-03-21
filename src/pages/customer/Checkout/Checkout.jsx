@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useContext } from 'react';
+import React, { useState, useEffect, useContext, useMemo } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import {
     Row,
@@ -19,6 +19,7 @@ import {
 import dayjs from 'dayjs';
 import 'dayjs/locale/vi';
 import classNames from 'classnames/bind';
+import emailjs from '@emailjs/browser'; // Import EmailJS
 
 import styles from './Checkout.module.scss';
 import { AuthContext } from '@contexts/AuthContext';
@@ -26,14 +27,10 @@ import orderApi from '@apis/orderApi';
 import ticketIcon from '@icons/svgs/ticketIcon.svg';
 
 dayjs.locale('vi');
-
 const cx = classNames.bind(styles);
 const { Title, Text } = Typography;
 
-const TICKET_LABELS = {
-    VIP: 'VÉ VIP',
-    STANDARD: 'VÉ TIÊU CHUẨN'
-};
+const TICKET_LABELS = { VIP: 'VÉ VIP', STANDARD: 'VÉ TIÊU CHUẨN' };
 
 const Checkout = () => {
     const navigate = useNavigate();
@@ -48,26 +45,37 @@ const Checkout = () => {
     const selectedTickets = state?.selectedTickets || [];
     const totalPrice = state?.totalPrice || 0;
     const orderId = state?.orderId;
-    const totalQuantity = selectedTickets.reduce(
-        (sum, item) => sum + item.quantity,
-        0
+
+    // [Tối ưu] Sử dụng useMemo cho các giá trị phái sinh
+    const totalQuantity = useMemo(
+        () => selectedTickets.reduce((sum, item) => sum + item.quantity, 0),
+        [selectedTickets]
     );
 
-    const startDateTime = event
-        ? dayjs(`${event.startDate} ${event.startTime || '00:00:00'}`)
-        : null;
-    const endDateTime =
-        event && event.endTime
-            ? dayjs(`${event.startDate} ${event.endTime}`)
-            : null;
+    const startDateTime = useMemo(
+        () =>
+            event
+                ? dayjs(`${event.startDate} ${event.startTime || '00:00:00'}`)
+                : null,
+        [event]
+    );
 
+    const endDateTime = useMemo(
+        () =>
+            event?.endTime
+                ? dayjs(`${event.startDate} ${event.endTime}`)
+                : null,
+        [event]
+    );
+
+    // [Fix Bug Logic Timer] Dùng orderId làm key thay vì event.id
     useEffect(() => {
-        if (!event?.id) return;
-        const storageKey = `checkout_expiration_${event.id}`;
+        if (!orderId) return;
+        const storageKey = `checkout_expiration_order_${orderId}`;
         let expirationTime = localStorage.getItem(storageKey);
 
         if (!expirationTime) {
-            expirationTime = Date.now() + 900 * 1000;
+            expirationTime = Date.now() + 900 * 1000; // 15 phút
             localStorage.setItem(storageKey, expirationTime);
         }
 
@@ -89,44 +97,76 @@ const Checkout = () => {
         }, 1000);
 
         return () => clearInterval(timer);
-    }, [event?.id]);
+    }, [orderId]);
 
     const handleBack = () => {
-        if (event?.id) {
-            localStorage.removeItem(`checkout_expiration_${event.id}`);
-        }
+        if (orderId)
+            localStorage.removeItem(`checkout_expiration_order_${orderId}`);
         navigate(-1);
     };
 
+    // Hàm gửi email qua EmailJS
+    const sendConfirmationEmail = async () => {
+        const ticketTypesStr = selectedTickets
+            .map(
+                t =>
+                    `${t.quantity}x ${TICKET_LABELS[t.ticketType] || t.ticketType}`
+            )
+            .join(', ');
+
+        const templateParams = {
+            customer_name: user?.name || 'Khách hàng',
+            event_name: event.name,
+            order_id: orderId,
+            quantity: totalQuantity,
+            ticket_type: ticketTypesStr,
+            total_price: totalPrice.toLocaleString('vi-VN') + ' đ',
+            time: `${startDateTime.format('HH:mm')} ngày ${startDateTime.format('DD/MM/YYYY')}`,
+            location: event.location,
+            to_email: user?.email,
+            // Đưa link để user bấm vào trang của bạn xem chi tiết/QR
+            ticket_link: `${window.location.origin}/my-tickets`
+        };
+
+        try {
+            // Thay bằng ID thực tế của bạn từ tài khoản EmailJS
+            await emailjs.send(
+                'service_9oozl9c', // Thay YOUR_SERVICE_ID
+                'template_agrx28n', // Thay YOUR_TEMPLATE_ID
+                templateParams,
+                'fvefLbNeEdGweDTg5' // Thay YOUR_PUBLIC_KEY
+            );
+            console.log('Email sent successfully!');
+        } catch (error) {
+            // Không throw error để không chặn luồng chạy của UI
+            console.error('Failed to send confirmation email', error);
+        }
+    };
+
     const handleConfirmOrder = async () => {
-        if (!agreed) {
-            message.warning(
+        if (!agreed)
+            return message.warning(
                 'Vui lòng đồng ý với điều khoản trước khi thanh toán'
             );
-            return;
-        }
-
-        if (!orderId) {
-            message.error('Không tìm thấy mã đơn hàng. Vui lòng đặt vé lại!');
-            return;
-        }
+        if (!orderId)
+            return message.error(
+                'Không tìm thấy mã đơn hàng. Vui lòng đặt vé lại!'
+            );
 
         try {
             setIsSubmitting(true);
-
-            const paymentData = {
-                orderId: orderId
-            };
-
-            const payRes = await orderApi.payOrder(paymentData);
+            const payRes = await orderApi.payOrder({ orderId });
 
             if (payRes && payRes.orderStatus === 'PAID') {
                 message.success(
                     'Thanh toán thành công! Vé đã được lưu vào tài khoản của bạn.'
                 );
+                localStorage.removeItem(`checkout_expiration_order_${orderId}`);
 
-                localStorage.removeItem(`checkout_expiration_${event.id}`);
+                // 1. Gọi hàm gửi email trong background (Không dùng await để UI mượt mà)
+                sendConfirmationEmail();
 
+                // 2. Chuyển trang
                 setTimeout(() => {
                     navigate('/my-tickets', {
                         state: { activeTab: 'tickets' }
@@ -135,12 +175,11 @@ const Checkout = () => {
             }
         } catch (error) {
             console.error('Lỗi quy trình thanh toán:', error);
-            const errorMsg =
+            message.error(
                 error.response?.data?.message ||
-                'Có lỗi xảy ra trong quá trình xử lý đơn hàng';
-            message.error(errorMsg);
-        } finally {
-            setIsSubmitting(false);
+                    'Có lỗi xảy ra trong quá trình xử lý đơn hàng'
+            );
+            setIsSubmitting(false); // Chỉ tắt loading khi lỗi, thành công thì giữ nguyên để chờ navigate
         }
     };
 
@@ -161,7 +200,6 @@ const Checkout = () => {
             </div>
         );
     }
-
     return (
         <div className={cx('checkoutPage')}>
             <div className={cx('eventBanner')}>

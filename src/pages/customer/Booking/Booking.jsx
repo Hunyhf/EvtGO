@@ -107,7 +107,8 @@ const Booking = () => {
                 .map(t => ({
                     ticketId: t.id,
                     quantity: quantities[t.id],
-                    price: t.price
+                    price: t.price,
+                    ticketType: t.ticketType
                 }));
 
             // Chuẩn bị dữ liệu gửi lên BE (Dùng 'items' để tránh lỗi 400 như trước)
