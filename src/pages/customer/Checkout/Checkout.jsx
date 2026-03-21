@@ -19,7 +19,7 @@ import {
 import dayjs from 'dayjs';
 import 'dayjs/locale/vi';
 import classNames from 'classnames/bind';
-import emailjs from '@emailjs/browser'; // Import EmailJS
+import emailjs from '@emailjs/browser';
 
 import styles from './Checkout.module.scss';
 import { AuthContext } from '@contexts/AuthContext';
@@ -46,7 +46,6 @@ const Checkout = () => {
     const totalPrice = state?.totalPrice || 0;
     const orderId = state?.orderId;
 
-    // [Tối ưu] Sử dụng useMemo cho các giá trị phái sinh
     const totalQuantity = useMemo(
         () => selectedTickets.reduce((sum, item) => sum + item.quantity, 0),
         [selectedTickets]
@@ -129,12 +128,12 @@ const Checkout = () => {
         };
 
         try {
-            // Thay bằng ID thực tế của bạn từ tài khoản EmailJS
+            // ID  từ tài khoản EmailJS
             await emailjs.send(
-                'service_9oozl9c', // Thay YOUR_SERVICE_ID
-                'template_agrx28n', // Thay YOUR_TEMPLATE_ID
+                'service_9oozl9c', // SERVICE_ID
+                'template_agrx28n', // TEMPLATE_ID
                 templateParams,
-                'fvefLbNeEdGweDTg5' // Thay YOUR_PUBLIC_KEY
+                'fvefLbNeEdGweDTg5' // PUBLIC_KEY
             );
             console.log('Email sent successfully!');
         } catch (error) {
