@@ -39,18 +39,19 @@ const LOCATIONS = [
 function Genre() {
     const [searchParams, setSearchParams] = useSearchParams();
     const [genresList, setGenresList] = useState([]);
-    const [events, setEvents] = useState([]);
-    const [loading, setLoading] = useState(false);
-    const [totalItems, setTotalItems] = useState(0);
 
-    // 2. Sử dụng hook useModal để quản lý trạng thái modal bộ lọc
+    // Lưu trữ TOÀN BỘ sự kiện sau khi fetch
+    const [allEvents, setAllEvents] = useState([]);
+    const [loading, setLoading] = useState(false);
+
     const {
         isOpen: isModalOpen,
         open: openModal,
         close: closeModal
     } = useModal(false);
 
-    const pageSize = 10;
+    // Cập nhật pageSize thành 12 theo yêu cầu
+    const pageSize = 12;
 
     const currentFilters = useMemo(
         () => ({
@@ -69,7 +70,7 @@ function Genre() {
 
     const updateURL = newParams => {
         const params = {
-            q: currentFilters.q,
+            ...currentFilters,
             ...newParams
         };
 
@@ -108,9 +109,10 @@ function Genre() {
             if (currentFilters.location !== 'Toàn quốc')
                 filters.push(`location ~~ '%${currentFilters.location}%'`);
 
+            // Thay đổi: Fetch số lượng lớn (VD: 1000) để lấy toàn bộ dữ liệu khớp bộ lọc
+            // Nếu BE không giới hạn thì có thể bỏ size đi, nhưng đặt size lớn để an toàn.
             const apiParams = {
-                page: currentFilters.page - 1,
-                size: pageSize,
+                size: 1000,
                 filter: filters.join(' and ')
             };
 
@@ -157,33 +159,31 @@ function Genre() {
                 })
             );
 
-            setEvents(mappedData);
-            setTotalItems(res?.meta?.total || 0);
+            // Sắp xếp toàn bộ dữ liệu theo logic yêu cầu
+            const sortedData = mappedData.sort((a, b) => {
+                const timeA = dayjs(a.fullStartTime).unix();
+                const timeB = dayjs(b.fullStartTime).unix();
+
+                if (!a.isPast && !b.isPast) {
+                    // Cả 2 chưa diễn ra: gần nhất xếp trước (tăng dần)
+                    return timeA - timeB;
+                } else if (a.isPast && b.isPast) {
+                    // Cả 2 đã diễn ra: kiện gần hiện tại nhất xếp trước (giảm dần)
+                    return timeB - timeA;
+                } else {
+                    // 1 cái chưa diễn ra, 1 cái đã diễn ra: cái chưa diễn ra lên trước
+                    return a.isPast ? 1 : -1;
+                }
+            });
+
+            setAllEvents(sortedData);
         } catch (error) {
             console.error('Search error:', error);
-            setEvents([]);
+            setAllEvents([]);
         } finally {
             setLoading(false);
         }
-    }, [currentFilters]);
-
-    const sortedEvents = useMemo(() => {
-        const upcoming = events
-            .filter(e => !e.isPast)
-            .sort(
-                (a, b) =>
-                    dayjs(a.fullStartTime).unix() -
-                    dayjs(b.fullStartTime).unix()
-            );
-        const past = events
-            .filter(e => e.isPast)
-            .sort(
-                (a, b) =>
-                    dayjs(b.fullStartTime).unix() -
-                    dayjs(a.fullStartTime).unix()
-            );
-        return [...upcoming, ...past];
-    }, [events]);
+    }, [currentFilters.genreId, currentFilters.q, currentFilters.location]); // Loại bỏ page để không fetch lại API khi chuyển trang
 
     useEffect(() => {
         fetchEvents();
@@ -194,6 +194,13 @@ function Genre() {
             .getAll()
             .then(res => setGenresList(res?.result || res?.data || []));
     }, []);
+
+    // Logic tính toán hiển thị 12 item cho trang hiện tại
+    const paginatedEvents = useMemo(() => {
+        const startIndex = (currentFilters.page - 1) * pageSize;
+        const endIndex = startIndex + pageSize;
+        return allEvents.slice(startIndex, endIndex);
+    }, [allEvents, currentFilters.page]);
 
     return (
         <div className={cx('genrePage')}>
@@ -248,9 +255,9 @@ function Genre() {
                     </div>
                 ) : (
                     <>
-                        {sortedEvents.length > 0 ? (
+                        {paginatedEvents.length > 0 ? (
                             <div className={cx('eventsGrid')}>
-                                {sortedEvents.map(event => (
+                                {paginatedEvents.map(event => (
                                     <EventCard key={event.id} data={event} />
                                 ))}
                             </div>
@@ -260,23 +267,25 @@ function Genre() {
                             </div>
                         )}
 
-                        <div className={cx('paginationContainer')}>
-                            <Pagination
-                                current={currentFilters.page}
-                                total={totalItems}
-                                pageSize={pageSize}
-                                onChange={p => updateURL({ page: p })}
-                                showSizeChanger={false}
-                            />
-                        </div>
+                        {allEvents.length > 0 && (
+                            <div className={cx('paginationContainer')}>
+                                <Pagination
+                                    current={currentFilters.page}
+                                    total={allEvents.length}
+                                    pageSize={pageSize}
+                                    onChange={p => updateURL({ page: p })}
+                                    showSizeChanger={false}
+                                />
+                            </div>
+                        )}
                     </>
                 )}
             </div>
 
             <Modal
                 title='Bộ lọc sự kiện'
-                open={isModalOpen} // Trạng thái từ hook
-                onCancel={closeModal} // Hàm đóng từ hook
+                open={isModalOpen}
+                onCancel={closeModal}
                 footer={null}
                 centered
             >
@@ -351,7 +360,7 @@ function Genre() {
                             type='primary'
                             onClick={() => {
                                 updateURL({ ...tempFilters, page: 1 });
-                                closeModal(); // Đóng modal sau khi áp dụng
+                                closeModal();
                             }}
                         >
                             Áp dụng
