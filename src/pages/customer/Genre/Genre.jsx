@@ -50,7 +50,7 @@ function Genre() {
         close: closeModal
     } = useModal(false);
 
-    const pageSize = 20;
+    const pageSize = 10;
 
     const currentFilters = useMemo(
         () => ({

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useContext } from 'react';
+import React, { useState, useEffect, useContext, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
     Row,
@@ -55,6 +55,10 @@ const EventDetail = () => {
     const [loading, setLoading] = useState(true);
     const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
     const [isExpanded, setIsExpanded] = useState(false);
+    const [isOverflowing, setIsOverflowing] = useState(false); // Trạng thái kiểm tra nội dung có dài hay không
+
+    const descriptionRef = useRef(null); // Ref để đo chiều cao nội dung
+
     useEffect(() => {
         document.body.classList.add('is-event-detail');
         window.scrollTo(0, 0);
@@ -62,6 +66,19 @@ const EventDetail = () => {
             document.body.classList.remove('is-event-detail');
         };
     }, [id]);
+
+    // Logic kiểm tra độ dài nội dung giới thiệu
+    useEffect(() => {
+        if (!loading && event?.description && descriptionRef.current) {
+            const element = descriptionRef.current;
+            // Ngưỡng 400px khớp với max-height trong CSS
+            if (element.scrollHeight > 400) {
+                setIsOverflowing(true);
+            } else {
+                setIsOverflowing(false);
+            }
+        }
+    }, [event?.description, loading]);
 
     const handleGoToBooking = () => {
         if (!isAuthenticated) {
@@ -212,7 +229,6 @@ const EventDetail = () => {
                                     </Title>
                                 </div>
 
-                                {/* Nút chính Hero */}
                                 <BookingButton
                                     isPast={isPast}
                                     isUpcoming={isUpcoming}
@@ -259,9 +275,14 @@ const EventDetail = () => {
                                 bordered={false}
                             >
                                 <div
+                                    ref={descriptionRef} // Gán ref tại đây
                                     className={cx(
                                         'descriptionWrapper',
-                                        isExpanded ? 'expanded' : 'collapsed'
+                                        // Chỉ thêm class khi nội dung bị tràn
+                                        isOverflowing &&
+                                            (isExpanded
+                                                ? 'expanded'
+                                                : 'collapsed')
                                     )}
                                 >
                                     <div
@@ -271,16 +292,27 @@ const EventDetail = () => {
                                         }}
                                     />
                                 </div>
-                                <div
-                                    className={cx('showMoreBtn')}
-                                    onClick={() => setIsExpanded(!isExpanded)}
-                                >
-                                    <DownOutlined
-                                        className={cx('arrowIcon', {
-                                            rotated: isExpanded
-                                        })}
-                                    />
-                                </div>
+
+                                {/* Nút hiển thị có điều kiện */}
+                                {isOverflowing && (
+                                    <div
+                                        className={cx('showMoreBtn')}
+                                        onClick={() =>
+                                            setIsExpanded(!isExpanded)
+                                        }
+                                    >
+                                        <span>
+                                            {isExpanded
+                                                ? 'Thu gọn'
+                                                : 'Xem thêm'}
+                                        </span>
+                                        <DownOutlined
+                                            className={cx('arrowIcon', {
+                                                rotated: isExpanded
+                                            })}
+                                        />
+                                    </div>
+                                )}
                             </Card>
 
                             <Card
@@ -359,7 +391,6 @@ const EventDetail = () => {
                                                                 )}{' '}
                                                                 đ
                                                             </Text>
-                                                            {/* Nút cho từng hạng vé cụ thể */}
                                                             <BookingButton
                                                                 isPast={isPast}
                                                                 isUpcoming={

@@ -8,10 +8,12 @@ import classNames from 'classnames/bind';
 import styles from './RelatedEvents.module.scss';
 import EventCard from '@components/EventCard/EventCard';
 import { eventApi } from '@apis/eventApi';
+import { ticketApi } from '@apis/ticketApi'; // Đã import ticketApi
 import { getEventImageUrl } from '@utils/imageHelper';
 import { slugify } from '@utils/stringUtils';
+
 const cx = classNames.bind(styles);
-const { Title, Text } = Typography;
+const { Title } = Typography;
 
 const RelatedEvents = ({ genreId, currentEventId, genreName }) => {
     const navigate = useNavigate();
@@ -25,7 +27,7 @@ const RelatedEvents = ({ genreId, currentEventId, genreName }) => {
 
             try {
                 setLoading(true);
-                // Tối ưu: Chỉ lấy đủ số lượng cần thiết (8 cái + 1 dự phòng nếu trùng id hiện tại)
+                // 1. Lấy danh sách sự kiện liên quan
                 const res = await eventApi.getAll({
                     filter: `genre.id:${genreId} and isPublished:true`,
                     size: 9
@@ -35,25 +37,46 @@ const RelatedEvents = ({ genreId, currentEventId, genreName }) => {
 
                 const rawData =
                     res?.result?.content || res?.data || res?.result || [];
-                const processedData = rawData
+                const filteredData = rawData
                     .filter(event => event.id !== currentEventId)
-                    .slice(0, 8)
-                    .map(event => {
-                        const prices = event.tickets?.map(t => t.price) || [];
-                        const lowestPrice =
-                            prices.length > 0 ? Math.min(...prices) : 0;
+                    .slice(0, 8);
+
+                // 2. Fetch giá vé cho từng sự kiện (giống logic Genre.jsx)
+                const processedData = await Promise.all(
+                    filteredData.map(async event => {
+                        let price = 0;
+                        try {
+                            // Gọi ticketApi để lấy vé STANDARD
+                            const ticketRes = await ticketApi.getAll({
+                                filter: `event.id:${event.id} and ticketType:'STANDARD'`
+                            });
+                            const tickets =
+                                ticketRes?.result || ticketRes?.content || [];
+                            if (tickets.length > 0) {
+                                price = tickets[0].price;
+                            }
+                        } catch (err) {
+                            console.error(
+                                `Lỗi lấy giá vé cho sự kiện ${event.id}:`,
+                                err
+                            );
+                        }
+
                         const posterObj =
                             event.images?.find(img => img.isCover) ||
                             event.images?.[0];
 
                         return {
                             ...event,
-                            price: lowestPrice,
+                            price: price, // Gán giá lấy được từ API ticket
                             poster: getEventImageUrl(event.id, posterObj?.url)
                         };
-                    });
+                    })
+                );
 
-                setRelatedEvents(processedData);
+                if (isMounted) {
+                    setRelatedEvents(processedData);
+                }
             } catch (error) {
                 console.error('Lỗi tải sự kiện liên quan:', error);
             } finally {
@@ -102,7 +125,7 @@ const RelatedEvents = ({ genreId, currentEventId, genreName }) => {
                             size='large'
                             icon={<RightOutlined />}
                             iconPosition='right'
-                            onClick={handleSeeMore} // Sử dụng hàm handle mới
+                            onClick={handleSeeMore}
                         >
                             Xem thêm sự kiện {genreName}
                         </Button>
