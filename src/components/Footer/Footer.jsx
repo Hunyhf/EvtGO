@@ -22,8 +22,7 @@ function Footer() {
                             Văn phòng chính
                         </h3>
                         <p className={cx('text')}>
-                            Tầng 12, Tòa nhà Viettel, 285 Cách Mạng Tháng Tám,
-                            Phường Hòa Hưng, TP. Hồ Chí Minh
+                            613 Âu Cơ, Phú Trung, Tân Phú, Hồ Chí Minh
                         </p>
                     </div>
 

@@ -59,7 +59,7 @@ function Nav() {
                 {genres.map(item => (
                     <li key={item.id} className={cx('navItem')}>
                         <NavLink
-                            to={`/genre?id=${item.id}&name=${slugify(item.name)}`}
+                            to={`/genre/${item.slug || slugify(item.name)}`}
                             className={({ isActive }) =>
                                 cx('navLink', { active: isActive })
                             }

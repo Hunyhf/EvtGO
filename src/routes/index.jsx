@@ -64,6 +64,7 @@ export const routes = createBrowserRouter([
                 element: <CustomerLayout />,
                 children: [
                     { index: true, element: <Home /> },
+                    { path: 'genre/:slug', element: <Genre /> },
                     { path: 'genre', element: <Genre /> },
                     { path: 'event/:id', element: <EventDetail /> },
                     {

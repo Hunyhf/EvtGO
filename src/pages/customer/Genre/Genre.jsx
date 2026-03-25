@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, useParams, useNavigate } from 'react-router-dom';
 import {
     Modal,
     Radio,
@@ -20,6 +20,7 @@ import { eventApi } from '@apis/eventApi';
 import { genresApi } from '@apis/genresApi';
 import { ticketApi } from '@apis/ticketApi';
 import { getEventImageUrl } from '@utils/imageHelper';
+import { slugify } from '@utils/stringUtils'; // Quan trọng: Thêm slugify để so khớp
 import useModal from '@hooks/useModal';
 
 const cx = classNames.bind(styles);
@@ -32,10 +33,11 @@ const LOCATIONS = [
 ];
 
 function Genre() {
+    const { slug } = useParams(); // Lấy slug từ URL (ví dụ: /genre/nhac-song)
+    const navigate = useNavigate();
     const [searchParams, setSearchParams] = useSearchParams();
     const [genresList, setGenresList] = useState([]);
 
-    // Lưu trữ TOÀN BỘ sự kiện sau khi fetch
     const [allEvents, setAllEvents] = useState([]);
     const [loading, setLoading] = useState(false);
 
@@ -47,41 +49,34 @@ function Genre() {
 
     const pageSize = 12;
 
+    // 1. Tìm thông tin thể loại hiện tại dựa trên slug từ danh sách genresList
+    const currentGenre = useMemo(() => {
+        if (!slug || genresList.length === 0) return null;
+        // So khớp dựa trên slug có sẵn hoặc tạo slug tạm thời từ name để so sánh
+        return genresList.find(g => (g.slug || slugify(g.name)) === slug);
+    }, [slug, genresList]);
+
+    // 2. Cấu hình filters lấy ID từ currentGenre tìm được
     const currentFilters = useMemo(
         () => ({
-            genreId: searchParams.get('id') || '',
-            genreName: searchParams.get('name') || '',
+            genreId: currentGenre?.id || '',
             q: searchParams.get('q') || '',
             location: searchParams.get('location') || 'Toàn quốc',
             isFree: searchParams.get('isFree') === 'true',
             page: parseInt(searchParams.get('page') || '1', 10),
             date: 'Tất cả các ngày'
         }),
-        [searchParams]
+        [currentGenre, searchParams]
     );
 
     const [tempFilters, setTempFilters] = useState({ ...currentFilters });
 
+    // Cập nhật URL cho các filter khác (q, location, isFree, page)
     const updateURL = newParams => {
-        const params = {
-            ...currentFilters,
-            ...newParams
-        };
-
+        const params = { ...currentFilters, ...newParams };
         const nextParams = new URLSearchParams();
 
         if (params.q) nextParams.set('q', params.q);
-        if (params.genreId) {
-            nextParams.set('id', params.genreId);
-            const genre = genresList.find(
-                g => String(g.id) === String(params.genreId)
-            );
-            if (genre)
-                nextParams.set(
-                    'name',
-                    genre.name.toLowerCase().replace(/\s+/g, '-')
-                );
-        }
         if (params.location && params.location !== 'Toàn quốc')
             nextParams.set('location', params.location);
         if (params.isFree) nextParams.set('isFree', 'true');
@@ -90,7 +85,18 @@ function Genre() {
         setSearchParams(nextParams);
     };
 
+    // 3. Hàm điều hướng khi thay đổi thể loại trong Modal
+    const handleGenreChange = genre => {
+        const newSlug = genre.slug || slugify(genre.name);
+        const search = searchParams.toString();
+        // Chuyển sang URL mới với slug của thể loại đã chọn
+        navigate(`/genre/${newSlug}${search ? `?${search}` : ''}`);
+    };
+
     const fetchEvents = useCallback(async () => {
+        // Chỉ bắt đầu fetch khi đã có danh sách genres để map slug sang ID
+        if (genresList.length === 0 && slug) return;
+
         setLoading(true);
         try {
             const now = dayjs();
@@ -103,14 +109,10 @@ function Genre() {
             if (currentFilters.location !== 'Toàn quốc')
                 filters.push(`location ~~ '%${currentFilters.location}%'`);
 
-            // Thay đổi: Fetch số lượng lớn (VD: 1000) để lấy toàn bộ dữ liệu khớp bộ lọc
-            // Nếu BE không giới hạn thì có thể bỏ size đi, nhưng đặt size lớn để an toàn.
-            const apiParams = {
+            const res = await eventApi.getAll({
                 size: 1000,
                 filter: filters.join(' and ')
-            };
-
-            const res = await eventApi.getAll(apiParams);
+            });
             const eventsList = res?.result || res?.content || [];
 
             const mappedData = await Promise.all(
@@ -124,9 +126,7 @@ function Genre() {
                             ticketRes?.result || ticketRes?.content || [];
                         if (tickets.length > 0)
                             standardPrice = tickets[0].price;
-                    } catch (err) {
-                        /* ignore */
-                    }
+                    } catch (err) {}
 
                     const posterObj =
                         e.images?.find(img => img.isCover) || e.images?.[0];
@@ -153,21 +153,12 @@ function Genre() {
                 })
             );
 
-            // Sắp xếp toàn bộ dữ liệu theo logic yêu cầu
             const sortedData = mappedData.sort((a, b) => {
                 const timeA = dayjs(a.fullStartTime).unix();
                 const timeB = dayjs(b.fullStartTime).unix();
-
-                if (!a.isPast && !b.isPast) {
-                    // Cả 2 chưa diễn ra: gần nhất xếp trước (tăng dần)
-                    return timeA - timeB;
-                } else if (a.isPast && b.isPast) {
-                    // Cả 2 đã diễn ra: kiện gần hiện tại nhất xếp trước (giảm dần)
-                    return timeB - timeA;
-                } else {
-                    // 1 cái chưa diễn ra, 1 cái đã diễn ra: cái chưa diễn ra lên trước
-                    return a.isPast ? 1 : -1;
-                }
+                if (!a.isPast && !b.isPast) return timeA - timeB;
+                if (a.isPast && b.isPast) return timeB - timeA;
+                return a.isPast ? 1 : -1;
             });
 
             setAllEvents(sortedData);
@@ -177,11 +168,13 @@ function Genre() {
         } finally {
             setLoading(false);
         }
-    }, [currentFilters.genreId, currentFilters.q, currentFilters.location]); // Loại bỏ page để không fetch lại API khi chuyển trang
-
-    useEffect(() => {
-        fetchEvents();
-    }, [fetchEvents]);
+    }, [
+        currentFilters.genreId,
+        currentFilters.q,
+        currentFilters.location,
+        genresList,
+        slug
+    ]);
 
     useEffect(() => {
         genresApi
@@ -189,11 +182,13 @@ function Genre() {
             .then(res => setGenresList(res?.result || res?.data || []));
     }, []);
 
-    // Logic tính toán hiển thị 12 item cho trang hiện tại
+    useEffect(() => {
+        fetchEvents();
+    }, [fetchEvents]);
+
     const paginatedEvents = useMemo(() => {
         const startIndex = (currentFilters.page - 1) * pageSize;
-        const endIndex = startIndex + pageSize;
-        return allEvents.slice(startIndex, endIndex);
+        return allEvents.slice(startIndex, startIndex + pageSize);
     }, [allEvents, currentFilters.page]);
 
     return (
@@ -202,9 +197,11 @@ function Genre() {
                 <div className={cx('toolbar')}>
                     <div className={cx('titleSection')}>
                         <span className={cx('neonText')}>
-                            {currentFilters.q
-                                ? `Kết quả cho: "${currentFilters.q}"`
-                                : 'Khám phá sự kiện'}
+                            {currentGenre
+                                ? currentGenre.name
+                                : currentFilters.q
+                                  ? `Kết quả cho: "${currentFilters.q}"`
+                                  : 'Khám phá sự kiện'}
                         </span>
                         {currentFilters.q && (
                             <CloseCircleOutlined
@@ -225,19 +222,13 @@ function Genre() {
                             <FilterOutlined /> <span>Bộ lọc</span>
                         </div>
 
-                        {currentFilters.genreId && (
+                        {currentGenre && (
                             <Tag
                                 className={cx('genreTag')}
                                 closable
-                                onClose={() =>
-                                    updateURL({ genreId: '', page: 1 })
-                                }
+                                onClose={() => navigate('/genre')}
                             >
-                                {genresList.find(
-                                    g =>
-                                        String(g.id) ===
-                                        String(currentFilters.genreId)
-                                )?.name || 'Thể loại'}
+                                {currentGenre.name}
                             </Tag>
                         )}
                     </div>
@@ -324,12 +315,7 @@ function Genre() {
                                             String(tempFilters.genreId) ===
                                             String(genre.id)
                                     })}
-                                    onClick={() =>
-                                        setTempFilters({
-                                            ...tempFilters,
-                                            genreId: genre.id
-                                        })
-                                    }
+                                    onClick={() => handleGenreChange(genre)}
                                 >
                                     {genre.name}
                                 </div>
@@ -339,14 +325,15 @@ function Genre() {
 
                     <div className={cx('modalFooter')}>
                         <Button
-                            onClick={() =>
+                            onClick={() => {
                                 setTempFilters({
                                     location: 'Toàn quốc',
                                     genreId: '',
                                     isFree: false,
                                     q: currentFilters.q
-                                })
-                            }
+                                });
+                                navigate('/genre');
+                            }}
                         >
                             Thiết lập lại
                         </Button>

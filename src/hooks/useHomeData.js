@@ -16,7 +16,7 @@ export const useHomeData = () => {
                     genresApi.getAll(),
                     eventApi.getAll({
                         page: 0,
-                        size: 50,
+                        size: 100,
                         filter: 'isPublished:true'
                     })
                 ]);
