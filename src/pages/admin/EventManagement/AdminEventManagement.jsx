@@ -61,7 +61,7 @@ function AdminEventManagement() {
     const fetchEvents = async () => {
         setLoading(true);
         try {
-            const res = await eventApi.getAll();
+            const res = await eventApi.getAll({ size: 1000 });
             let rawEvents =
                 res?.result ||
                 res?.content ||
@@ -184,46 +184,52 @@ function AdminEventManagement() {
             title: 'Sự kiện',
             dataIndex: 'name',
             key: 'name',
-            width: 400,
+            width: 380,
             render: (text, record) => (
                 <div
                     style={{
                         display: 'flex',
-                        gap: '16px',
+                        gap: '12px',
                         alignItems: 'center'
                     }}
                 >
-                    <img
-                        src={record.posterUrl}
-                        alt='cover'
+                    {/* Ảnh giữ 1 size cố định, không co giãn */}
+                    <div
                         style={{
-                            width: '140px',
+                            width: '150px',
                             height: '90px',
-                            objectFit: 'cover',
-                            borderRadius: '6px'
+                            flexShrink: 0
                         }}
-                        onError={e => {
-                            e.target.src =
-                                'https://placehold.co/200x120?text=No+Image';
-                        }}
-                    />
-                    <div>
+                    >
+                        <img
+                            src={record.posterUrl}
+                            alt='cover'
+                            style={{
+                                width: '100%',
+                                height: '100%',
+                                objectFit: 'cover',
+                                borderRadius: '4px',
+                                border: '1px solid #f0f0f0'
+                            }}
+                            onError={e => {
+                                e.target.src =
+                                    'https://placehold.co/120x70?text=No+Image';
+                            }}
+                        />
+                    </div>
+                    <div style={{ overflow: 'hidden' }}>
                         <div
                             style={{
-                                fontWeight: 'bold',
-                                fontSize: '15px',
-                                lineHeight: '1.4'
+                                fontWeight: '600',
+                                fontSize: '14px',
+                                lineHeight: '1.3',
+                                marginBottom: '4px',
+                                whiteSpace: 'normal'
                             }}
                         >
                             {text}
                         </div>
-                        <div
-                            style={{
-                                fontSize: '12px',
-                                color: '#1677ff',
-                                marginTop: '4px'
-                            }}
-                        >
+                        <div style={{ fontSize: '11px', color: '#1677ff' }}>
                             <EnvironmentOutlined /> {record.location}
                         </div>
                     </div>
@@ -233,11 +239,12 @@ function AdminEventManagement() {
         {
             title: 'Thời gian',
             key: 'time',
-            width: 220,
+
+            width: 100,
             render: (_, record) => (
-                <div style={{ fontSize: '12px' }}>
-                    <div>
-                        <Text type='secondary' style={{ fontSize: '11px' }}>
+                <div style={{ fontSize: '11px', lineHeight: '1.5' }}>
+                    <div style={{ whiteSpace: 'nowrap' }}>
+                        <Text type='secondary' style={{ fontSize: '10px' }}>
                             BĐ:{' '}
                         </Text>
                         {record.fullStartTime
@@ -246,8 +253,8 @@ function AdminEventManagement() {
                               )
                             : '--'}
                     </div>
-                    <div>
-                        <Text type='secondary' style={{ fontSize: '11px' }}>
+                    <div style={{ whiteSpace: 'nowrap' }}>
+                        <Text type='secondary' style={{ fontSize: '10px' }}>
                             KT:{' '}
                         </Text>
                         {record.fullEndTime
@@ -263,49 +270,60 @@ function AdminEventManagement() {
             title: 'Trạng thái',
             dataIndex: 'derivedStatus',
             key: 'status',
-            width: 140,
+            // Thu nhỏ chiều rộng cột Trạng thái
+            width: 50,
+            align: 'center',
             render: status => {
                 const statusConfig = {
-                    PENDING: { color: 'default', text: 'Chờ duyệt' },
-                    UPCOMING: { color: 'processing', text: 'Sắp mở bán' },
-                    OPEN: { color: 'success', text: 'Đang mở bán' },
-                    PAST: { color: 'orange', text: 'Đã diễn ra' }
+                    PENDING: { color: 'default', text: 'Chờ' },
+                    UPCOMING: { color: 'processing', text: 'Sắp bán' },
+                    OPEN: { color: 'success', text: 'Mở bán' },
+                    PAST: { color: 'orange', text: 'Đã qua' }
                 };
                 const config = statusConfig[status] || {
                     color: 'default',
                     text: 'Khác'
                 };
                 return (
-                    <Tag color={config.color}>{config.text.toUpperCase()}</Tag>
+                    <Tag
+                        color={config.color}
+                        style={{
+                            fontSize: '10px',
+                            margin: 0,
+                            padding: '0 4px'
+                        }}
+                    >
+                        {config.text.toUpperCase()}
+                    </Tag>
                 );
             }
         },
         {
             title: 'Hành động',
             key: 'action',
-            width: 120,
+            width: 100, // Thu nhỏ cột hành động
+            align: 'center',
             render: (_, record) => (
-                <Space size='middle'>
-                    <Tooltip title='Xem chi tiết'>
+                <Space size='small'>
+                    <Tooltip title='Xem'>
                         <Button
                             size='small'
+                            type='text'
                             icon={<EyeOutlined />}
                             onClick={() => handleViewDetail(record)}
                         />
                     </Tooltip>
                     {record.derivedStatus !== 'PAST' && (
-                        <Tooltip
-                            title={
-                                record.isPublished
-                                    ? 'Gỡ hiển thị'
-                                    : 'Duyệt sự kiện'
-                            }
-                        >
+                        <Tooltip title={record.isPublished ? 'Gỡ' : 'Duyệt'}>
                             <Button
                                 size='small'
-                                type={
-                                    record.isPublished ? 'default' : 'primary'
-                                }
+                                type='text'
+                                danger={record.isPublished}
+                                style={{
+                                    color: record.isPublished
+                                        ? '#ff4d4f'
+                                        : '#52c41a'
+                                }}
                                 icon={
                                     record.isPublished ? (
                                         <CloseCircleOutlined />
@@ -318,8 +336,8 @@ function AdminEventManagement() {
                                         () =>
                                             eventApi.togglePublished(record.id),
                                         record.isPublished
-                                            ? 'Đã gỡ hiển thị'
-                                            : 'Đã duyệt hiển thị'
+                                            ? 'Đã gỡ'
+                                            : 'Đã duyệt'
                                     )
                                 }
                             />
@@ -361,7 +379,7 @@ function AdminEventManagement() {
                     dataSource={filteredData}
                     rowKey='id'
                     loading={loading}
-                    pagination={{ pageSize: 10 }}
+                    pagination={{ pageSize: 10, showSizeChanger: false }}
                 />
             </div>
 

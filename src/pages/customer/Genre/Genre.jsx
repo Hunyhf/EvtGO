@@ -10,12 +10,7 @@ import {
     Pagination,
     Empty
 } from 'antd';
-import {
-    CalendarOutlined,
-    FilterOutlined,
-    DownOutlined,
-    CloseCircleOutlined
-} from '@ant-design/icons';
+import { FilterOutlined, CloseCircleOutlined } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import classNames from 'classnames/bind';
 
@@ -50,7 +45,6 @@ function Genre() {
         close: closeModal
     } = useModal(false);
 
-    // Cập nhật pageSize thành 12 theo yêu cầu
     const pageSize = 12;
 
     const currentFilters = useMemo(

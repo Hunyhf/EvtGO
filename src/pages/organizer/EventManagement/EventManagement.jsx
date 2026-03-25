@@ -112,49 +112,70 @@ const EventManagement = () => {
     const fetchEvents = useCallback(async () => {
         setLoading(true);
         try {
-            const response = await eventApi.getAll();
+            // Sửa lỗi 1: Tăng size để lấy được nhiều dữ liệu hơn (hoặc dùng pagination thực tế)
+            // Ở đây tôi tạm thời lấy 100 để bạn thấy được các sự kiện cũ
+            const response = await eventApi.getAll({
+                size: 100,
+                sort: 'id,desc'
+            });
             const rawData = response?.data?.result || response?.result || [];
 
             const mappedData = (Array.isArray(rawData) ? rawData : []).map(
                 e => {
-                    const isPublished = e.isPublished || e.published;
-                    const isActive = e.isActive || e.active;
+                    // Sửa lỗi 3: Dùng đúng field từ BE DTO
+                    const isPublishedInDB = e.published; // BE trả về field 'published'
+                    const isActive = e.active; // BE trả về field 'active'
+
+                    const fullStartTime = e.startDate
+                        ? `${e.startDate} ${e.startTime}`
+                        : null;
+                    const fullEndTime = e.endDate
+                        ? `${e.endDate} ${e.endTime}`
+                        : null;
+
+                    const now = dayjs();
+                    const startDay = dayjs(fullStartTime);
+                    const endDay = fullEndTime ? dayjs(fullEndTime) : startDay;
 
                     let derivedStatus = 'PENDING';
-                    if (!isPublished && isActive) {
+
+                    // Sửa lỗi 2: Khớp logic với BE
+                    // Nếu thời gian hiện tại đã vượt quá thời gian kết thúc -> PAST
+                    if (endDay.isBefore(now)) {
                         derivedStatus = 'PAST';
-                    } else if (isPublished && isActive) {
-                        derivedStatus = 'OPEN';
-                    } else if (isPublished && !isActive) {
-                        derivedStatus = 'UPCOMING';
+                    }
+                    // Nếu sự kiện đã bắt đầu nhưng chưa kết thúc (BE đã set published = false)
+                    else if (startDay.isBefore(now) && now.isBefore(endDay)) {
+                        derivedStatus = 'PAST'; // Hoặc bạn có thể thêm status 'ONGOING'
                     } else {
-                        derivedStatus = 'PENDING';
+                        // Logic cho các sự kiện tương lai
+                        if (isPublishedInDB && isActive) {
+                            derivedStatus = 'OPEN';
+                        } else if (isPublishedInDB && !isActive) {
+                            derivedStatus = 'UPCOMING';
+                        } else {
+                            derivedStatus = 'PENDING';
+                        }
                     }
 
                     return {
                         ...e,
                         posterUrl: getEventImageUrl(e.id, e.images?.[0]?.url),
-                        fullStartTime: e.startDate
-                            ? `${e.startDate} ${e.startTime || '00:00:00'}`
-                            : null,
-                        fullEndTime: e.endDate
-                            ? `${e.endDate} ${e.endTime || '23:59:59'}`
-                            : e.endTime
-                              ? `${e.startDate} ${e.endTime}`
-                              : null,
-                        isPublished,
+                        fullStartTime,
+                        fullEndTime,
+                        isPublished: isPublishedInDB,
                         isActive,
                         derivedStatus
                     };
                 }
             );
 
+            // Sắp xếp: Ưu tiên sự kiện mới nhất lên đầu
             mappedData.sort(
                 (a, b) =>
                     dayjs(b.fullStartTime).unix() -
                     dayjs(a.fullStartTime).unix()
             );
-
             setEvents(mappedData);
         } catch (error) {
             console.error('Fetch Error:', error);

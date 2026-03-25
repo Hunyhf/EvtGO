@@ -1,158 +1,197 @@
-import React from 'react';
-import { Card, Col, Row, Statistic, Table, Tag, Typography, Space } from 'antd';
+import React, { useState, useEffect } from 'react';
+import {
+    Card,
+    Col,
+    Row,
+    Statistic,
+    Table,
+    Tag,
+    Typography,
+    message,
+    Spin,
+    Tooltip
+} from 'antd';
 import {
     UserOutlined,
     CalendarOutlined,
     DollarOutlined,
-    CheckCircleOutlined,
-    ClockCircleOutlined,
-    RiseOutlined
+    ClockCircleOutlined
 } from '@ant-design/icons';
 import styles from './AdminDashBoard.module.scss';
 
-const { Title } = Typography;
+// Import các API
+import { callFetchAllUsers } from '../../../apis/userApi';
+import { eventApi } from '../../../apis/eventApi';
+import orderApi from '../../../apis/orderApi';
+
+const { Title, Text } = Typography;
 
 function AdminDashBoard() {
-    // === MOCK DATA (Dữ liệu giả lập) ===
-    const stats = [
-        {
-            title: 'Tổng người dùng',
-            value: 1250,
-            icon: (
-                <UserOutlined style={{ fontSize: '24px', color: '#1890ff' }} />
-            ),
-            suffix: '',
-            color: '#e6f7ff'
-        },
-        {
-            title: 'Tổng sự kiện',
-            value: 86,
-            icon: (
-                <CalendarOutlined
-                    style={{ fontSize: '24px', color: '#722ed1' }}
-                />
-            ),
-            suffix: 'events',
-            color: '#f9f0ff'
-        },
-        {
-            title: 'Doanh thu (tháng)',
-            value: 125000000,
-            icon: (
-                <DollarOutlined
-                    style={{ fontSize: '24px', color: '#52c41a' }}
-                />
-            ),
-            suffix: 'VND',
-            color: '#f6ffed'
-        },
-        {
-            title: 'Sự kiện chờ duyệt',
-            value: 5,
-            icon: (
-                <ClockCircleOutlined
-                    style={{ fontSize: '24px', color: '#fa8c16' }}
-                />
-            ),
-            suffix: '',
-            color: '#fff7e6'
-        }
-    ];
+    const [loading, setLoading] = useState(true);
+    const [stats, setStats] = useState({
+        totalUsers: 0,
+        totalEvents: 0,
+        revenue: 0,
+        pendingEvents: 0
+    });
+    const [recentUsers, setRecentUsers] = useState([]);
+    const [recentEvents, setRecentEvents] = useState([]);
 
-    // Dữ liệu bảng người dùng mới
-    const recentUsers = [
-        {
-            key: 1,
-            name: 'Nguyễn Văn A',
-            email: 'a@gmail.com',
-            role: 'Customer',
-            date: '2023-10-25'
-        },
-        {
-            key: 2,
-            name: 'Trần Thị B',
-            email: 'b@gmail.com',
-            role: 'Organizer',
-            date: '2023-10-24'
-        },
-        {
-            key: 3,
-            name: 'Lê Văn C',
-            email: 'c@gmail.com',
-            role: 'Customer',
-            date: '2023-10-23'
-        }
-    ];
+    useEffect(() => {
+        fetchDashboardData();
+    }, []);
 
-    // Dữ liệu bảng sự kiện mới
-    const recentEvents = [
-        {
-            key: 1,
-            name: 'Hòa nhạc Mùa Thu',
-            organizer: 'Band A',
-            status: 'pending',
-            date: '2023-11-20'
-        },
-        {
-            key: 2,
-            name: 'Triển lãm Art',
-            organizer: 'Studio B',
-            status: 'approved',
-            date: '2023-12-05'
-        },
-        {
-            key: 3,
-            name: 'Workshop React',
-            organizer: 'Tech C',
-            status: 'rejected',
-            date: '2023-11-15'
-        }
-    ];
+    const fetchDashboardData = async () => {
+        setLoading(true);
+        try {
+            // Gọi API song song: Lấy dữ liệu sắp xếp theo ngày tạo giảm dần (mới nhất)
+            const [userRes, eventRes, pendingEventRes, orderRes] =
+                await Promise.all([
+                    callFetchAllUsers('size=5&sort=createdAt,desc'),
+                    eventApi.getAll({ size: 5, sort: 'createdAt,asc' }),
+                    // Lọc sự kiện chưa đăng (isPublished = false)
+                    eventApi.getAll({ filter: 'isPublished:false', size: 1 }),
+                    // Lấy doanh thu từ các đơn hàng đã thanh toán
+                    orderApi.getAllOrders("filter=orderStatus:'PAID'&size=100")
+                ]);
 
-    // Cấu hình cột cho bảng Users
+            // Hàm helper xử lý cấu hình trả về của axiosClient (ResResponse wrapper)
+            const getData = res => (res?.data?.meta ? res.data : res);
+
+            const userData = getData(userRes);
+            const eventData = getData(eventRes);
+            const pendingData = getData(pendingEventRes);
+            const orderData = getData(orderRes);
+
+            setStats({
+                totalUsers: userData?.meta?.total || 0,
+                totalEvents: eventData?.meta?.total || 0,
+                pendingEvents: pendingData?.meta?.total || 0,
+                revenue:
+                    orderData?.result?.reduce(
+                        (sum, order) => sum + (order.totalAmount || 0),
+                        0
+                    ) || 0
+            });
+
+            setRecentUsers(userData?.result || []);
+            setRecentEvents(eventData?.result || []);
+        } catch (error) {
+            console.error('Dashboard Error:', error);
+            message.error('Không thể kết nối đến hệ thống');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    // --- Cột cho bảng Người dùng ---
     const userColumns = [
         { title: 'Tên', dataIndex: 'name', key: 'name' },
-        { title: 'Email', dataIndex: 'email', key: 'email' },
+        { title: 'Email', dataIndex: 'email', key: 'email', ellipsis: true },
         {
             title: 'Vai trò',
             dataIndex: 'role',
             key: 'role',
             render: role => (
-                <Tag color={role === 'Organizer' ? 'purple' : 'blue'}>
-                    {role}
+                <Tag color={role?.name === 'ADMIN' ? 'red' : 'blue'}>
+                    {role?.name || 'Customer'}
                 </Tag>
             )
         },
-        { title: 'Ngày tham gia', dataIndex: 'date', key: 'date' }
-    ];
-
-    // Cấu hình cột cho bảng Events
-    const eventColumns = [
-        { title: 'Tên sự kiện', dataIndex: 'name', key: 'name' },
-        { title: 'BTC', dataIndex: 'organizer', key: 'organizer' },
         {
-            title: 'Trạng thái',
-            dataIndex: 'status',
-            key: 'status',
-            render: status => {
-                let color = 'default';
-                let text = 'Khác';
-                if (status === 'approved') {
-                    color = 'success';
-                    text = 'Đã duyệt';
-                }
-                if (status === 'pending') {
-                    color = 'warning';
-                    text = 'Chờ duyệt';
-                }
-                if (status === 'rejected') {
-                    color = 'error';
-                    text = 'Từ chối';
-                }
-                return <Tag color={color}>{text}</Tag>;
-            }
+            title: 'Ngày tham gia',
+            dataIndex: 'createdAt',
+            key: 'createdAt',
+            render: date =>
+                date ? new Date(date).toLocaleDateString('vi-VN') : '-'
         }
     ];
+
+    // --- Cột cho bảng Sự kiện (Xử lý tên dài bằng Tooltip + Ellipsis) ---
+    const eventColumns = [
+        {
+            title: 'Tên sự kiện',
+            dataIndex: 'name',
+            key: 'name',
+            width: '40%',
+            render: name => (
+                <Tooltip title={name}>
+                    <Text ellipsis style={{ width: '100%' }}>
+                        {name}
+                    </Text>
+                </Tooltip>
+            )
+        },
+        {
+            title: 'Địa điểm',
+            dataIndex: 'location',
+            key: 'location',
+            ellipsis: { showTitle: true }
+        },
+        {
+            title: 'Thời gian',
+            dataIndex: 'startTime',
+            key: 'startTime',
+            render: time =>
+                time
+                    ? new Date(time).toLocaleString('vi-VN', {
+                          hour: '2-digit',
+                          minute: '2-digit',
+                          day: '2-digit',
+                          month: '2-digit'
+                      })
+                    : '-'
+        },
+        {
+            title: 'Trạng thái',
+            dataIndex: 'isPublished',
+            key: 'isPublished',
+            width: 120,
+            render: isPublished => (
+                <Tag color={isPublished ? 'success' : 'warning'}>
+                    {isPublished ? 'Đã đăng' : 'Chờ duyệt'}
+                </Tag>
+            )
+        }
+    ];
+
+    const statCards = [
+        {
+            title: 'Tổng người dùng',
+            value: stats.totalUsers,
+            icon: <UserOutlined style={{ color: '#1890ff' }} />,
+            color: '#e6f7ff',
+            suffix: 'người'
+        },
+        {
+            title: 'Tổng sự kiện',
+            value: stats.totalEvents,
+            icon: <CalendarOutlined style={{ color: '#722ed1' }} />,
+            color: '#f9f0ff',
+            suffix: 'sự kiện'
+        },
+        {
+            title: 'Doanh thu (PAID)',
+            value: stats.revenue,
+            icon: <DollarOutlined style={{ color: '#52c41a' }} />,
+            color: '#f6ffed',
+            suffix: 'VND'
+        },
+        {
+            title: 'Sự kiện chờ duyệt',
+            value: stats.pendingEvents,
+            icon: <ClockCircleOutlined style={{ color: '#fa8c16' }} />,
+            color: '#fff7e6',
+            suffix: ''
+        }
+    ];
+
+    if (loading)
+        return (
+            <div style={{ textAlign: 'center', padding: '100px' }}>
+                <Spin size='large' tip='Đang tải dữ liệu...' />
+            </div>
+        );
 
     return (
         <div className={styles.dashboardContainer}>
@@ -160,76 +199,71 @@ function AdminDashBoard() {
                 Tổng quan hệ thống
             </Title>
 
-            {/* 1. Phần Thống kê (Stats Cards) */}
             <Row gutter={[16, 16]}>
-                {stats.map((item, index) => (
+                {statCards.map((item, index) => (
                     <Col xs={24} sm={12} lg={6} key={index}>
                         <Card
                             bordered={false}
                             hoverable
                             className={styles.statCard}
                         >
-                            <div className={styles.statContent}>
-                                <div
-                                    className={styles.statIcon}
-                                    style={{ backgroundColor: item.color }}
-                                >
-                                    {item.icon}
-                                </div>
-                                <div className={styles.statInfo}>
-                                    <Statistic
-                                        title={item.title}
-                                        value={item.value}
-                                        suffix={
-                                            <span
-                                                style={{
-                                                    fontSize: '14px',
-                                                    color: '#888'
-                                                }}
-                                            >
-                                                {item.suffix}
-                                            </span>
-                                        }
-                                        valueStyle={{
-                                            fontSize: '24px',
-                                            fontWeight: 'bold'
+                            <Statistic
+                                title={item.title}
+                                value={item.value}
+                                prefix={
+                                    <div
+                                        className={styles.statIcon}
+                                        style={{
+                                            backgroundColor: item.color,
+                                            padding: 8,
+                                            borderRadius: 8,
+                                            marginRight: 12
                                         }}
-                                    />
-                                </div>
-                            </div>
+                                    >
+                                        {item.icon}
+                                    </div>
+                                }
+                                suffix={
+                                    <span
+                                        style={{
+                                            fontSize: '14px',
+                                            color: '#888'
+                                        }}
+                                    >
+                                        {item.suffix}
+                                    </span>
+                                }
+                                formatter={val => val.toLocaleString('vi-VN')}
+                            />
                         </Card>
                     </Col>
                 ))}
             </Row>
 
-            {/* 2. Phần Bảng dữ liệu (Tables) */}
             <Row gutter={[24, 24]} style={{ marginTop: 24 }}>
-                {/* Bảng Người dùng mới */}
                 <Col xs={24} lg={12}>
                     <Card
-                        title='Người dùng mới tham gia'
-                        bordered={false}
-                        extra={<a href='/admin/users'>Xem tất cả</a>}
+                        title='Người dùng mới nhất'
+                        extra={<a href='/admin/users'>Tất cả</a>}
                     >
                         <Table
                             columns={userColumns}
                             dataSource={recentUsers}
+                            rowKey='id'
                             pagination={false}
                             size='small'
                         />
                     </Card>
                 </Col>
-
-                {/* Bảng Sự kiện gần đây */}
                 <Col xs={24} lg={12}>
                     <Card
-                        title='Sự kiện gần đây'
-                        bordered={false}
-                        extra={<a href='/admin/events'>Xem tất cả</a>}
+                        title='Sự kiện mới cập nhật'
+                        extra={<a href='/admin/events'>Tất cả</a>}
                     >
                         <Table
                             columns={eventColumns}
                             dataSource={recentEvents}
+                            rowKey='id'
                             pagination={false}
                             size='small'
                         />
