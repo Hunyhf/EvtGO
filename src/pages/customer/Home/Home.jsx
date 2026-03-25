@@ -15,7 +15,7 @@ import Nav from '@components/Nav/Nav.jsx';
 import EventCard from '@components/EventCard/EventCard.jsx';
 import { useHomeData } from '@hooks/useHomeData';
 import { slugify } from '@utils/stringUtils';
-import { BANNER_DATA, TRENDING_DATA, swiperConfig } from './constants'; // Đưa config vào constants
+import { BANNER_DATA, TRENDING_DATA, swiperConfig } from './constants';
 
 const cx = classNames.bind(styles);
 
@@ -109,7 +109,9 @@ function Home() {
                     </div>
                 ) : (
                     sections.map(genre => {
-                        const genreSlug = slugify(genre.name);
+                        // Tạo slug an toàn (ưu tiên slug từ DB, nếu không có thì dùng slugify từ name)
+                        const genreSlug = genre.slug || slugify(genre.name);
+
                         return (
                             <section
                                 key={genre.id}
@@ -119,8 +121,9 @@ function Home() {
                                     <h3 className={cx('sectionTitle')}>
                                         {genre.name}
                                     </h3>
+                                    {/* CẬP NHẬT TẠI ĐÂY: Chuyển sang dùng slug thay vì ID */}
                                     <Link
-                                        to={`/genre?id=${genre.id}&name=${genreSlug}`}
+                                        to={`/genre/${genreSlug}`}
                                         className={cx('viewMore')}
                                         onClick={() => window.scrollTo(0, 0)}
                                     >
