@@ -6,6 +6,7 @@ import AdminLayout from '@components/layouts/AdminLayout.jsx';
 import CustomerLayout from '@components/layouts/CustomerLayout.jsx';
 import OrganizerLayout from '@components/layouts/OrganizerLayout.jsx';
 import StaffLayout from '@components/layouts/StaffLayout.jsx';
+import EventDashboardLayout from '@components/layouts/EventDashboardLayout.jsx'; // Layout mới cho chi tiết sự kiện
 
 // Import Pages
 import Staff from '@pages/staff/Staff.jsx';
@@ -30,6 +31,7 @@ import EventManagement from '@pages/organizer/EventManagement/EventManagement';
 import CreateEvent from '@pages/organizer/EventManagement/CreateEvent';
 import EditEvent from '@pages/organizer/EventManagement/EditEvent';
 import OrderManagement from '@pages/organizer/OrderManagement/OrderManagement';
+import EventSummary from '@pages/organizer/EventManagement/EventSummary/EventSummary.jsx'; // Trang Summary mới
 
 // Import Protection, Context & Constants
 import ProtectedRoute from '@components/ProtectedRoute';
@@ -74,7 +76,6 @@ export const routes = createBrowserRouter([
                     {
                         path: 'booking/:id/checkout',
                         element: (
-                            // BỌC TRONG PROTECTEDROUTE ĐỂ BẢO VỆ TRANG THANH TOÁN
                             <ProtectedRoute allowedRoles={[ROLE_ID.CUSTOMER]}>
                                 <Checkout />
                             </ProtectedRoute>
@@ -126,18 +127,9 @@ export const routes = createBrowserRouter([
                     </ProtectedRoute>
                 ),
                 children: [
-                    {
-                        index: true,
-                        element: <AdminDashBoard />
-                    },
-                    {
-                        path: 'users',
-                        element: <UserManagement />
-                    },
-                    {
-                        path: 'events',
-                        element: <AdminEventManagement />
-                    }
+                    { index: true, element: <AdminDashBoard /> },
+                    { path: 'users', element: <UserManagement /> },
+                    { path: 'events', element: <AdminEventManagement /> }
                 ]
             },
 
@@ -146,31 +138,42 @@ export const routes = createBrowserRouter([
                 path: '/organizer',
                 element: (
                     <ProtectedRoute allowedRoles={[ROLE_ID.ORGANIZER]}>
-                        <OrganizerLayout />
+                        {/* Đổi OrganizerLayout thành Outlet để chia nhiều layout con */}
+                        <Outlet />
                     </ProtectedRoute>
                 ),
                 children: [
+                    // Layout 1: Màn hình chung của Organizer
                     {
-                        path: 'events',
-                        element: <EventManagement />
+                        element: <OrganizerLayout />,
+                        children: [
+                            { path: 'events', element: <EventManagement /> },
+                            { path: 'events/create', element: <CreateEvent /> },
+                            { path: 'events/edit/:id', element: <EditEvent /> },
+                            { path: 'profile', element: <Profile /> },
+                            {
+                                path: 'terms',
+                                element: <div>Trang điều khoản</div>
+                            },
+                            { path: 'orders', element: <OrderManagement /> }
+                        ]
                     },
+                    // Layout 2: Màn hình chi tiết của một sự kiện
                     {
-                        path: 'events/create',
-                        element: <CreateEvent />
-                    },
-                    {
-                        path: 'events/edit/:id',
-                        element: <EditEvent />
-                    },
-                    {
-                        path: 'profile',
-                        element: <Profile />
-                    },
-                    {
-                        path: 'terms',
-                        element: <div>Trang điều khoản</div>
-                    },
-                    { path: 'orders', element: <OrderManagement /> }
+                        path: 'events/:id',
+                        element: <EventDashboardLayout />,
+                        children: [
+                            { path: 'summary', element: <EventSummary /> },
+                            {
+                                path: 'orders',
+                                element: <OrderManagement />
+                            },
+                            {
+                                path: 'members',
+                                element: <div>Danh sách thành viên</div>
+                            }
+                        ]
+                    }
                 ]
             },
 

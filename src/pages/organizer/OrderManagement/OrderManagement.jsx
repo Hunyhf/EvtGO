@@ -5,9 +5,6 @@ import dayjs from 'dayjs';
 import orderApi from '@apis/orderApi';
 
 const DEFAULT_PAGE_SIZE = 10;
-
-// 1. ĐƯA COLUMNS RA NGOÀI (Hoặc dùng useMemo bên trong nếu cần xài state)
-// Tránh việc AntD Table bị re-render vô ích
 const baseColumns = [
     {
         title: 'Mã đơn hàng',

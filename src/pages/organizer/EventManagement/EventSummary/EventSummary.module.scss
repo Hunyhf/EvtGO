@@ -1,0 +1,152 @@
+@use '../../../../assets/styles/variables' as *;
+@use '../../../../assets/styles/mixins' as *;
+
+.wrapper {
+    padding: 24px;
+    background-color: $bg-admin;
+    min-height: 100vh;
+}
+
+// Tabs
+.tabs {
+    @include flex(flex-start, center, 24px);
+    border-bottom: 2px solid $border-color;
+    margin-bottom: 32px;
+}
+
+.tab {
+    font-size: $font-size-md;
+    font-weight: $font-weight-semi-bold;
+    color: $text-color;
+    padding-bottom: 12px;
+    cursor: pointer;
+    position: relative;
+    transition: color 0.3s ease;
+
+    &.active {
+        color: $primary-color;
+        &::after {
+            content: '';
+            position: absolute;
+            bottom: -2px;
+            left: 0;
+            width: 100%;
+            height: 2px;
+            background-color: $primary-color;
+            @include radius-common(2px);
+        }
+    }
+
+    &:hover:not(.active) {
+        color: $third-color;
+    }
+}
+
+// Section Title
+.sectionTitle {
+    font-size: $font-size-h3;
+    font-weight: $font-weight-bold;
+    color: $secondary-color;
+    margin-bottom: 16px;
+}
+
+// Cards
+.cardsContainer {
+    @include flex(space-between, stretch, 24px);
+    margin-bottom: 32px;
+
+    @include mobile-width {
+        flex-direction: column;
+    }
+}
+
+.statCard {
+    flex: 1;
+    background-color: $third-color; // Nền xám đậm theo yêu cầu
+    padding: 24px;
+    @include radius-common(16px); // Bo góc lớn
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08); // Shadow nhẹ
+
+    .cardLabel {
+        font-size: $font-size-md;
+        color: $text-color;
+        margin-bottom: 12px;
+    }
+
+    .cardValue {
+        font-size: $font-size-h2;
+        font-weight: $font-weight-bold;
+        color: $white-color;
+    }
+}
+
+// Chart Section
+.chartSection {
+    background-color: $white-color;
+    padding: 24px;
+    @include radius-common(16px);
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.05);
+}
+
+.chartHeader {
+    @include flex(space-between, center);
+    margin-bottom: 24px;
+    flex-wrap: wrap;
+    gap: 16px;
+}
+
+// Legend
+.legend {
+    @include flex(flex-start, center, 24px);
+}
+
+.legendItem {
+    @include flex(flex-start, center, 8px);
+    font-size: $font-size-sm;
+    color: $sub-color;
+    font-weight: $font-weight-semi-bold;
+}
+
+.dot {
+    width: 12px;
+    height: 12px;
+    @include radius-common(50%);
+
+    &.dotPurple {
+        background-color: #8b5cf6; // Màu tím tùy chỉnh vì trong biến không có
+    }
+
+    &.dotGreen {
+        background-color: $primary-color;
+    }
+}
+
+// Filters (Pill Buttons)
+.filters {
+    @include flex(flex-end, center, 8px);
+    background-color: $hover-color;
+    padding: 4px;
+    @include radius-common(24px);
+}
+
+.filterBtn {
+    padding: 6px 16px;
+    font-size: $font-size-sm;
+    font-weight: $font-weight-semi-bold;
+    color: $text-color;
+    background: transparent;
+    border: none;
+    @include radius-common(20px);
+    cursor: pointer;
+    transition: all 0.3s ease;
+
+    &.active {
+        background-color: $primary-color;
+        color: $white-color;
+        box-shadow: 0 2px 8px rgba(45, 194, 117, 0.3);
+    }
+}
+
+.chartContainer {
+    margin-top: 24px;
+}

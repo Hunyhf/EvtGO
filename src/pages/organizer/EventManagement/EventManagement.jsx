@@ -448,6 +448,11 @@ const EventManagement = () => {
                                         <button
                                             style={styles.actionButton}
                                             className='action-btn'
+                                            onClick={() =>
+                                                navigate(
+                                                    `/organizer/events/${event.id}/summary`
+                                                )
+                                            }
                                         >
                                             <DashboardOutlined />
                                             <span>Tổng quan</span>

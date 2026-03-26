@@ -7,36 +7,55 @@ import {
     CloseOutlined,
     SendOutlined,
     PictureOutlined,
-    RobotOutlined,
-    UserOutlined
+    RobotOutlined
 } from '@ant-design/icons';
 import styles from './Chatbot.module.scss';
 import { aiApi } from '@apis/aiApi';
-import { AuthContext } from '@contexts/AuthContext'; //
+import { AuthContext } from '@contexts/AuthContext';
 
 const cx = classNames.bind(styles);
 
+const CHAT_STORAGE_KEY = 'etco_chat_history';
+const GUEST_SESSION_KEY = 'etco_guest_session_id';
+
 function Chatbot() {
-    const { user, isAuthenticated } = useContext(AuthContext); // Lấy thông tin user
+    const { user, isAuthenticated } = useContext(AuthContext);
     const [isOpen, setIsOpen] = useState(false);
-    const [messages, setMessages] = useState([
-        {
-            role: 'bot',
-            content: 'Chào bạn! Tôi có thể giúp gì cho bạn hôm nay?'
-        }
-    ]);
+
+    // Bước 1: Khởi tạo state từ Local Storage
+    const [messages, setMessages] = useState(() => {
+        const saved = localStorage.getItem(CHAT_STORAGE_KEY);
+        return saved
+            ? JSON.parse(saved)
+            : [
+                  {
+                      role: 'bot',
+                      content: 'Chào bạn! Tôi có thể giúp gì cho bạn hôm nay?'
+                  }
+              ];
+    });
+
     const [input, setInput] = useState('');
     const [imageFile, setImageFile] = useState(null);
     const [isLoading, setIsLoading] = useState(false);
     const messagesEndRef = useRef(null);
 
-    // Logic thay thế UUID: Dùng ID người dùng hoặc Timestamp
+    useEffect(() => {
+        localStorage.setItem(CHAT_STORAGE_KEY, JSON.stringify(messages));
+    }, [messages]);
+
     const getSessionId = () => {
         if (isAuthenticated && user?.id) {
-            return `user_${user.id}`; // Session theo ID người dùng
+            return `user_${user.id}`;
         }
-        // Nếu là khách, tạo session theo ngày để tạm duy trì trong phiên làm việc
-        return `guest_${new Date().getTime()}`;
+
+        // Kiểm tra xem khách đã có ID chưa, nếu chưa thì tạo mới và lưu lại
+        let guestId = localStorage.getItem(GUEST_SESSION_KEY);
+        if (!guestId) {
+            guestId = `guest_${new Date().getTime()}`;
+            localStorage.setItem(GUEST_SESSION_KEY, guestId);
+        }
+        return guestId;
     };
 
     const handleSend = async () => {
@@ -90,7 +109,16 @@ function Chatbot() {
         }
     };
 
-    // Cuộn xuống cuối
+    const clearChat = () => {
+        localStorage.removeItem(CHAT_STORAGE_KEY);
+        setMessages([
+            {
+                role: 'bot',
+                content: 'Chào bạn! Tôi có thể giúp gì cho bạn hôm nay?'
+            }
+        ]);
+    };
+
     useEffect(() => {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
     }, [messages]);
