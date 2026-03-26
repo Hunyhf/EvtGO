@@ -8,7 +8,7 @@ import classNames from 'classnames/bind';
 import styles from './RelatedEvents.module.scss';
 import EventCard from '@components/EventCard/EventCard';
 import { eventApi } from '@apis/eventApi';
-import { ticketApi } from '@apis/ticketApi'; // Đã import ticketApi
+import { ticketApi } from '@apis/ticketApi';
 import { getEventImageUrl } from '@utils/imageHelper';
 import { slugify } from '@utils/stringUtils';
 
@@ -27,7 +27,7 @@ const RelatedEvents = ({ genreId, currentEventId, genreName }) => {
 
             try {
                 setLoading(true);
-                // 1. Lấy danh sách sự kiện liên quan
+                // 1. Lấy danh sách sự kiện liên quan theo genreId
                 const res = await eventApi.getAll({
                     filter: `genre.id:${genreId} and isPublished:true`,
                     size: 9
@@ -37,16 +37,17 @@ const RelatedEvents = ({ genreId, currentEventId, genreName }) => {
 
                 const rawData =
                     res?.result?.content || res?.data || res?.result || [];
+
+                // Loại bỏ sự kiện hiện tại đang xem
                 const filteredData = rawData
                     .filter(event => event.id !== currentEventId)
                     .slice(0, 8);
 
-                // 2. Fetch giá vé cho từng sự kiện (giống logic Genre.jsx)
+                // 2. Fetch giá vé STANDARD cho từng sự kiện
                 const processedData = await Promise.all(
                     filteredData.map(async event => {
                         let price = 0;
                         try {
-                            // Gọi ticketApi để lấy vé STANDARD
                             const ticketRes = await ticketApi.getAll({
                                 filter: `event.id:${event.id} and ticketType:'STANDARD'`
                             });
@@ -68,7 +69,7 @@ const RelatedEvents = ({ genreId, currentEventId, genreName }) => {
 
                         return {
                             ...event,
-                            price: price, // Gán giá lấy được từ API ticket
+                            price: price,
                             poster: getEventImageUrl(event.id, posterObj?.url)
                         };
                     })
@@ -90,8 +91,13 @@ const RelatedEvents = ({ genreId, currentEventId, genreName }) => {
         };
     }, [genreId, currentEventId]);
 
+    // CẬP NHẬT TẠI ĐÂY: Chuyển sang dùng slug thay vì query params
     const handleSeeMore = () => {
-        navigate(`/genre?id=${genreId}&name=${slugify(genreName)}`);
+        if (genreName) {
+            navigate(`/genre/${slugify(genreName)}`);
+        } else {
+            navigate('/genre');
+        }
     };
 
     if (!loading && relatedEvents.length === 0) return null;
@@ -113,6 +119,7 @@ const RelatedEvents = ({ genreId, currentEventId, genreName }) => {
                     <Row gutter={[20, 20]} className={cx('grid')}>
                         {relatedEvents.map(item => (
                             <Col xs={24} sm={12} md={8} lg={6} key={item.id}>
+                                {/* EventCard đã có logic slug nên link sẽ tự đúng */}
                                 <EventCard data={item} />
                             </Col>
                         ))}

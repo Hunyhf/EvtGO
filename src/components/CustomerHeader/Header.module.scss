@@ -24,9 +24,6 @@
         width: 180px;
         height: 35px;
         margin-top: -70px;
-        @include mobile-width {
-            margin-top: 14px;
-        }
     }
 
     .headerRight {
@@ -514,5 +511,6 @@
         color: $white-color;
         font-size: $font-size-md;
         font-weight: $font-weight-semi-bold;
+        margin-top: 38px;
     }
 }
