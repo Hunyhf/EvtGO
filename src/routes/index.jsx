@@ -1,6 +1,6 @@
 // src/routes/index.jsx
 import { createBrowserRouter, Outlet } from 'react-router-dom';
-
+import ScrollToTop from '@components/Common/ScrollToTop';
 // Import các Layout
 import AdminLayout from '@components/layouts/AdminLayout.jsx';
 import CustomerLayout from '@components/layouts/CustomerLayout.jsx';
@@ -57,6 +57,7 @@ export const routes = createBrowserRouter([
     {
         element: (
             <AuthProvider>
+                <ScrollToTop />
                 <Outlet />
             </AuthProvider>
         ),

@@ -2,6 +2,7 @@
 import React from 'react';
 import { RouterProvider } from 'react-router-dom';
 import { ConfigProvider, App as AntdApp, theme } from 'antd'; // Import thêm
+import InactivityTimeout from '@components/InactivityTimeout'; // Import component mới
 import { routes } from './routes';
 
 function App() {
@@ -18,6 +19,7 @@ function App() {
             <AntdApp>
                 <div className='App'>
                     <RouterProvider router={routes} />
+                    <InactivityTimeout />
                 </div>
             </AntdApp>
         </ConfigProvider>

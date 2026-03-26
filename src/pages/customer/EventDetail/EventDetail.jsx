@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useContext, useRef } from 'react';
+import React, { useState, useEffect, useContext, useRef, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
     Row,
@@ -55,41 +55,21 @@ const EventDetail = () => {
     const [loading, setLoading] = useState(true);
     const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
     const [isExpanded, setIsExpanded] = useState(false);
-    const [isOverflowing, setIsOverflowing] = useState(false); // Trạng thái kiểm tra nội dung có dài hay không
+    const [isOverflowing, setIsOverflowing] = useState(false);
 
-    const descriptionRef = useRef(null); // Ref để đo chiều cao nội dung
+    const descriptionRef = useRef(null);
 
+    // 1. Chỉ quản lý class body, xóa window.scrollTo vì đã có ScrollToTop global
     useEffect(() => {
         document.body.classList.add('is-event-detail');
-        window.scrollTo(0, 0);
         return () => {
             document.body.classList.remove('is-event-detail');
         };
-    }, [id]);
+    }, []);
 
-    // Logic kiểm tra độ dài nội dung giới thiệu
+    // 2. Fetch data với cleanup logic tốt hơn
     useEffect(() => {
-        if (!loading && event?.description && descriptionRef.current) {
-            const element = descriptionRef.current;
-            // Ngưỡng 400px khớp với max-height trong CSS
-            if (element.scrollHeight > 400) {
-                setIsOverflowing(true);
-            } else {
-                setIsOverflowing(false);
-            }
-        }
-    }, [event?.description, loading]);
-
-    const handleGoToBooking = () => {
-        if (!isAuthenticated) {
-            setIsAuthModalOpen(true);
-        } else {
-            navigate(`/booking/${id}`);
-        }
-    };
-
-    useEffect(() => {
-        let active = true;
+        let isMounted = true;
 
         const fetchDetailData = async () => {
             try {
@@ -99,7 +79,7 @@ const EventDetail = () => {
                     ticketApi.getAll({ filter: `event.id:${id}` })
                 ]);
 
-                if (active) {
+                if (isMounted) {
                     const eventData = resEvent?.result || resEvent;
                     setEvent(eventData);
 
@@ -111,69 +91,142 @@ const EventDetail = () => {
                     setTickets(Array.isArray(ticketData) ? ticketData : []);
                 }
             } catch (error) {
-                if (active) {
+                if (isMounted) {
                     console.error('Lỗi tải dữ liệu:', error);
-                    message.error('Không thể tải thông tin sự kiện hoặc vé');
+                    message.error('Không thể tải thông tin sự kiện');
                 }
             } finally {
-                if (active) {
-                    setLoading(false);
-                }
+                if (isMounted) setLoading(false);
             }
         };
 
         fetchDetailData();
         return () => {
-            active = false;
+            isMounted = false;
         };
     }, [id]);
 
+    // 3. Kiểm tra độ dài nội dung giới thiệu (delay nhẹ để DOM ổn định)
+    useEffect(() => {
+        if (!loading && event?.description && descriptionRef.current) {
+            const timeout = setTimeout(() => {
+                if (descriptionRef.current.scrollHeight > 400) {
+                    setIsOverflowing(true);
+                } else {
+                    setIsOverflowing(false);
+                }
+            }, 100);
+            return () => clearTimeout(timeout);
+        }
+    }, [event?.description, loading]);
+
+    // 4. useMemo để tính toán dữ liệu, tránh re-render logic nặng
+    const derivedData = useMemo(() => {
+        if (!event) return null;
+
+        const eventImages = event.urlImage || [];
+        const posterUrl = getEventImageUrl(id, eventImages[0]);
+        const organizer = event.organizer || event.user || {};
+
+        const organizerName =
+            organizer.name ||
+            event.organizerName ||
+            event.createdBy ||
+            'Ban tổ chức';
+        const organizerAvatar =
+            eventImages.length > 1
+                ? getEventImageUrl(id, eventImages[1])
+                : getAvatarUrl(organizer.id, organizer.avatar);
+
+        const lowestPrice =
+            tickets.length > 0
+                ? Math.min(...tickets.map(t => t.price || 0))
+                : 0;
+        const isEventSoldOut =
+            tickets.length > 0 &&
+            tickets.every(t => t.ticketStatus?.toUpperCase() === 'SOLD_OUT');
+
+        const startTime = dayjs(
+            `${event.startDate} ${event.startTime || '00:00:00'}`
+        );
+        const endTime = event.endTime
+            ? dayjs(`${event.startDate} ${event.endTime}`)
+            : null;
+
+        const isPublished = event.isPublished || event.published;
+        const isActive = event.isActive || event.active;
+        const isPast = dayjs().isAfter(startTime);
+        const isUpcoming = !isPast && (!isPublished || !isActive);
+
+        return {
+            posterUrl,
+            organizerName,
+            organizerAvatar,
+            lowestPrice,
+            isEventSoldOut,
+            startTime,
+            endTime,
+            isPast,
+            isUpcoming
+        };
+    }, [event, tickets, id]);
+
+    const handleGoToBooking = () => {
+        if (!isAuthenticated) {
+            setIsAuthModalOpen(true);
+        } else {
+            navigate(`/booking/${id}`);
+        }
+    };
+
+    // 5. Skeleton được thiết kế lại theo Layout thật để tránh "nhảy" UI
     if (loading)
         return (
-            <div className={cx('loadingWrapper')}>
-                <div className={cx('container')}>
-                    <Skeleton active paragraph={{ rows: 15 }} />
+            <div className={cx('eventDetail', 'loadingState')}>
+                <Nav />
+                <div className={cx('wrapper')}>
+                    <section className={cx('hero')}>
+                        <Row gutter={[24, 0]}>
+                            <Col lg={9} xs={24}>
+                                <Skeleton
+                                    active
+                                    title={{ width: '80%' }}
+                                    paragraph={{ rows: 6 }}
+                                />
+                            </Col>
+                            <Col lg={15} xs={24}>
+                                <Skeleton.Button
+                                    active
+                                    block
+                                    style={{ height: 450, borderRadius: 12 }}
+                                />
+                            </Col>
+                        </Row>
+                    </section>
+                    <div style={{ marginTop: 40 }}>
+                        <Skeleton active paragraph={{ rows: 8 }} />
+                    </div>
                 </div>
             </div>
         );
 
-    if (!event)
+    if (!event || !derivedData)
         return <div className={cx('error')}>Không tìm thấy sự kiện.</div>;
 
-    const eventImages = event.urlImage || [];
-    const posterUrl = getEventImageUrl(id, eventImages[0]);
-    const organizer = event.organizer || event.user || {};
-    const organizerName =
-        organizer.name ||
-        event.organizerName ||
-        event.createdBy ||
-        'Ban tổ chức';
-    const organizerAvatar =
-        eventImages.length > 1
-            ? getEventImageUrl(id, eventImages[1])
-            : getAvatarUrl(organizer.id, organizer.avatar);
-
-    const lowestPrice =
-        tickets.length > 0 ? Math.min(...tickets.map(t => t.price || 0)) : 0;
-
-    const isEventSoldOut =
-        tickets.length > 0 &&
-        tickets.every(t => t.ticketStatus?.toUpperCase() === 'SOLD_OUT');
-
-    const startTime = dayjs(
-        `${event.startDate} ${event.startTime || '00:00:00'}`
-    );
-    const endTime = event.endTime
-        ? dayjs(`${event.startDate} ${event.endTime}`)
-        : null;
-
-    const isPublished = event.isPublished || event.published;
-    const isActive = event.isActive || event.active;
-    const isPast = dayjs().isAfter(startTime);
-    const isUpcoming = !isPast && (!isPublished || !isActive);
+    const {
+        posterUrl,
+        organizerName,
+        organizerAvatar,
+        lowestPrice,
+        isEventSoldOut,
+        startTime,
+        endTime,
+        isPast,
+        isUpcoming
+    } = derivedData;
 
     return (
-        <div className={cx('eventDetail')}>
+        <div className={cx('eventDetail', 'fadeIn')}>
             <Nav />
             <div className={cx('wrapper')}>
                 <section className={cx('hero')}>
@@ -275,10 +328,9 @@ const EventDetail = () => {
                                 bordered={false}
                             >
                                 <div
-                                    ref={descriptionRef} // Gán ref tại đây
+                                    ref={descriptionRef}
                                     className={cx(
                                         'descriptionWrapper',
-                                        // Chỉ thêm class khi nội dung bị tràn
                                         isOverflowing &&
                                             (isExpanded
                                                 ? 'expanded'
@@ -293,7 +345,6 @@ const EventDetail = () => {
                                     />
                                 </div>
 
-                                {/* Nút hiển thị có điều kiện */}
                                 {isOverflowing && (
                                     <div
                                         className={cx('showMoreBtn')}
@@ -348,6 +399,7 @@ const EventDetail = () => {
                                                     :{' '}
                                                 </Text>
                                                 <Text>
+                                                    {' '}
                                                     Ngày{' '}
                                                     {startTime.format(
                                                         'DD/MM/YYYY'
