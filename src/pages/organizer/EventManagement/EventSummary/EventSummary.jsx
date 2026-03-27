@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import classNames from 'classnames/bind';
+import { useParams } from 'react-router-dom';
 import {
     LineChart,
     Line,
@@ -11,44 +12,154 @@ import {
 } from 'recharts';
 import styles from './EventSummary.module.scss';
 
+import orderApi from '@apis/orderApi';
+import { ticketApi } from '@apis/ticketApi';
+
 const cx = classNames.bind(styles);
 
-// Mock data cho biểu đồ
-const chartData = [
-    { time: '00:00', revenue: 4000000, tickets: 24 },
-    { time: '04:00', revenue: 3000000, tickets: 13 },
-    { time: '08:00', revenue: 2000000, tickets: 38 },
-    { time: '12:00', revenue: 2780000, tickets: 39 },
-    { time: '16:00', revenue: 1890000, tickets: 48 },
-    { time: '20:00', revenue: 2390000, tickets: 38 },
-    { time: '24:00', revenue: 3490000, tickets: 43 }
-];
-
 function EventSummary() {
+    const { id: eventId } = useParams();
+
     const [timeFilter, setTimeFilter] = useState('24h');
+    const [loading, setLoading] = useState(true);
+    const [rawOrders, setRawOrders] = useState([]);
+    const [totalTickets, setTotalTickets] = useState(0);
+
+    // 1. Fetch dữ liệu thô từ API
+    useEffect(() => {
+        const fetchSummaryData = async () => {
+            setLoading(true);
+            try {
+                // Chạy song song 2 API để tối ưu tốc độ
+                const [ticketResponse, orderResponse] = await Promise.all([
+                    ticketApi.getAll({ eventId: eventId }),
+                    orderApi.getAllOrders(`size=1000&eventId=${eventId}`)
+                ]);
+
+                // Xử lý tổng vé từ Ticket API (Thẻ tổng quan)
+                const tickets =
+                    ticketResponse?.result ||
+                    ticketResponse?.data?.result ||
+                    [];
+                const totalSold = Array.isArray(tickets)
+                    ? tickets.reduce(
+                          (sum, t) =>
+                              sum + (t.sold_quantity ?? t.soldQuantity ?? 0),
+                          0
+                      )
+                    : 0;
+                setTotalTickets(totalSold);
+
+                // Lưu danh sách đơn hàng để xử lý biểu đồ
+                setRawOrders(
+                    orderResponse?.result || orderResponse?.data?.result || []
+                );
+            } catch (error) {
+                console.error('Lỗi khi tải dữ liệu tổng quan:', error);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        if (eventId) fetchSummaryData();
+    }, [eventId]);
+
+    // 2. Xử lý dữ liệu biểu đồ (Dùng useMemo để tránh tính toán lại khi re-render)
+    const { chartData, totalRevenue } = useMemo(() => {
+        let calculatedRevenue = 0;
+        const dataMap = {};
+
+        rawOrders.forEach(order => {
+            const status = (
+                order.order_status ||
+                order.orderStatus ||
+                order.status ||
+                ''
+            ).toUpperCase();
+
+            // Chỉ tính các đơn hàng đã thanh toán thành công
+            if (status === 'PAID' || status === 'COMPLETED') {
+                const orderTotal = order.total_amount || order.totalAmount || 0;
+                calculatedRevenue += orderTotal;
+
+                // --- FIX LỖI HIỂN THỊ SAI SỐ VÉ ---
+                // Backend ResOrderDTO trả về trường là 'items'
+                const items =
+                    order.items || order.orderItems || order.order_items;
+
+                // Tính tổng quantity của tất cả items trong đơn hàng (ví dụ: 1 Standard + 1 VIP = 2 vé)
+                const orderTicketsCount =
+                    Array.isArray(items) && items.length > 0
+                        ? items.reduce(
+                              (s, i) => s + (Number(i.quantity) || 1),
+                              0
+                          )
+                        : Number(
+                              order.totalQuantity || order.total_quantity || 1
+                          );
+
+                const createdAt = order.created_at || order.createdAt;
+                if (createdAt) {
+                    const date = new Date(createdAt);
+                    let timeKey;
+                    let sortVal;
+
+                    if (timeFilter === '24h') {
+                        timeKey = `${date.getHours().toString().padStart(2, '0')}:00`;
+                        sortVal = date.getHours();
+                    } else {
+                        timeKey = `${date.getDate().toString().padStart(2, '0')}/${(date.getMonth() + 1).toString().padStart(2, '0')}`;
+                        sortVal = date.getTime(); // Sort theo timestamp cho chính xác
+                    }
+
+                    if (!dataMap[timeKey]) {
+                        dataMap[timeKey] = {
+                            time: timeKey,
+                            revenue: 0,
+                            tickets: 0,
+                            sortVal
+                        };
+                    }
+                    dataMap[timeKey].revenue += orderTotal;
+                    dataMap[timeKey].tickets += orderTicketsCount;
+                }
+            }
+        });
+
+        // Chuyển object sang array và sắp xếp
+        const formatted = Object.values(dataMap).sort(
+            (a, b) => a.sortVal - b.sortVal
+        );
+        return { chartData: formatted, totalRevenue: calculatedRevenue };
+    }, [rawOrders, timeFilter]);
+
+    if (loading)
+        return (
+            <div style={{ padding: '20px', textAlign: 'center' }}>
+                Đang xử lý dữ liệu...
+            </div>
+        );
 
     return (
         <div className={cx('wrapper')}>
-            {/* Section: Doanh Thu (Tab) */}
             <div className={cx('tabs')}>
                 <div className={cx('tab', 'active')}>Doanh thu</div>
-                <div className={cx('tab')}>Lượt truy cập</div>
             </div>
 
-            {/* Section: Tổng quan (Cards) */}
             <h2 className={cx('sectionTitle')}>Tổng quan</h2>
             <div className={cx('cardsContainer')}>
                 <div className={cx('statCard')}>
                     <div className={cx('cardLabel')}>Tổng doanh thu</div>
-                    <div className={cx('cardValue')}>125.500.000 ₫</div>
+                    <div className={cx('cardValue')}>
+                        {totalRevenue.toLocaleString('vi-VN')} ₫
+                    </div>
                 </div>
                 <div className={cx('statCard')}>
                     <div className={cx('cardLabel')}>Số vé đã bán</div>
-                    <div className={cx('cardValue')}>842 vé</div>
+                    <div className={cx('cardValue')}>{totalTickets} vé</div>
                 </div>
             </div>
 
-            {/* Section: Biểu đồ (Legend & Filters) */}
             <div className={cx('chartSection')}>
                 <div className={cx('chartHeader')}>
                     <div className={cx('legend')}>
@@ -82,70 +193,90 @@ function EventSummary() {
                     </div>
                 </div>
 
-                {/* Line Chart */}
                 <div className={cx('chartContainer')}>
-                    <ResponsiveContainer width='100%' height={350}>
-                        <LineChart
-                            data={chartData}
-                            margin={{
-                                top: 10,
-                                right: 10,
-                                left: -20,
-                                bottom: 0
+                    {chartData.length > 0 ? (
+                        <ResponsiveContainer width='100%' height={350}>
+                            <LineChart
+                                data={chartData}
+                                margin={{
+                                    top: 10,
+                                    right: 10,
+                                    left: -20,
+                                    bottom: 0
+                                }}
+                            >
+                                <CartesianGrid
+                                    strokeDasharray='3 3'
+                                    vertical={false}
+                                    stroke='#f0f0f0'
+                                />
+                                <XAxis
+                                    dataKey='time'
+                                    axisLine={false}
+                                    tickLine={false}
+                                    tick={{ fill: '#9ca6b0', fontSize: 12 }}
+                                    dy={10}
+                                />
+                                <YAxis
+                                    yAxisId='left'
+                                    axisLine={false}
+                                    tickLine={false}
+                                    tick={{ fill: '#9ca6b0', fontSize: 12 }}
+                                    tickFormatter={v =>
+                                        v.toLocaleString('vi-VN')
+                                    }
+                                />
+                                <YAxis
+                                    yAxisId='right'
+                                    orientation='right'
+                                    axisLine={false}
+                                    tickLine={false}
+                                    tick={{ fill: '#9ca6b0', fontSize: 12 }}
+                                />
+                                <Tooltip
+                                    formatter={(value, name) => [
+                                        name === 'revenue'
+                                            ? `${value.toLocaleString('vi-VN')} ₫`
+                                            : value,
+                                        name === 'revenue'
+                                            ? 'Doanh thu'
+                                            : 'Số vé'
+                                    ]}
+                                    contentStyle={{
+                                        borderRadius: '8px',
+                                        border: 'none',
+                                        boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
+                                    }}
+                                />
+                                <Line
+                                    yAxisId='left'
+                                    type='monotone'
+                                    dataKey='revenue'
+                                    stroke='#8b5cf6'
+                                    strokeWidth={3}
+                                    dot={{ r: 4 }}
+                                />
+                                <Line
+                                    yAxisId='right'
+                                    type='monotone'
+                                    dataKey='tickets'
+                                    stroke='#2dc275'
+                                    strokeWidth={3}
+                                    dot={{ r: 4 }}
+                                />
+                            </LineChart>
+                        </ResponsiveContainer>
+                    ) : (
+                        <p
+                            style={{
+                                textAlign: 'center',
+                                color: '#9ca6b0',
+                                marginTop: '50px'
                             }}
                         >
-                            <CartesianGrid
-                                strokeDasharray='3 3'
-                                vertical={false}
-                                stroke='#f0f0f0'
-                            />
-                            <XAxis
-                                dataKey='time'
-                                axisLine={false}
-                                tickLine={false}
-                                tick={{ fill: '#9ca6b0', fontSize: 12 }}
-                                dy={10}
-                            />
-                            <YAxis
-                                yAxisId='left'
-                                axisLine={false}
-                                tickLine={false}
-                                tick={{ fill: '#9ca6b0', fontSize: 12 }}
-                            />
-                            <YAxis
-                                yAxisId='right'
-                                orientation='right'
-                                axisLine={false}
-                                tickLine={false}
-                                tick={{ fill: '#9ca6b0', fontSize: 12 }}
-                            />
-                            <Tooltip
-                                contentStyle={{
-                                    borderRadius: '8px',
-                                    border: 'none',
-                                    boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
-                                }}
-                            />
-                            <Line
-                                yAxisId='left'
-                                type='monotone'
-                                dataKey='revenue'
-                                stroke='#8b5cf6'
-                                strokeWidth={3}
-                                dot={{ r: 4 }}
-                                activeDot={{ r: 6 }}
-                            />
-                            <Line
-                                yAxisId='right'
-                                type='monotone'
-                                dataKey='tickets'
-                                stroke='#2dc275'
-                                strokeWidth={3}
-                                dot={{ r: 4 }}
-                                activeDot={{ r: 6 }}
-                            />
-                        </LineChart>
-                    </ResponsiveContainer>
+                            Chưa có dữ liệu giao dịch cho sự kiện này.
+                        </p>
+                    )}
                 </div>
             </div>
         </div>
