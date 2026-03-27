@@ -9,6 +9,7 @@ import { callLogin, callRegister } from '@apis/authApi';
 import { AuthContext } from '@contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { ROLE_ID } from '@constants/roles.js';
+import { isValidEmail } from '@utils/validation';
 
 const cx = classNames.bind(styles);
 
@@ -71,11 +72,10 @@ function AuthModal({ isOpen, onClose }) {
 
     const validateForm = () => {
         let newErrors = {};
-        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-
         if (!email) {
             newErrors.email = 'Email không được để trống';
-        } else if (!emailRegex.test(email)) {
+        } else if (!isValidEmail(email)) {
+            // Thay thế emailRegex.test(email)
             newErrors.email = 'Định dạng email không hợp lệ';
         }
 

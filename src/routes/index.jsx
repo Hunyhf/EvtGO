@@ -9,7 +9,6 @@ import StaffLayout from '@components/layouts/StaffLayout.jsx';
 import EventDashboardLayout from '@components/layouts/EventDashboardLayout.jsx'; // Layout mới cho chi tiết sự kiện
 
 // Import Pages
-import Staff from '@pages/staff/Staff.jsx';
 
 // CUSTOMER PAGES
 import Home from '@pages/customer/Home/Home.jsx';
@@ -32,7 +31,10 @@ import CreateEvent from '@pages/organizer/EventManagement/CreateEvent';
 import EditEvent from '@pages/organizer/EventManagement/EditEvent';
 import OrderManagement from '@pages/organizer/OrderManagement/OrderManagement';
 import EventSummary from '@pages/organizer/EventManagement/EventSummary/EventSummary.jsx'; // Trang Summary mới
+import StaffManagement from '@pages/organizer/EventManagement/StaffManagement';
 
+// STAFF PAGES
+import TicketScanner from '@pages/staff/TicketScanner';
 // Import Protection, Context & Constants
 import ProtectedRoute from '@components/ProtectedRoute';
 import { AuthProvider } from '@contexts/AuthContext';
@@ -109,15 +111,6 @@ export const routes = createBrowserRouter([
             },
 
             // --- NHÓM STAFF ---
-            {
-                path: '/staff',
-                element: (
-                    <ProtectedRoute allowedRoles={[ROLE_ID.STAFF]}>
-                        <StaffLayout />
-                    </ProtectedRoute>
-                ),
-                children: [{ index: true, element: <Staff /> }]
-            },
 
             // --- NHÓM ADMIN ---
             {
@@ -156,7 +149,12 @@ export const routes = createBrowserRouter([
                                 path: 'terms',
                                 element: <div>Trang điều khoản</div>
                             },
-                            { path: 'orders', element: <OrderManagement /> }
+                            { path: 'orders', element: <OrderManagement /> },
+                            { path: 'staff', element: <StaffManagement /> },
+                            {
+                                path: 'staff/:eventId',
+                                element: <StaffManagement />
+                            }
                         ]
                     },
                     // Layout 2: Màn hình chi tiết của một sự kiện
@@ -171,13 +169,30 @@ export const routes = createBrowserRouter([
                             },
                             {
                                 path: 'members',
-                                element: <div>Danh sách thành viên</div>
+                                element: <StaffManagement />
                             }
                         ]
                     }
                 ]
             },
-
+            {
+                path: '/staff',
+                element: (
+                    <ProtectedRoute allowedRoles={[ROLE_ID.STAFF]}>
+                        <StaffLayout />
+                    </ProtectedRoute>
+                ),
+                children: [
+                    {
+                        index: true, // Thay đổi ở đây: Đặt scanner làm trang chủ của Staff
+                        element: <TicketScanner />
+                    },
+                    {
+                        path: 'scan/:eventId',
+                        element: <TicketScanner />
+                    }
+                ]
+            },
             // --- ERROR ROUTES ---
             { path: '/404', element: <NotFound /> },
             { path: '*', element: <NotFound /> }

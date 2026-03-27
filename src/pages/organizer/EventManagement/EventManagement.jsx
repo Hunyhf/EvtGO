@@ -491,6 +491,11 @@ const EventManagement = () => {
                                         <button
                                             style={styles.actionButton}
                                             className='action-btn'
+                                            onClick={() =>
+                                                navigate(
+                                                    `/organizer/staff/${event.id}`
+                                                )
+                                            }
                                         >
                                             <TeamOutlined />
                                             <span>Thành viên</span>

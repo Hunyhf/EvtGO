@@ -1,0 +1,48 @@
+.mobileOnly {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100vh;
+    text-align: center;
+    padding: 20px;
+    background: #0f0c29;
+    color: #fff;
+}
+
+.scannerBody {
+    padding: 16px;
+    background: #fff;
+    min-height: 100vh;
+    color: #333;
+
+    .header {
+        margin-bottom: 24px;
+        text-align: center;
+        h3 {
+            color: #000;
+            margin-bottom: 4px;
+        }
+    }
+
+    .inputArea {
+        margin-top: 20px;
+        input {
+            width: 100%;
+            padding: 15px;
+            border: 2px solid #eee;
+            border-radius: 10px;
+            font-size: 1.1rem;
+            margin-bottom: 12px;
+        }
+        button {
+            width: 100%;
+            padding: 15px;
+            background: #2dc275;
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-weight: bold;
+        }
+    }
+}

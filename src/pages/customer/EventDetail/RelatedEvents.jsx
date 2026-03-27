@@ -119,7 +119,6 @@ const RelatedEvents = ({ genreId, currentEventId, genreName }) => {
                     <Row gutter={[20, 20]} className={cx('grid')}>
                         {relatedEvents.map(item => (
                             <Col xs={24} sm={12} md={8} lg={6} key={item.id}>
-                                {/* EventCard đã có logic slug nên link sẽ tự đúng */}
                                 <EventCard data={item} />
                             </Col>
                         ))}
