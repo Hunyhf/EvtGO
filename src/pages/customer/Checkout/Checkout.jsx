@@ -275,7 +275,7 @@ const Checkout = () => {
                                     <Text type='secondary'>
                                         Vé điện tử và mã QR sẽ được gửi về địa
                                         chỉ email này sau khi thanh toán thành
-                                        tông.
+                                        công.
                                     </Text>
                                 </div>
                             </div>

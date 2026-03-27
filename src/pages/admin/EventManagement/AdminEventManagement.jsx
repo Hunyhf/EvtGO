@@ -26,7 +26,8 @@ import {
     InfoCircleOutlined,
     FileProtectOutlined,
     AuditOutlined,
-    UserOutlined
+    UserOutlined,
+    DollarCircleOutlined
 } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import { eventApi } from '@apis/eventApi';
@@ -179,6 +180,12 @@ function AdminEventManagement() {
         return matchStatus && nameNormalized.includes(searchNormalized);
     });
 
+    // Tính tổng doanh thu của sự kiện đang được chọn
+    const totalRevenue = eventTickets.reduce((acc, ticket) => {
+        const sold = ticket.soldQuantity || 0;
+        return acc + ticket.price * sold;
+    }, 0);
+
     const columns = [
         {
             title: 'Sự kiện',
@@ -193,7 +200,6 @@ function AdminEventManagement() {
                         alignItems: 'center'
                     }}
                 >
-                    {/* Ảnh giữ 1 size cố định, không co giãn */}
                     <div
                         style={{
                             width: '150px',
@@ -239,7 +245,6 @@ function AdminEventManagement() {
         {
             title: 'Thời gian',
             key: 'time',
-
             width: 100,
             render: (_, record) => (
                 <div style={{ fontSize: '11px', lineHeight: '1.5' }}>
@@ -270,7 +275,6 @@ function AdminEventManagement() {
             title: 'Trạng thái',
             dataIndex: 'derivedStatus',
             key: 'status',
-            // Thu nhỏ chiều rộng cột Trạng thái
             width: 50,
             align: 'center',
             render: status => {
@@ -301,7 +305,7 @@ function AdminEventManagement() {
         {
             title: 'Hành động',
             key: 'action',
-            width: 100, // Thu nhỏ cột hành động
+            width: 100,
             align: 'center',
             render: (_, record) => (
                 <Space size='small'>
@@ -410,7 +414,7 @@ function AdminEventManagement() {
                             paddingRight: '8px'
                         }}
                     >
-                        {/* Header chi tiết: Poster + Logo (isCover=false) + Tên */}
+                        {/* Header chi tiết: Poster + Logo + Tên */}
                         <div
                             style={{
                                 display: 'flex',
@@ -537,11 +541,12 @@ function AdminEventManagement() {
                             style={{ marginTop: '24px' }}
                         >
                             <Space>
-                                <AuditOutlined /> Danh sách loại vé
+                                <AuditOutlined /> Danh sách loại vé & Báo cáo
+                                doanh thu
                             </Space>
                         </Divider>
 
-                        {/* Bảng danh sách vé */}
+                        {/* Bảng danh sách vé đã cập nhật */}
                         <Table
                             dataSource={eventTickets}
                             loading={loadingTickets}
@@ -572,12 +577,86 @@ function AdminEventManagement() {
                                     )
                                 },
                                 {
-                                    title: 'Số lượng vé',
+                                    title: 'Tổng vé',
                                     dataIndex: 'totalQuantity',
                                     align: 'center'
+                                },
+                                {
+                                    title: 'Đã bán',
+                                    dataIndex: 'soldQuantity',
+                                    align: 'center',
+                                    render: (sold, record) => (
+                                        <Text
+                                            strong
+                                            type={
+                                                sold > 0
+                                                    ? 'success'
+                                                    : 'secondary'
+                                            }
+                                        >
+                                            {sold || 0} / {record.totalQuantity}
+                                        </Text>
+                                    )
+                                },
+                                {
+                                    title: 'Doanh thu loại vé',
+                                    key: 'subtotal',
+                                    align: 'right',
+                                    render: (_, record) => (
+                                        <Text>
+                                            {new Intl.NumberFormat(
+                                                'vi-VN'
+                                            ).format(
+                                                (record.soldQuantity || 0) *
+                                                    record.price
+                                            )}{' '}
+                                            đ
+                                        </Text>
+                                    )
                                 }
                             ]}
                         />
+
+                        {/* Khối hiển thị tổng doanh thu sự kiện */}
+                        <div
+                            style={{
+                                marginTop: '20px',
+                                padding: '16px',
+                                background: '#f6ffed',
+                                border: '1px solid #b7eb8f',
+                                borderRadius: '8px',
+                                display: 'flex',
+                                justifyContent: 'flex-end',
+                                alignItems: 'center',
+                                gap: '12px'
+                            }}
+                        >
+                            <Space>
+                                <DollarCircleOutlined
+                                    style={{
+                                        fontSize: '20px',
+                                        color: '#52c41a'
+                                    }}
+                                />
+                                <Text
+                                    style={{
+                                        fontSize: '16px',
+                                        fontWeight: '500'
+                                    }}
+                                >
+                                    Tổng doanh thu sự kiện:
+                                </Text>
+                                <Title
+                                    level={3}
+                                    style={{ margin: 0, color: '#52c41a' }}
+                                >
+                                    {new Intl.NumberFormat('vi-VN').format(
+                                        totalRevenue
+                                    )}{' '}
+                                    đ
+                                </Title>
+                            </Space>
+                        </div>
                     </div>
                 )}
             </Modal>
