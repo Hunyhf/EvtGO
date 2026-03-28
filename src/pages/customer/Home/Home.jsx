@@ -1,11 +1,9 @@
-// src/pages/customer/Home/Home.jsx
-import { useRef } from 'react';
+import { useRef, useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import classNames from 'classnames/bind';
 import { Swiper, SwiperSlide } from 'swiper/react';
 import { Empty } from 'antd';
 
-// Import Swiper styles
 import 'swiper/css';
 import 'swiper/css/navigation';
 import 'swiper/css/pagination';
@@ -15,19 +13,31 @@ import Nav from '@components/Nav/Nav.jsx';
 import EventCard from '@components/EventCard/EventCard.jsx';
 import { useHomeData } from '@hooks/useHomeData';
 import { slugify } from '@utils/stringUtils';
-import { BANNER_DATA, TRENDING_DATA, swiperConfig } from './constants';
+import { BANNER_DATA, swiperConfig } from './constants';
+import { eventApi } from '@apis/eventApi';
+import { getEventImageUrl } from '@utils/imageHelper';
 
 const cx = classNames.bind(styles);
 
 function Home() {
     const trendingRef = useRef(null);
-
-    // Sử dụng custom hook để lấy dữ liệu
     const { sections, loading } = useHomeData();
 
-    /**
-     * Xử lý scroll ngang cho phần Trending
-     */
+    // State lưu danh sách sự kiện trending
+    const [trendingEvents, setTrendingEvents] = useState([]);
+    const [loadingTrending, setLoadingTrending] = useState(true);
+
+    // Gọi API lấy danh sách trending khi component mount
+    useEffect(() => {
+        const fetchTrending = async () => {
+            setLoadingTrending(true);
+            const data = await eventApi.getUnifiedTrending(); // Chỉ 1 dòng duy nhất
+            setTrendingEvents(data);
+            setLoadingTrending(false);
+        };
+        fetchTrending();
+    }, []);
+    // Xử lý scroll ngang danh sách trending
     const handleScroll = direction => {
         const { current } = trendingRef;
         if (current) {
@@ -36,6 +46,7 @@ function Home() {
                 direction === 'left'
                     ? current.scrollLeft - scrollAmount
                     : current.scrollLeft + scrollAmount;
+
             current.scrollTo({ left: leftPos, behavior: 'smooth' });
         }
     };
@@ -45,7 +56,7 @@ function Home() {
             <Nav />
 
             <div className={cx('wrapper')}>
-                {/* Banner Section */}
+                {/* Banner slider */}
                 <section className={cx('bannerContainer')}>
                     <Swiper {...swiperConfig}>
                         {BANNER_DATA.map(banner => (
@@ -62,54 +73,80 @@ function Home() {
                     </Swiper>
                 </section>
 
-                {/* Trending Section */}
-                <section className={cx('trendingSection')}>
-                    <header className={cx('sectionHeader')}>
-                        <h3 className={cx('sectionTitle')}>
-                            Sự kiện đang xu hướng
-                        </h3>
-                    </header>
-                    <div className={cx('trendingContent')}>
-                        <button
-                            className={cx('controlBtn', 'prev')}
-                            onClick={() => handleScroll('left')}
-                        >
-                            ❮
-                        </button>
-                        <div
-                            className={cx('eventGridManual')}
-                            ref={trendingRef}
-                        >
-                            {TRENDING_DATA.map(item => (
-                                <div
-                                    key={item.id}
-                                    className={cx('trendingImgWrapper')}
-                                >
-                                    <img
-                                        src={item.url}
-                                        alt={item.title}
-                                        loading='lazy'
-                                    />
-                                </div>
-                            ))}
-                        </div>
-                        <button
-                            className={cx('controlBtn', 'next')}
-                            onClick={() => handleScroll('right')}
-                        >
-                            ❯
-                        </button>
-                    </div>
-                </section>
+                {/* Danh sách sự kiện trending */}
+                {!loadingTrending && trendingEvents.length > 0 && (
+                    <section className={cx('trendingSection')}>
+                        <header className={cx('sectionHeader')}>
+                            <h3 className={cx('sectionTitle')}>
+                                Sự kiện đang xu hướng
+                            </h3>
+                        </header>
 
-                {/* Dynamic Genre Sections */}
+                        <div className={cx('trendingContent')}>
+                            {/* Nút scroll trái */}
+                            <button
+                                className={cx('controlBtn', 'prev')}
+                                onClick={() => handleScroll('left')}
+                            >
+                                ❮
+                            </button>
+
+                            {/* Danh sách ảnh sự kiện */}
+                            <div
+                                className={cx('eventGridManual')}
+                                ref={trendingRef}
+                            >
+                                {trendingEvents.map(event => {
+                                    // Lấy tên file ảnh đầu tiên (nếu có)
+                                    const fileName =
+                                        event.images?.[0]?.url || null;
+
+                                    // Tạo URL ảnh đầy đủ từ backend
+                                    const eventImageUrl = getEventImageUrl(
+                                        event.id,
+                                        fileName
+                                    );
+
+                                    return (
+                                        <div
+                                            key={event.id}
+                                            className={cx('trendingImgWrapper')}
+                                        >
+                                            <Link to={`/event/${event.id}`}>
+                                                <img
+                                                    src={eventImageUrl}
+                                                    alt={event.name}
+                                                    loading='lazy'
+                                                    // Ảnh fallback khi lỗi
+                                                    onError={e => {
+                                                        e.target.src =
+                                                            'https://placehold.co/600x400?text=No+Image';
+                                                    }}
+                                                />
+                                            </Link>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+
+                            {/* Nút scroll phải */}
+                            <button
+                                className={cx('controlBtn', 'next')}
+                                onClick={() => handleScroll('right')}
+                            >
+                                ❯
+                            </button>
+                        </div>
+                    </section>
+                )}
+
+                {/* Danh sách sự kiện theo thể loại */}
                 {loading ? (
                     <div className={cx('loadingState')}>
                         Đang tải danh sách sự kiện...
                     </div>
                 ) : (
                     sections.map(genre => {
-                        // Tạo slug an toàn (ưu tiên slug từ DB, nếu không có thì dùng slugify từ name)
                         const genreSlug = genre.slug || slugify(genre.name);
 
                         return (
@@ -121,7 +158,6 @@ function Home() {
                                     <h3 className={cx('sectionTitle')}>
                                         {genre.name}
                                     </h3>
-                                    {/* CẬP NHẬT TẠI ĐÂY: Chuyển sang dùng slug thay vì ID */}
                                     <Link
                                         to={`/genre/${genreSlug}`}
                                         className={cx('viewMore')}
@@ -146,10 +182,7 @@ function Home() {
                                     <div className={cx('emptyState')}>
                                         <Empty
                                             description={
-                                                <span>
-                                                    Chưa có sự kiện nào cho thể
-                                                    loại này
-                                                </span>
+                                                <span>Chưa có sự kiện nào</span>
                                             }
                                             image={Empty.PRESENTED_IMAGE_SIMPLE}
                                         />
