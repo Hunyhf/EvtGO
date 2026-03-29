@@ -58,19 +58,42 @@ function Home() {
             <div className={cx('wrapper')}>
                 {/* Banner slider */}
                 <section className={cx('bannerContainer')}>
-                    <Swiper {...swiperConfig}>
-                        {BANNER_DATA.map(banner => (
-                            <SwiperSlide key={banner.id}>
-                                <div className={cx('bannerItem')}>
-                                    <img
-                                        src={banner.url}
-                                        alt='Banner'
-                                        loading='lazy'
-                                    />
-                                </div>
-                            </SwiperSlide>
-                        ))}
-                    </Swiper>
+                    {loadingTrending ? (
+                        <div className={cx('loadingState')}>
+                            Đang tải banner...
+                        </div>
+                    ) : trendingEvents.length > 0 ? (
+                        <Swiper {...swiperConfig}>
+                            {trendingEvents.slice(0, 10).map(event => {
+                                // Lấy tên file ảnh đầu tiên (nếu có) giống như ở phần trending
+                                const fileName = event.images?.[0]?.url || null;
+
+                                // Tạo URL ảnh đầy đủ từ backend
+                                const eventImageUrl = getEventImageUrl(
+                                    event.id,
+                                    fileName
+                                );
+
+                                return (
+                                    <SwiperSlide key={event.id}>
+                                        <div className={cx('bannerItem')}>
+                                            <Link to={`/event/${event.id}`}>
+                                                <img
+                                                    src={eventImageUrl}
+                                                    alt={event.name}
+                                                    loading='lazy'
+                                                    onError={e => {
+                                                        e.target.src =
+                                                            'https://placehold.co/1200x400?text=No+Image';
+                                                    }}
+                                                />
+                                            </Link>
+                                        </div>
+                                    </SwiperSlide>
+                                );
+                            })}
+                        </Swiper>
+                    ) : null}
                 </section>
 
                 {/* Danh sách sự kiện trending */}
