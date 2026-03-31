@@ -1,4 +1,3 @@
-// src/apis/orderApi.js
 import axiosClient from './axiosClient';
 
 const orderApi = {

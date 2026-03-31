@@ -1,4 +1,3 @@
-/* src/apis/genresApi.js */
 import axios from './axiosClient';
 
 // Lấy danh sách thể loại (có thể truyền query params)

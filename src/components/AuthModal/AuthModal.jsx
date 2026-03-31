@@ -14,20 +14,33 @@ import { isValidEmail } from '@utils/validation';
 const cx = classNames.bind(styles);
 
 function AuthModal({ isOpen, onClose }) {
+    // Lấy context đăng nhập
     const { loginContext } = useContext(AuthContext);
+
+    // Điều hướng trang
     const navigate = useNavigate();
+
+    // Hiển thị message từ Ant Design
     const { message } = AntdApp.useApp();
 
+    // State điều khiển chế độ login/register
     const [isLoginMode, setIsLoginMode] = useState(true);
+
+    // State xác định đăng ký organizer hay user thường
     const [isOrganizerMode, setIsOrganizerMode] = useState(false);
+
+    // State hiển thị/ẩn mật khẩu
     const [showPassword, setShowPassword] = useState(false);
 
+    // State lưu dữ liệu form
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
+
+    // State lưu lỗi validation
     const [errors, setErrors] = useState({});
 
-    // Reset state khi đóng modal hoặc chuyển chế độ
+    // Reset toàn bộ form khi đóng modal
     useEffect(() => {
         if (!isOpen) {
             setEmail('');
@@ -40,6 +53,7 @@ function AuthModal({ isOpen, onClose }) {
         }
     }, [isOpen]);
 
+    // Reset lỗi và trạng thái khi chuyển mode
     useEffect(() => {
         setErrors({});
         setConfirmPassword('');
@@ -47,7 +61,7 @@ function AuthModal({ isOpen, onClose }) {
         if (isLoginMode) setIsOrganizerMode(false);
     }, [isLoginMode]);
 
-    // Xóa lỗi khi người dùng thay đổi input để nhập lại
+    // Xóa lỗi chung khi user nhập lại dữ liệu
     useEffect(() => {
         if (errors.common) {
             setErrors(prev => {
@@ -57,25 +71,23 @@ function AuthModal({ isOpen, onClose }) {
         }
     }, [email, password]);
 
-    // --- LOGIC MỚI: Tự động ẩn lỗi sau 3 giây ---
+    // Tự động ẩn lỗi sau 3 giây
     useEffect(() => {
         if (Object.keys(errors).length > 0) {
             const timer = setTimeout(() => {
                 setErrors({});
             }, 3000);
-
-            // Xóa bộ đếm nếu errors thay đổi hoặc component unmount để tránh xung đột
             return () => clearTimeout(timer);
         }
     }, [errors]);
-    // --------------------------------------------
 
+    // Validate dữ liệu form trước khi submit
     const validateForm = () => {
         let newErrors = {};
+
         if (!email) {
             newErrors.email = 'Email không được để trống';
         } else if (!isValidEmail(email)) {
-            // Thay thế emailRegex.test(email)
             newErrors.email = 'Định dạng email không hợp lệ';
         }
 
@@ -97,6 +109,7 @@ function AuthModal({ isOpen, onClose }) {
         return Object.keys(newErrors).length === 0;
     };
 
+    // Xử lý submit form login/register
     const handleSubmit = async e => {
         e.preventDefault();
         if (!validateForm()) return;
@@ -106,12 +119,14 @@ function AuthModal({ isOpen, onClose }) {
 
         try {
             if (isLoginMode) {
+                // Gọi API đăng nhập
                 const res = await callLogin(submitEmail, submitPassword);
                 const data = res?.data || res;
 
                 if (data?.access_token) {
                     const { user, access_token } = data;
 
+                    // Kiểm tra email trả về
                     if (user.email !== submitEmail) {
                         setErrors({
                             ...errors,
@@ -120,11 +135,14 @@ function AuthModal({ isOpen, onClose }) {
                         return;
                     }
 
+                    // Lưu thông tin đăng nhập vào context
                     await loginContext(user, access_token);
                     onClose();
                 }
             } else {
+                // Xử lý đăng ký
                 const defaultName = submitEmail.split('@')[0];
+
                 const roleToRegister = isOrganizerMode
                     ? ROLE_ID.ORGANIZER
                     : ROLE_ID.CUSTOMER;
@@ -137,7 +155,7 @@ function AuthModal({ isOpen, onClose }) {
                 );
 
                 if (res) {
-                    message.success('Đăng ký thành công! Vui lòng đăng nhập.');
+                    message.success('Đăng ký thành công! Vui lòng đăng nhập');
                     setIsLoginMode(true);
                     setIsOrganizerMode(false);
                     setPassword('');
@@ -149,11 +167,13 @@ function AuthModal({ isOpen, onClose }) {
                 error?.response?.data?.message || error?.message;
 
             if (isLoginMode) {
+                // Lỗi đăng nhập
                 setErrors({
                     ...errors,
                     common: 'Tài khoản hoặc mật khẩu chưa chính xác'
                 });
             } else {
+                // Lỗi đăng ký
                 if (serverMessage?.toLowerCase().includes('email')) {
                     setErrors({
                         ...errors,
@@ -169,6 +189,7 @@ function AuthModal({ isOpen, onClose }) {
         }
     };
 
+    // Không render nếu modal đóng
     if (!isOpen) return null;
 
     return (
@@ -192,6 +213,7 @@ function AuthModal({ isOpen, onClose }) {
                         onSubmit={handleSubmit}
                         noValidate
                     >
+                        {/* Input email */}
                         <div className={cx('inputGroup')}>
                             <input
                                 type='email'
@@ -209,6 +231,7 @@ function AuthModal({ isOpen, onClose }) {
                             )}
                         </div>
 
+                        {/* Input mật khẩu */}
                         <div className={cx('inputGroup')}>
                             <div className={cx('passwordWrapper')}>
                                 <input
@@ -240,6 +263,7 @@ function AuthModal({ isOpen, onClose }) {
                             )}
                         </div>
 
+                        {/* Input xác nhận mật khẩu khi đăng ký */}
                         {!isLoginMode && (
                             <div className={cx('inputGroup')}>
                                 <div className={cx('passwordWrapper')}>
@@ -277,6 +301,7 @@ function AuthModal({ isOpen, onClose }) {
                             </div>
                         )}
 
+                        {/* Hiển thị lỗi chung */}
                         {errors.common && (
                             <div className={cx('errorMsg', 'center')}>
                                 {errors.common}
@@ -289,6 +314,7 @@ function AuthModal({ isOpen, onClose }) {
                     </form>
 
                     <div className={cx('footer')}>
+                        {/* Link đăng ký organizer */}
                         {isLoginMode && (
                             <div className={cx('organizerLink')}>
                                 Bạn muốn tổ chức sự kiện?{' '}
@@ -302,6 +328,8 @@ function AuthModal({ isOpen, onClose }) {
                                 </strong>
                             </div>
                         )}
+
+                        {/* Chuyển đổi giữa login và register */}
                         <span className={cx('switchModeBtn')}>
                             {isLoginMode
                                 ? 'Chưa có tài khoản? '

@@ -1,4 +1,3 @@
-// src/components/BookingButton/BookingButton.jsx
 import React from 'react';
 import { Button } from 'antd';
 import classNames from 'classnames/bind';

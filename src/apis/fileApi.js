@@ -1,4 +1,3 @@
-// src/apis/fileApi.js
 import axiosClient from './axiosClient';
 
 const fileApi = {

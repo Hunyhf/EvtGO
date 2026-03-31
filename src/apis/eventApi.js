@@ -1,30 +1,46 @@
-// src/apis/eventApi.js
 import axios from './axiosClient';
 
-// --- 1. Các hàm cơ bản ---
+// Tạo mới một sự kiện
 const create = data => axios.post('/api/v1/events', data);
+
+// Cập nhật thông tin sự kiện theo ID
 const update = (id, data) => axios.put(`/api/v1/events/${id}`, data);
+
+// Lấy chi tiết một sự kiện theo ID
 const getById = id => axios.get(`/api/v1/events/${id}`);
+
+// Xóa một sự kiện theo ID
 const remove = id => axios.delete(`/api/v1/events/${id}`);
+
+// Lấy danh sách sự kiện (có thể truyền params để phân trang, lọc, sắp xếp)
 const getAll = params => axios.get('/api/v1/events', { params });
+
+// Thay đổi trạng thái active của sự kiện (bật/tắt hoạt động)
 const toggleActive = id => axios.patch(`/api/v1/events/${id}/active`);
+
+// Thay đổi trạng thái published của sự kiện (hiển thị/ẩn)
 const togglePublished = id => axios.patch(`/api/v1/events/${id}/published`);
+
+// Duyệt sự kiện (publish sự kiện)
 const approve = id => togglePublished(id);
+
+// Từ chối sự kiện (disable sự kiện)
 const reject = id => toggleActive(id);
 
-// --- 2. API lấy gợi ý (Dựa trên lịch sử mua vé - Proxy cho "Sự kiện nổi bật") ---
+// Lấy danh sách sự kiện gợi ý cho người dùng
 const getRecommendations = () => axios.get('/api/v1/events/recommendations');
 
 /**
- * LOGIC THÔNG MINH: Lấy Trending cho trang Home
- * - Ưu tiên 1: Lấy từ gợi ý (Backend dùng User-Based CF dựa trên vé đã bán).
- * - Ưu tiên 2: Nếu thiếu (dưới 10 cái) hoặc chưa đăng nhập, lấy thêm sự kiện mới nhất.
- * - Đảm bảo: Không trùng lặp và luôn đủ 10 sản phẩm (nếu DB có đủ).
+ * Lấy danh sách sự kiện trending cho trang Home
+ * - Lấy từ danh sách gợi ý trước
+ * - Nếu chưa đủ 10 sự kiện thì bổ sung bằng sự kiện mới nhất
+ * - Loại bỏ các sự kiện trùng ID
+ * - Trả về tối đa 10 sự kiện
  */
 const getUnifiedTrending = async () => {
     let finalEvents = [];
 
-    // BƯỚC 1: Thử lấy dữ liệu "Hot" từ Backend (Những gì người dùng khác đã mua)
+    // Lấy danh sách gợi ý
     try {
         const res = await getRecommendations();
         const data = res?.data || res || [];
@@ -32,13 +48,12 @@ const getUnifiedTrending = async () => {
             finalEvents = [...data];
         }
     } catch (error) {
-        console.log('Guest mode: Chuyển sang lấy sự kiện công khai...');
+        console.log('Không lấy được gợi ý, chuyển sang danh sách công khai');
     }
 
-    // BƯỚC 2: Nếu chưa đủ 10 cái, "nghĩ cách" lấy thêm sự kiện mới nhất đắp vào
+    // Nếu chưa đủ 10 sự kiện thì lấy thêm sự kiện mới nhất
     if (finalEvents.length < 10) {
         try {
-            // Lấy 20 cái mới nhất để dư giả lọc trùng
             const publicRes = await getAll({
                 current: 1,
                 pageSize: 20,
@@ -48,22 +63,22 @@ const getUnifiedTrending = async () => {
             const newestList =
                 publicRes?.result || publicRes?.data?.result || [];
 
-            // Thuật toán lọc trùng: Chỉ lấy những ID chưa có trong danh sách Hot
+            // Lọc các sự kiện chưa có trong danh sách hiện tại
             const existingIds = new Set(finalEvents.map(ev => ev.id));
             const fillers = newestList.filter(ev => !existingIds.has(ev.id));
 
-            // Gộp danh sách Hot + danh sách Mới
+            // Gộp danh sách gợi ý và danh sách bổ sung
             finalEvents = [...finalEvents, ...fillers];
         } catch (err) {
-            console.error('Không thể lấy thêm dữ liệu bù đắp:', err);
+            console.error('Lỗi khi lấy thêm sự kiện:', err);
         }
     }
 
-    // BƯỚC 3: Cắt đúng 10 phần tử đầu tiên để trả về cho UI
+    // Trả về tối đa 10 sự kiện
     return finalEvents.slice(0, 10);
 };
 
-// --- 3. Export object ---
+// Export các API để sử dụng
 export const eventApi = {
     create,
     update,
@@ -75,5 +90,5 @@ export const eventApi = {
     approve,
     reject,
     getRecommendations,
-    getUnifiedTrending // <--- Hàm quan trọng nhất cho Trending Home
+    getUnifiedTrending
 };
