@@ -27,7 +27,6 @@
 
         aspect-ratio: 16 / 9;
 
-        // Màu nền mờ đằng sau để khi ảnh bị thu nhỏ lại (contain) thì khoảng trống không bị trống trơn
         background-color: #1a1a1a;
 
         a {
@@ -39,7 +38,6 @@
         img {
             width: 100%;
             height: 100%;
-            // Đổi từ 'cover' sang 'contain' để ảnh thu nhỏ theo khung sẵn có mà không bị cắt
             object-fit: contain;
         }
 

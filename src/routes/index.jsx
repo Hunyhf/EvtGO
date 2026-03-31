@@ -19,7 +19,7 @@ import Checkout from '@pages/customer/Checkout/Checkout';
 import NotFound from '@pages/customer/NotFound/NotFound.jsx';
 import EventDetail from '@pages/customer/EventDetail/EventDetail';
 import Ticket from '@pages/customer/Ticket/Ticket';
-
+import PolicyViewer from '@pages/customer/PolicyViewer/PolicyViewer';
 // ADMIN PAGES
 import AdminDashBoard from '@pages/admin/AdminDashBoard/AdminDashBoard.jsx';
 import UserManagement from '@pages/admin/UserManagement/UserManagement.jsx';
@@ -105,6 +105,33 @@ export const routes = createBrowserRouter([
                             >
                                 <Profile />
                             </ProtectedRoute>
+                        )
+                    },
+                    {
+                        path: 'chinh-sach-bao-mat-thanh-toan',
+                        element: (
+                            <PolicyViewer
+                                fileName='chinh-sach-bao-mat-thanh-toan.pdf'
+                                title='Chính sách bảo mật thanh toán'
+                            />
+                        )
+                    },
+                    {
+                        path: 'chinh-sach-kiem-hang',
+                        element: (
+                            <PolicyViewer
+                                fileName='chinh-sach-kiem-hang.pdf'
+                                title='Chính sách kiểm hàng và đổi trả'
+                            />
+                        )
+                    },
+                    {
+                        path: 'dieu-kien-van-chuyen',
+                        element: (
+                            <PolicyViewer
+                                fileName='dieu-kien-van-chuyen.pdf'
+                                title='Điều kiện vận chuyển và giao nhận'
+                            />
                         )
                     }
                 ]

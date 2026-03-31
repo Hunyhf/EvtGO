@@ -1,5 +1,6 @@
 import classNames from 'classnames/bind';
 import styles from './Footer.module.scss';
+import { Link } from 'react-router-dom';
 const cx = classNames.bind(styles);
 
 function Footer() {
@@ -65,15 +66,19 @@ function Footer() {
                                 </a>
                             </li>
                             <li>
-                                <a href='#'>Chính sách bảo mật thanh toán</a>
+                                <Link to='/chinh-sach-bao-mat-thanh-toan'>
+                                    Chính sách bảo mật thanh toán
+                                </Link>
                             </li>
                             <li>
-                                <a href='#'>Chính sách đổi trả và kiểm hàng</a>
+                                <Link to='/chinh-sach-kiem-hang'>
+                                    Chính sách đổi trả và kiểm hàng
+                                </Link>
                             </li>
                             <li>
-                                <a href='#'>
+                                <Link to='/dieu-kien-van-chuyen'>
                                     Điều kiện vận chuyển và giao nhận
-                                </a>
+                                </Link>
                             </li>
                             <li>
                                 <a href='#'>Phương thức thanh toán</a>

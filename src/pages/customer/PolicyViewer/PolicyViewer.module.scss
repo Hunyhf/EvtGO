@@ -1,0 +1,26 @@
+@use '@styles/variables';
+
+.policy-container {
+    width: 100%;
+    height: 100vh;
+    background-color: #f4f4f4;
+    display: flex;
+    flex-direction: column;
+
+    .pdf-frame {
+        width: 100%;
+        height: 100%;
+        border: none;
+    }
+
+    .fallback-message {
+        padding: 20px;
+        text-align: center;
+
+        a {
+            color: $primary-color;
+            text-decoration: underline;
+            font-weight: 500;
+        }
+    }
+}
