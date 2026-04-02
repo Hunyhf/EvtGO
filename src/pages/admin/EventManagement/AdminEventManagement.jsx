@@ -1,3 +1,4 @@
+// src/pages/admin/EventManagement/AdminEventManagement.jsx
 import React, { useState, useEffect } from 'react';
 import {
     Table,
@@ -15,7 +16,9 @@ import {
     Divider,
     Avatar,
     Row,
-    Col
+    Col,
+    Card,
+    Popconfirm
 } from 'antd';
 import {
     EyeOutlined,
@@ -27,7 +30,10 @@ import {
     FileProtectOutlined,
     AuditOutlined,
     UserOutlined,
-    DollarCircleOutlined
+    DollarCircleOutlined,
+    BankOutlined,
+    MailOutlined,
+    DeleteOutlined
 } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import { eventApi } from '@apis/eventApi';
@@ -119,8 +125,8 @@ function AdminEventManagement() {
                     isActive,
                     fullStartTime,
                     fullEndTime,
-
-                    organizerName: event.createdBy || 'N/A'
+                    organizerDisplay:
+                        event.producer?.producerName || event.createdBy || 'N/A'
                 };
             });
 
@@ -152,6 +158,18 @@ function AdminEventManagement() {
         }
     };
 
+    const handleDelete = async id => {
+        try {
+            await eventApi.remove(id);
+            message.success('Đã xóa sự kiện thành công.');
+            fetchEvents();
+        } catch (error) {
+            message.error(
+                error.response?.data?.message || 'Không thể xóa sự kiện.'
+            );
+        }
+    };
+
     const handleViewDetail = async record => {
         setSelectedEvent(record);
         setIsDetailModalOpen(true);
@@ -180,7 +198,6 @@ function AdminEventManagement() {
         return matchStatus && nameNormalized.includes(searchNormalized);
     });
 
-    // Tính tổng doanh thu của sự kiện đang được chọn
     const totalRevenue = eventTickets.reduce((acc, ticket) => {
         const sold = ticket.soldQuantity || 0;
         return acc + ticket.price * sold;
@@ -228,9 +245,7 @@ function AdminEventManagement() {
                             style={{
                                 fontWeight: '600',
                                 fontSize: '14px',
-                                lineHeight: '1.3',
-                                marginBottom: '4px',
-                                whiteSpace: 'normal'
+                                marginBottom: '4px'
                             }}
                         >
                             {text}
@@ -248,7 +263,7 @@ function AdminEventManagement() {
             width: 100,
             render: (_, record) => (
                 <div style={{ fontSize: '11px', lineHeight: '1.5' }}>
-                    <div style={{ whiteSpace: 'nowrap' }}>
+                    <div>
                         <Text type='secondary' style={{ fontSize: '10px' }}>
                             BĐ:{' '}
                         </Text>
@@ -258,7 +273,7 @@ function AdminEventManagement() {
                               )
                             : '--'}
                     </div>
-                    <div style={{ whiteSpace: 'nowrap' }}>
+                    <div>
                         <Text type='secondary' style={{ fontSize: '10px' }}>
                             KT:{' '}
                         </Text>
@@ -289,14 +304,7 @@ function AdminEventManagement() {
                     text: 'Khác'
                 };
                 return (
-                    <Tag
-                        color={config.color}
-                        style={{
-                            fontSize: '10px',
-                            margin: 0,
-                            padding: '0 4px'
-                        }}
-                    >
+                    <Tag color={config.color} style={{ fontSize: '10px' }}>
                         {config.text.toUpperCase()}
                     </Tag>
                 );
@@ -305,10 +313,10 @@ function AdminEventManagement() {
         {
             title: 'Hành động',
             key: 'action',
-            width: 100,
+            width: 120,
             align: 'center',
             render: (_, record) => (
-                <Space size='small'>
+                <Space size='middle'>
                     <Tooltip title='Xem'>
                         <Button
                             size='small'
@@ -322,10 +330,9 @@ function AdminEventManagement() {
                             <Button
                                 size='small'
                                 type='text'
-                                danger={record.isPublished}
                                 style={{
                                     color: record.isPublished
-                                        ? '#ff4d4f'
+                                        ? '#faad14'
                                         : '#52c41a'
                                 }}
                                 icon={
@@ -345,6 +352,27 @@ function AdminEventManagement() {
                                     )
                                 }
                             />
+                        </Tooltip>
+                    )}
+
+                    {/* NÚT XÓA SỰ KIỆN - CHỈ HIỂN THỊ KHI CHƯA DUYỆT (isPublished === false) */}
+                    {!record.isPublished && (
+                        <Tooltip title='Xóa sự kiện'>
+                            <Popconfirm
+                                title='Xóa sự kiện?'
+                                description='Hành động này không thể hoàn tác và sẽ xóa toàn bộ vé liên quan.'
+                                onConfirm={() => handleDelete(record.id)}
+                                okText='Xóa'
+                                cancelText='Hủy'
+                                okButtonProps={{ danger: true }}
+                            >
+                                <Button
+                                    size='small'
+                                    type='text'
+                                    danger
+                                    icon={<DeleteOutlined />}
+                                />
+                            </Popconfirm>
                         </Tooltip>
                     )}
                 </Space>
@@ -383,7 +411,7 @@ function AdminEventManagement() {
                     dataSource={filteredData}
                     rowKey='id'
                     loading={loading}
-                    pagination={{ pageSize: 10, showSizeChanger: false }}
+                    pagination={{ pageSize: 10 }}
                 />
             </div>
 
@@ -404,7 +432,7 @@ function AdminEventManagement() {
                         Đóng
                     </Button>
                 ]}
-                width={850}
+                width={900}
             >
                 {selectedEvent && (
                     <div
@@ -414,7 +442,6 @@ function AdminEventManagement() {
                             paddingRight: '8px'
                         }}
                     >
-                        {/* Header chi tiết: Poster + Logo + Tên */}
                         <div
                             style={{
                                 display: 'flex',
@@ -438,7 +465,6 @@ function AdminEventManagement() {
                                 >
                                     {selectedEvent.name}
                                 </Title>
-
                                 <Space
                                     align='center'
                                     style={{
@@ -464,11 +490,10 @@ function AdminEventManagement() {
                                             Đơn vị tổ chức
                                         </div>
                                         <Text strong>
-                                            {selectedEvent.organizerName}
+                                            {selectedEvent.organizerDisplay}
                                         </Text>
                                     </div>
                                 </Space>
-
                                 <Tag
                                     color={
                                         selectedEvent.derivedStatus === 'PAST'
@@ -481,7 +506,85 @@ function AdminEventManagement() {
                             </div>
                         </div>
 
-                        {/* Thông tin giấy phép & Thời gian */}
+                        <Divider
+                            orientation='left'
+                            style={{ margin: '12px 0' }}
+                        >
+                            <Space>
+                                <BankOutlined /> Thông tin Đối soát & Thanh toán
+                            </Space>
+                        </Divider>
+                        <Card
+                            size='small'
+                            style={{
+                                background: '#fafafa',
+                                marginBottom: 24,
+                                border: '1px solid #e8e8e8'
+                            }}
+                        >
+                            {selectedEvent.producer ? (
+                                <Descriptions column={2} size='small' bordered>
+                                    <Descriptions.Item
+                                        label={
+                                            <span>
+                                                <UserOutlined /> Tên pháp nhân
+                                            </span>
+                                        }
+                                    >
+                                        <Text strong>
+                                            {
+                                                selectedEvent.producer
+                                                    .producerName
+                                            }
+                                        </Text>
+                                    </Descriptions.Item>
+                                    <Descriptions.Item
+                                        label={
+                                            <span>
+                                                <MailOutlined /> Email liên hệ
+                                            </span>
+                                        }
+                                    >
+                                        {selectedEvent.producer.contactEmail ||
+                                            'N/A'}
+                                    </Descriptions.Item>
+                                    <Descriptions.Item label='Ngân hàng'>
+                                        <Tag color='blue'>
+                                            {selectedEvent.producer.bankName}
+                                        </Tag>
+                                    </Descriptions.Item>
+                                    <Descriptions.Item label='Số tài khoản'>
+                                        <Text
+                                            copyable={{
+                                                text: selectedEvent.producer
+                                                    .bankAccountNumber
+                                            }}
+                                            style={{
+                                                color: '#2dc275',
+                                                fontWeight: '600'
+                                            }}
+                                        >
+                                            {
+                                                selectedEvent.producer
+                                                    .bankAccountNumber
+                                            }
+                                        </Text>
+                                    </Descriptions.Item>
+                                </Descriptions>
+                            ) : (
+                                <div
+                                    style={{
+                                        textAlign: 'center',
+                                        padding: '10px',
+                                        color: '#999'
+                                    }}
+                                >
+                                    Sự kiện này chưa cập nhật thông tin nhà tổ
+                                    chức chi tiết.
+                                </div>
+                            )}
+                        </Card>
+
                         <Row gutter={24}>
                             <Col span={12}>
                                 <Descriptions
@@ -546,7 +649,6 @@ function AdminEventManagement() {
                             </Space>
                         </Divider>
 
-                        {/* Bảng danh sách vé đã cập nhật */}
                         <Table
                             dataSource={eventTickets}
                             loading={loadingTickets}
@@ -617,7 +719,6 @@ function AdminEventManagement() {
                             ]}
                         />
 
-                        {/* Khối hiển thị tổng doanh thu sự kiện */}
                         <div
                             style={{
                                 marginTop: '20px',

@@ -29,4 +29,3 @@ const seatApi = {
 };
 
 export default seatApi;
-ss;

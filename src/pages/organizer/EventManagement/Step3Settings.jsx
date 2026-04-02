@@ -1,189 +1,177 @@
 // src/pages/organizer/EventManagement/Step3Settings.jsx
 import React, { useEffect } from 'react';
-import { Form, Input, Card, Typography, message, theme } from 'antd';
-import { MailOutlined } from '@ant-design/icons';
+import { Form, Input, Card, Typography, Row, Col, message, Tag } from 'antd';
+import { AppstoreAddOutlined } from '@ant-design/icons';
 
 const { Title, Text } = Typography;
-const { TextArea } = Input;
 
-const Step3Settings = ({
-    setOnNextAction,
-    formData,
-    setFormData
-    // nextStep // Không cần dùng prop này nữa vì Cha sẽ tự xử lý chuyển bước
-}) => {
+const Step3Settings = ({ setOnNextAction, formData, setFormData }) => {
     const [form] = Form.useForm();
 
-    // 1. Init Data (Hydration)
+    // Điền dữ liệu cũ vào form nếu Organizer quay lại từ bước 4
     useEffect(() => {
-        if (formData) {
-            form.setFieldsValue({
-                confirmationMessage: formData.confirmationMessage || ''
+        if (formData.tickets && formData.tickets.length > 0) {
+            const initialValues = {};
+            formData.tickets.forEach((ticket, index) => {
+                initialValues[`zone_${index}`] =
+                    formData.seatZones?.[index]?.zone || '';
+                initialValues[`prefix_${index}`] =
+                    formData.seatZones?.[index]?.prefix || '';
             });
+            form.setFieldsValue(initialValues);
         }
-    }, [formData, form]);
+    }, [formData.tickets, formData.seatZones, form]);
 
-    // ----------------------------------------------------------------------
-    // 2. LOGIC: ĐĂNG KÝ HÀM VALIDATE CHO CHA (ĐÃ SỬA)
-    // ----------------------------------------------------------------------
+    // Xử lý khi bấm nút "Tiếp tục" ở thẻ Layout bọc bên ngoài
     useEffect(() => {
-        // Sử dụng triple closure () => () => async () => ...
-        // để tương thích với lời gọi await onNextAction()() ở CreateEvent.jsx
         setOnNextAction(() => () => async () => {
             try {
-                // Thực hiện validate form
                 const values = await form.validateFields();
+                const newSeats = [];
+                const seatZones = [];
 
-                console.log('Step 3 Validated:', values);
+                // Duyệt qua từng loại vé đã tạo ở Step 2
+                for (let i = 0; i < formData.tickets.length; i++) {
+                    const ticket = formData.tickets[i];
+                    const zone = values[`zone_${i}`];
+                    const prefix = values[`prefix_${i}`];
 
-                // Cập nhật dữ liệu vào state tổng
-                setFormData(prev => ({ ...prev, ...values }));
+                    // Lưu lại cấu hình Zone để render lại nếu quay về bước này
+                    seatZones.push({ zone, prefix });
 
-                // Trả về true để báo cho Cha là hợp lệ, Cha sẽ tự gọi nextStep()
-                return true;
+                    // Phát sinh từng ghế dựa trên totalQuantity của loại vé
+                    for (let j = 1; j <= ticket.totalQuantity; j++) {
+                        newSeats.push({
+                            seatLabel: `${prefix}${j}`, // VD: VIP1, VIP2,...
+                            zone: zone, // VD: Khu VIP
+                            price: ticket.price // Kế thừa giá từ loại vé
+                        });
+                    }
+                }
+
+                // Cập nhật toàn bộ ghế vào formData
+                setFormData(prev => ({
+                    ...prev,
+                    seatZones: seatZones,
+                    seats: newSeats
+                }));
+
+                return true; // Cho phép qua Step 4
             } catch (error) {
-                message.error('Vui lòng nhập nội dung tin nhắn xác nhận!');
-                console.error('Validate Failed:', error);
-                // Trả về false để chặn không cho qua bước tiếp theo
-                return false;
+                message.error(
+                    'Vui lòng nhập đầy đủ Tên khu vực và Mã ghế cho tất cả loại vé!'
+                );
+                return false; // Chặn không cho qua bước tiếp theo
             }
         });
 
-        // Cleanup khi unmount
+        // Cleanup function
         return () => setOnNextAction(null);
-    }, [form, setOnNextAction, setFormData]);
-
-    // Styles custom cho Textarea
-    const textAreaStyle = {
-        backgroundColor: '#fff',
-        color: '#333',
-        borderRadius: '8px',
-        border: '1px solid #e5e7eb',
-        padding: '12px',
-        fontSize: '16px',
-        fontFamily: "'Inter', sans-serif",
-        boxShadow: 'inset 0 2px 4px 0 rgba(0, 0, 0, 0.06)'
-    };
+    }, [form, formData.tickets, setFormData, setOnNextAction]);
 
     return (
-        <Form
-            form={form}
-            layout='vertical'
-            style={{ maxWidth: 800, margin: '0 auto' }}
-        >
-            <Card
-                bordered={false}
-                style={{
-                    borderRadius: '12px',
-                    background:
-                        'linear-gradient(145deg, #2a2d34 0%, #1a2e25 100%)',
-                    boxShadow: '0 10px 30px rgba(0, 0, 0, 0.5)',
-                    border: '1px solid #393f4e',
-                    overflow: 'hidden',
-                    position: 'relative'
-                }}
-            >
-                {/* Neon Green Accent */}
-                <div
-                    style={{
-                        position: 'absolute',
-                        left: 0,
-                        top: 0,
-                        bottom: 0,
-                        width: '4px',
-                        background: '#2dc275',
-                        boxShadow: '0 0 10px #2dc275'
-                    }}
-                />
+        <div style={{ maxWidth: 1000, margin: '0 auto' }}>
+            <div style={{ marginBottom: 24 }}>
+                <Title level={4} style={{ color: '#fff', margin: 0 }}>
+                    <AppstoreAddOutlined style={{ marginRight: 8 }} />
+                    Thiết lập Sơ đồ ghế
+                </Title>
+                <Text type='secondary'>
+                    Cấu hình khu vực và mã ghế dựa trên các loại vé bạn đã tạo ở
+                    bước trước. Hệ thống sẽ tự động phát sinh số thứ tự ghế.
+                </Text>
+            </div>
 
-                {/* Header Section */}
-                <div
-                    style={{
-                        display: 'flex',
-                        alignItems: 'flex-start',
-                        marginBottom: 20
-                    }}
-                >
-                    <div
-                        style={{
-                            background: 'rgba(45, 194, 117, 0.1)',
-                            padding: '10px',
-                            borderRadius: '50%',
-                            marginRight: '16px',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center'
-                        }}
-                    >
-                        <MailOutlined
-                            style={{ fontSize: '24px', color: '#2dc275' }}
-                        />
-                    </div>
-                    <div>
-                        <Title
-                            level={4}
-                            style={{
-                                color: '#fff',
-                                margin: '0 0 4px 0',
-                                fontWeight: 600
-                            }}
-                        >
-                            Tin nhắn xác nhận cho người tham gia
-                        </Title>
-                        <Text style={{ color: '#9ca6b0', fontSize: '14px' }}>
-                            Tin nhắn này sẽ được gửi tự động sau khi người dùng
-                            đặt vé thành công.
-                        </Text>
-                    </div>
-                </div>
-
-                {/* Textarea Section */}
-                <Form.Item
-                    name='confirmationMessage'
-                    style={{ marginBottom: 0 }}
-                    rules={[
-                        {
-                            required: true,
-                            message: 'Nội dung không được để trống'
-                        }
-                    ]}
-                >
-                    <div className='custom-textarea-wrapper'>
-                        <TextArea
-                            rows={8}
-                            placeholder='Ví dụ: Cảm ơn bạn đã quan tâm đến sự kiện của chúng tôi...'
-                            maxLength={500}
-                            showCount={{
-                                formatter: ({ count, maxLength }) => (
-                                    <span
+            <Form form={form} layout='vertical'>
+                <Row gutter={[24, 24]}>
+                    {formData.tickets?.map((ticket, index) => (
+                        <Col span={24} key={index}>
+                            <Card
+                                style={{
+                                    background: '#2a2d34',
+                                    borderColor: '#393f4e',
+                                    borderRadius: 8
+                                }}
+                            >
+                                <div style={{ marginBottom: 16 }}>
+                                    <strong
                                         style={{
-                                            color: '#9ca6b0',
-                                            fontSize: '12px'
+                                            color: '#2dc275',
+                                            fontSize: 16
                                         }}
                                     >
-                                        {count} / {maxLength}
-                                    </span>
-                                )
-                            }}
-                            style={textAreaStyle}
-                            className='neon-focus-textarea'
-                        />
-                    </div>
-                </Form.Item>
-            </Card>
+                                        {ticket.ticketType === 'VIP'
+                                            ? 'Hạng vé: VIP'
+                                            : 'Hạng vé: Phổ thông'}
+                                    </strong>
+                                    <Tag
+                                        color='blue'
+                                        style={{ marginLeft: 12 }}
+                                    >
+                                        Số lượng: {ticket.totalQuantity} ghế
+                                    </Tag>
+                                    <Tag color='green'>
+                                        Giá:{' '}
+                                        {ticket.price === 0
+                                            ? 'Miễn phí'
+                                            : `${ticket.price.toLocaleString()} VND`}
+                                    </Tag>
+                                </div>
 
-            <style>{`
-                .neon-focus-textarea:focus, 
-                .neon-focus-textarea:hover {
-                    border-color: #2dc275 !important;
-                    box-shadow: 0 0 0 4px rgba(45, 194, 117, 0.2) !important;
-                    outline: none;
-                }
-                .ant-input-data-count {
-                    bottom: -25px !important;
-                }
-            `}</style>
-        </Form>
+                                <Row gutter={24}>
+                                    <Col span={12}>
+                                        <Form.Item
+                                            name={`zone_${index}`}
+                                            label={
+                                                <span style={{ color: '#fff' }}>
+                                                    Tên khu vực (VD: Khu A, VIP
+                                                    Lounge...)
+                                                </span>
+                                            }
+                                            rules={[
+                                                {
+                                                    required: true,
+                                                    message:
+                                                        'Vui lòng nhập tên khu vực!'
+                                                }
+                                            ]}
+                                        >
+                                            <Input
+                                                size='large'
+                                                placeholder='Nhập tên khu vực hiển thị cho khách'
+                                            />
+                                        </Form.Item>
+                                    </Col>
+                                    <Col span={12}>
+                                        <Form.Item
+                                            name={`prefix_${index}`}
+                                            label={
+                                                <span style={{ color: '#fff' }}>
+                                                    Mã ký hiệu ghế (VD: A, V,
+                                                    VIP...)
+                                                </span>
+                                            }
+                                            rules={[
+                                                {
+                                                    required: true,
+                                                    message:
+                                                        'Vui lòng nhập mã ghế!'
+                                                }
+                                            ]}
+                                        >
+                                            <Input
+                                                size='large'
+                                                placeholder='Nhập ký hiệu (VD: V -> Ghế V1, V2...)'
+                                            />
+                                        </Form.Item>
+                                    </Col>
+                                </Row>
+                            </Card>
+                        </Col>
+                    ))}
+                </Row>
+            </Form>
+        </div>
     );
 };
 

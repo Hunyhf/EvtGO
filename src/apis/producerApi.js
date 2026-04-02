@@ -1,6 +1,12 @@
+// src/apis/producerApi.js
 import axiosClient from './axiosClient';
 
 const producerApi = {
+    // Lấy thông tin Producer của tài khoản đang đăng nhập
+    getProducerByAccount: () => {
+        return axiosClient.get('/api/v1/producers/account');
+    },
+
     // Tạo mới nhà sản xuất
     createProducer: data => {
         return axiosClient.post('/api/v1/producers', data);

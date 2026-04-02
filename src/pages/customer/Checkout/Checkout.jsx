@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useContext, useMemo } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate, Navigate } from 'react-router-dom'; // Thêm Navigate để phòng vệ
 import {
     Row,
     Col,
@@ -8,7 +8,8 @@ import {
     Checkbox,
     Space,
     Divider,
-    message
+    message,
+    App
 } from 'antd';
 import {
     ArrowLeftOutlined,
@@ -30,25 +31,40 @@ dayjs.locale('vi');
 const cx = classNames.bind(styles);
 const { Title, Text } = Typography;
 
-const TICKET_LABELS = { VIP: 'VÉ VIP', STANDARD: 'VÉ TIÊU CHUẨN' };
+// Mở rộng nhãn vé
+const TICKET_LABELS = {
+    VIP: 'VÉ VIP',
+    STANDARD: 'VÉ TIÊU CHUẨN',
+    NORMAL: 'VÉ THƯỜNG'
+};
 
 const Checkout = () => {
     const navigate = useNavigate();
     const { state } = useLocation();
     const { user } = useContext(AuthContext);
+    const { message } = App.useApp();
 
     const [timeLeft, setTimeLeft] = useState(null);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [agreed, setAgreed] = useState(false);
 
+    // FIX 1: Lấy đúng tên biến từ Booking.jsx gửi sang
     const event = state?.event;
-    const selectedTickets = state?.selectedTickets || [];
+    const selectedItems = state?.selectedItems || [];
     const totalPrice = state?.totalPrice || 0;
     const orderId = state?.orderId;
+    const isSeated = state?.isSeated || false;
 
+    // Tính tổng số lượng (Nếu là ghế thì 1 item = 1 vé)
     const totalQuantity = useMemo(
-        () => selectedTickets.reduce((sum, item) => sum + item.quantity, 0),
-        [selectedTickets]
+        () =>
+            isSeated
+                ? selectedItems.length
+                : selectedItems.reduce(
+                      (sum, item) => sum + (item.quantity || 0),
+                      0
+                  ),
+        [selectedItems, isSeated]
     );
 
     const startDateTime = useMemo(
@@ -67,14 +83,13 @@ const Checkout = () => {
         [event]
     );
 
-    // [Fix Bug Logic Timer] Dùng orderId làm key thay vì event.id
     useEffect(() => {
         if (!orderId) return;
         const storageKey = `checkout_expiration_order_${orderId}`;
         let expirationTime = localStorage.getItem(storageKey);
 
         if (!expirationTime) {
-            expirationTime = Date.now() + 900 * 1000; // 15 phút
+            expirationTime = Date.now() + 900 * 1000;
             localStorage.setItem(storageKey, expirationTime);
         }
 
@@ -104,12 +119,13 @@ const Checkout = () => {
         navigate(-1);
     };
 
-    // Hàm gửi email qua EmailJS
     const sendConfirmationEmail = async () => {
-        const ticketTypesStr = selectedTickets
-            .map(
-                t =>
-                    `${t.quantity}x ${TICKET_LABELS[t.ticketType] || t.ticketType}`
+        // FIX 2: Logic hiển thị nội dung email cho cả 2 loại vé
+        const ticketDetailStr = selectedItems
+            .map(t =>
+                isSeated
+                    ? `Ghế ${t.zone}-${t.seatLabel}`
+                    : `${t.quantity}x ${TICKET_LABELS[t.ticketType] || t.ticketType}`
             )
             .join(', ');
 
@@ -118,26 +134,23 @@ const Checkout = () => {
             event_name: event.name,
             order_id: orderId,
             quantity: totalQuantity,
-            ticket_type: ticketTypesStr,
+            ticket_type: ticketDetailStr,
             total_price: totalPrice.toLocaleString('vi-VN') + ' đ',
             time: `${startDateTime.format('HH:mm')} ngày ${startDateTime.format('DD/MM/YYYY')}`,
             location: event.location,
             to_email: user?.email,
-            // Đưa link để user bấm vào trang của bạn xem chi tiết/QR
             ticket_link: `${window.location.origin}/my-tickets`
         };
 
         try {
-            // ID  từ tài khoản EmailJS
             await emailjs.send(
-                'service_9oozl9c', // SERVICE_ID
-                'template_agrx28n', // TEMPLATE_ID
+                'service_9oozl9c',
+                'template_agrx28n',
                 templateParams,
-                'fvefLbNeEdGweDTg5' // PUBLIC_KEY
+                'fvefLbNeEdGweDTg5'
             );
             console.log('Email sent successfully!');
         } catch (error) {
-            // Không throw error để không chặn luồng chạy của UI
             console.error('Failed to send confirmation email', error);
         }
     };
@@ -156,16 +169,10 @@ const Checkout = () => {
             setIsSubmitting(true);
             const payRes = await orderApi.payOrder({ orderId });
 
-            if (payRes && payRes.orderStatus === 'PAID') {
-                message.success(
-                    'Thanh toán thành công! Vé đã được lưu vào tài khoản của bạn.'
-                );
+            if (payRes) {
+                message.success('Thanh toán thành công!');
                 localStorage.removeItem(`checkout_expiration_order_${orderId}`);
-
-                // 1. Gọi hàm gửi email trong background (Không dùng await để UI mượt mà)
                 sendConfirmationEmail();
-
-                // 2. Chuyển trang
                 setTimeout(() => {
                     navigate('/my-tickets', {
                         state: { activeTab: 'tickets' }
@@ -173,12 +180,11 @@ const Checkout = () => {
                 }, 1500);
             }
         } catch (error) {
-            console.error('Lỗi quy trình thanh toán:', error);
+            console.error('Lỗi thanh toán:', error);
             message.error(
-                error.response?.data?.message ||
-                    'Có lỗi xảy ra trong quá trình xử lý đơn hàng'
+                error.response?.data?.message || 'Lỗi xử lý đơn hàng'
             );
-            setIsSubmitting(false); // Chỉ tắt loading khi lỗi, thành công thì giữ nguyên để chờ navigate
+            setIsSubmitting(false);
         }
     };
 
@@ -189,16 +195,11 @@ const Checkout = () => {
         return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
     };
 
-    if (!event || selectedTickets.length === 0) {
-        return (
-            <div style={{ padding: '100px', textAlign: 'center' }}>
-                <Title level={4}>Không tìm thấy thông tin đơn hàng</Title>
-                <Button type='primary' onClick={() => navigate('/')}>
-                    Về trang chủ
-                </Button>
-            </div>
-        );
+    // PHÒNG VỆ: Nếu người dùng refresh trang (mất state) thì về trang chủ thay vì hiện trang trắng
+    if (!state || !event || selectedItems.length === 0) {
+        return <Navigate to='/' replace />;
     }
+
     return (
         <div className={cx('checkoutPage')}>
             <div className={cx('eventBanner')}>
@@ -268,30 +269,26 @@ const Checkout = () => {
                                     <MailOutlined /> Thông tin nhận vé
                                 </Title>
                                 <div className={cx('cardBody')}>
-                                    <Text block>
+                                    <Text>
                                         Email người nhận:{' '}
                                         <strong>{user?.email}</strong>
                                     </Text>
-                                    <Text type='secondary'>
-                                        Vé điện tử và mã QR sẽ được gửi về địa
-                                        chỉ email này sau khi thanh toán thành
-                                        công.
+                                    <Text
+                                        type='secondary'
+                                        style={{ display: 'block' }}
+                                    >
+                                        Vé điện tử sẽ được gửi về email này.
                                     </Text>
                                 </div>
                             </div>
-
                             <div className={cx('checkoutCard')}>
                                 <Title level={5}>
                                     <WalletOutlined /> Phương thức thanh toán
                                 </Title>
                                 <div className={cx('cardBody')}>
-                                    <Text type='secondary' italic>
-                                        Hệ thống hiện hỗ trợ xác nhận thanh toán
-                                        trực tiếp. Khi nhấn nút
-                                        <strong> "Thanh toán ngay"</strong>, đơn
-                                        hàng sẽ được chuyển sang trạng thái{' '}
-                                        <strong>PAID (Đã thanh toán)</strong> và
-                                        hệ thống sẽ tự động xuất vé cho bạn.
+                                    <Text italic>
+                                        Hệ thống hỗ trợ thanh toán trực tiếp để
+                                        xác nhận vé ngay lập tức.
                                     </Text>
                                 </div>
                             </div>
@@ -302,30 +299,25 @@ const Checkout = () => {
                         <div className={cx('orderSummary')}>
                             <Title level={4}>Thông tin đặt vé</Title>
                             <div className={cx('ticketInfo')}>
-                                {selectedTickets.map(item => (
-                                    <div
-                                        key={item.ticketId}
-                                        className={cx('summaryRow')}
-                                    >
+                                {selectedItems.map((item, idx) => (
+                                    <div key={idx} className={cx('summaryRow')}>
                                         <Space size={8} align='center'>
                                             <img
                                                 src={ticketIcon}
                                                 alt='ticket'
-                                                style={{
-                                                    width: '18px',
-                                                    display: 'block'
-                                                }}
+                                                style={{ width: '18px' }}
                                             />
                                             <Text className={cx('ticketText')}>
-                                                {item.quantity}x{' '}
-                                                {TICKET_LABELS[
-                                                    item.ticketType
-                                                ] || item.ticketType}
+                                                {/* FIX 3: Hiển thị linh hoạt Ghế hoặc Loại vé */}
+                                                {isSeated
+                                                    ? `Ghế ${item.zone}-${item.seatLabel}`
+                                                    : `${item.quantity}x ${TICKET_LABELS[item.ticketType] || item.ticketType}`}
                                             </Text>
                                         </Space>
                                         <Text strong>
                                             {(
-                                                item.price * item.quantity
+                                                item.price *
+                                                (item.quantity || 1)
                                             ).toLocaleString('vi-VN')}{' '}
                                             đ
                                         </Text>
@@ -334,20 +326,15 @@ const Checkout = () => {
                             </div>
                             <Divider className={cx('lightDivider')} />
                             <div className={cx('billing')}>
-                                <div className={cx('summaryRow')}>
-                                    <Text>Tạm tính</Text>
-                                    <Text>
-                                        {totalPrice.toLocaleString('vi-VN')} đ
-                                    </Text>
-                                </div>
                                 <div className={cx('summaryRow', 'total')}>
                                     <Text strong>Tổng cộng</Text>
-                                    <Text
-                                        strong
-                                        className={cx('highlightText')}
+                                    <Title
+                                        level={4}
+                                        type='success'
+                                        style={{ margin: 0 }}
                                     >
                                         {totalPrice.toLocaleString('vi-VN')} đ
-                                    </Text>
+                                    </Title>
                                 </div>
                             </div>
                             <div className={cx('terms')}>
@@ -366,6 +353,11 @@ const Checkout = () => {
                                 loading={isSubmitting}
                                 disabled={timeLeft === 0 || !agreed}
                                 onClick={handleConfirmOrder}
+                                style={{
+                                    background: '#2dc275',
+                                    borderColor: '#2dc275',
+                                    height: '50px'
+                                }}
                             >
                                 {timeLeft === 0
                                     ? 'Giao dịch hết hạn'

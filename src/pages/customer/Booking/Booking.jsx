@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useContext } from 'react';
+import React, { useState, useEffect, useContext, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
     Row,
@@ -9,7 +9,8 @@ import {
     Divider,
     message,
     Spin,
-    Empty
+    Empty,
+    App
 } from 'antd';
 import {
     CalendarOutlined,
@@ -24,11 +25,13 @@ import styles from './Booking.module.scss';
 import { eventApi } from '@apis/eventApi';
 import { ticketApi } from '@apis/ticketApi';
 import orderApi from '@apis/orderApi';
+import seatApi from '@apis/seatApi'; // BƯỚC 1: Import thêm seatApi
 import { AuthContext } from '@contexts/AuthContext';
 import ticketIcon from '@icons/svgs/ticketIcon.svg';
 
-dayjs.locale('vi');
+import SeatPicker from './SeatPicker';
 
+dayjs.locale('vi');
 const cx = classNames.bind(styles);
 const { Title, Text } = Typography;
 
@@ -41,21 +44,28 @@ const TICKET_LABELS = {
 const Booking = () => {
     const { id } = useParams();
     const navigate = useNavigate();
+    const { message } = App.useApp();
     const { isAuthenticated } = useContext(AuthContext);
 
     const [event, setEvent] = useState(null);
     const [tickets, setTickets] = useState([]);
     const [quantities, setQuantities] = useState({});
+    const [selectedSeats, setSelectedSeats] = useState([]);
     const [loading, setLoading] = useState(true);
     const [submitting, setSubmitting] = useState(false);
+
+    // BƯỚC 2: Thêm state để tự động nhận diện sự kiện có ghế hay không
+    const [isSeatedEvent, setIsSeatedEvent] = useState(false);
 
     useEffect(() => {
         const fetchData = async () => {
             try {
                 setLoading(true);
-                const [resEvent, resTicket] = await Promise.all([
+                // BƯỚC 3: Gọi song song 3 API: Event, Tickets, và Seats
+                const [resEvent, resTicket, resSeats] = await Promise.all([
                     eventApi.getById(id),
-                    ticketApi.getAll({ filter: `event.id:${id}` })
+                    ticketApi.getAll({ filter: `event.id:${id}` }),
+                    seatApi.getSeatsByEventId(id).catch(() => []) // Bắt lỗi để không crash nếu API lỗi
                 ]);
 
                 const eventData = resEvent?.result || resEvent;
@@ -73,25 +83,51 @@ const Booking = () => {
                     t => (initQty[t.id] = 0)
                 );
                 setQuantities(initQty);
+
+                // Nếu API trả về mảng ghế lớn hơn 0 -> Sự kiện này có ghế ngồi
+                const seatData = resSeats?.data || resSeats || [];
+                if (Array.isArray(seatData) && seatData.length > 0) {
+                    setIsSeatedEvent(true);
+                } else {
+                    setIsSeatedEvent(false);
+                }
             } catch (error) {
                 console.error('>>> Fetch Error:', error);
-                message.error('Không thể tải thông tin vé.');
+                message.error('Không thể tải thông tin sự kiện.');
             } finally {
                 setLoading(false);
             }
         };
         if (id) fetchData();
-    }, [id]);
+    }, [id, message]);
+
+    // --- Logic Tính Toán ---
+
+    // Thay thế event.isSeated bằng isSeatedEvent
+    const totalTicketsCount = useMemo(() => {
+        if (isSeatedEvent) return selectedSeats.length;
+        return Object.values(quantities).reduce((a, b) => a + b, 0);
+    }, [isSeatedEvent, selectedSeats, quantities]);
+
+    const totalPrice = useMemo(() => {
+        if (isSeatedEvent) {
+            return selectedSeats.reduce((sum, s) => sum + (s.price || 0), 0);
+        }
+        return tickets.reduce(
+            (sum, t) => sum + (quantities[t.id] || 0) * t.price,
+            0
+        );
+    }, [isSeatedEvent, selectedSeats, quantities, tickets]);
+
+    // --- Xử lý sự kiện ---
 
     const handleQtyChange = (ticketId, value) => {
         setQuantities(prev => ({ ...prev, [ticketId]: value }));
     };
 
-    const totalTickets = Object.values(quantities).reduce((a, b) => a + b, 0);
-    const totalPrice = tickets.reduce(
-        (sum, t) => sum + (quantities[t.id] || 0) * t.price,
-        0
-    );
+    const handleSeatSelection = seats => {
+        setSelectedSeats(seats);
+    };
 
     const handleCheckout = async () => {
         if (!isAuthenticated) {
@@ -102,41 +138,50 @@ const Booking = () => {
         try {
             setSubmitting(true);
 
-            const selectedTicketsData = tickets
-                .filter(t => quantities[t.id] > 0)
-                .map(t => ({
-                    ticketId: t.id,
-                    quantity: quantities[t.id],
-                    price: t.price,
-                    ticketType: t.ticketType
+            let orderItems = [];
+            if (isSeatedEvent) {
+                // Dùng state mới
+                orderItems = selectedSeats.map(s => ({
+                    seatId: s.id,
+                    price: s.price,
+                    seatLabel: s.seatLabel,
+                    zone: s.zone
                 }));
+            } else {
+                orderItems = tickets
+                    .filter(t => quantities[t.id] > 0)
+                    .map(t => ({
+                        ticketId: t.id,
+                        quantity: quantities[t.id],
+                        price: t.price,
+                        ticketType: t.ticketType
+                    }));
+            }
 
-            // Chuẩn bị dữ liệu gửi lên BE (Dùng 'items' để tránh lỗi 400 như trước)
             const orderData = {
                 eventId: Number(id),
                 totalPrice: totalPrice,
-                items: selectedTicketsData
+                items: orderItems,
+                isSeated: isSeatedEvent // Cập nhật payload
             };
 
-            // Gọi API lưu đơn hàng vào DB (Status: PENDING)
             const res = await orderApi.createOrder(orderData);
 
             if (res) {
-                // Nếu thành công, chuyển sang Checkout và truyền data kèm orderId
                 navigate(`/booking/${id}/checkout`, {
                     state: {
                         event,
-                        selectedTickets: selectedTicketsData,
+                        selectedItems: orderItems,
                         totalPrice,
-                        orderId: res.id || res.result?.id // Truyền ID đơn hàng để Checkout xử lý tiếp
+                        orderId: res.id || res.result?.id,
+                        isSeated: isSeatedEvent // Cập nhật state truyền đi
                     }
                 });
             }
         } catch (error) {
             console.error('Lỗi tạo đơn hàng:', error);
             const errorMsg =
-                error.response?.data?.message ||
-                'Không thể khởi tạo đơn hàng. Vui lòng thử lại.';
+                error.response?.data?.message || 'Không thể khởi tạo đơn hàng.';
             message.error(errorMsg);
         } finally {
             setSubmitting(false);
@@ -149,7 +194,7 @@ const Booking = () => {
                 className={cx('loader')}
                 style={{ padding: '100px 0', textAlign: 'center' }}
             >
-                <Spin size='large' tip='Đang tải...' />
+                <Spin size='large' tip='Đang tải dữ liệu...' />
             </div>
         );
 
@@ -177,93 +222,110 @@ const Booking = () => {
                 >
                     Trở về
                 </Button>
-                <Title level={3}>Chọn loại vé</Title>
+                <Title level={3}>
+                    {isSeatedEvent ? 'Chọn vị trí ghế' : 'Chọn loại vé'}
+                </Title>
             </div>
 
             <Row gutter={[32, 32]}>
                 <Col xs={24} lg={16}>
-                    <div className={cx('ticketList')}>
-                        {tickets.length > 0 ? (
-                            tickets.map((ticket, index) => (
-                                <div key={ticket.id}>
-                                    <div className={cx('ticketCard')}>
-                                        <div className={cx('ticketInfo')}>
-                                            <Title
-                                                level={5}
-                                                className={cx('ticketName')}
-                                            >
-                                                {TICKET_LABELS[
-                                                    ticket.ticketType
-                                                ] || ticket.ticketType}
-                                            </Title>
-                                            <Text className={cx('ticketPrice')}>
-                                                {ticket.price?.toLocaleString(
-                                                    'vi-VN'
-                                                )}{' '}
-                                                đ
-                                            </Text>
-                                            <div
-                                                style={{
-                                                    fontSize: '12px',
-                                                    color: '#8c8c8c'
-                                                }}
-                                            >
-                                                Còn lại:{' '}
-                                                {ticket.totalQuantity -
-                                                    ticket.soldQuantity}{' '}
-                                                vé
+                    {/* Dùng state isSeatedEvent thay vì event.isSeated */}
+                    {isSeatedEvent ? (
+                        <SeatPicker
+                            eventId={id}
+                            onSelectionChange={handleSeatSelection}
+                        />
+                    ) : (
+                        <div className={cx('ticketList')}>
+                            {tickets.length > 0 ? (
+                                tickets.map((ticket, index) => (
+                                    <div key={ticket.id}>
+                                        <div className={cx('ticketCard')}>
+                                            <div className={cx('ticketInfo')}>
+                                                <Title
+                                                    level={5}
+                                                    className={cx('ticketName')}
+                                                >
+                                                    {TICKET_LABELS[
+                                                        ticket.ticketType
+                                                    ] || ticket.ticketType}
+                                                </Title>
+                                                <Text
+                                                    className={cx(
+                                                        'ticketPrice'
+                                                    )}
+                                                >
+                                                    {ticket.price?.toLocaleString(
+                                                        'vi-VN'
+                                                    )}{' '}
+                                                    đ
+                                                </Text>
+                                                <div
+                                                    style={{
+                                                        fontSize: '12px',
+                                                        color: '#8c8c8c'
+                                                    }}
+                                                >
+                                                    Còn lại:{' '}
+                                                    {ticket.totalQuantity -
+                                                        ticket.soldQuantity}{' '}
+                                                    vé
+                                                </div>
+                                            </div>
+
+                                            <div className={cx('qtySelector')}>
+                                                <Button
+                                                    disabled={
+                                                        quantities[
+                                                            ticket.id
+                                                        ] === 0 || submitting
+                                                    }
+                                                    onClick={() =>
+                                                        handleQtyChange(
+                                                            ticket.id,
+                                                            quantities[
+                                                                ticket.id
+                                                            ] - 1
+                                                        )
+                                                    }
+                                                >
+                                                    -
+                                                </Button>
+                                                <span
+                                                    className={cx('qtyCounter')}
+                                                >
+                                                    {quantities[ticket.id] || 0}
+                                                </span>
+                                                <Button
+                                                    disabled={
+                                                        submitting ||
+                                                        quantities[ticket.id] >=
+                                                            ticket.totalQuantity -
+                                                                ticket.soldQuantity
+                                                    }
+                                                    onClick={() =>
+                                                        handleQtyChange(
+                                                            ticket.id,
+                                                            quantities[
+                                                                ticket.id
+                                                            ] + 1
+                                                        )
+                                                    }
+                                                >
+                                                    +
+                                                </Button>
                                             </div>
                                         </div>
-
-                                        <div className={cx('qtySelector')}>
-                                            <Button
-                                                disabled={
-                                                    quantities[ticket.id] ===
-                                                        0 || submitting
-                                                }
-                                                onClick={() =>
-                                                    handleQtyChange(
-                                                        ticket.id,
-                                                        quantities[ticket.id] -
-                                                            1
-                                                    )
-                                                }
-                                            >
-                                                {' '}
-                                                -{' '}
-                                            </Button>
-                                            <span className={cx('qtyCounter')}>
-                                                {quantities[ticket.id] || 0}
-                                            </span>
-                                            <Button
-                                                disabled={
-                                                    submitting ||
-                                                    quantities[ticket.id] >=
-                                                        ticket.totalQuantity -
-                                                            ticket.soldQuantity
-                                                }
-                                                onClick={() =>
-                                                    handleQtyChange(
-                                                        ticket.id,
-                                                        quantities[ticket.id] +
-                                                            1
-                                                    )
-                                                }
-                                            >
-                                                {' '}
-                                                +{' '}
-                                            </Button>
-                                        </div>
+                                        {index < tickets.length - 1 && (
+                                            <Divider dashed />
+                                        )}
                                     </div>
-                                    {index < tickets.length - 1 && (
-                                        <Divider dashed />
-                                    )}
-                                </div>
-                            ))
-                        ) : (
-                            <Empty description='Hết vé' />
-                        )}
-                    </div>
+                                ))
+                            ) : (
+                                <Empty description='Hết vé' />
+                            )}
+                        </div>
+                    )}
                 </Col>
 
                 <Col xs={24} lg={8}>
@@ -280,7 +342,7 @@ const Booking = () => {
                                 {event.location || 'Chưa có địa điểm'}
                             </div>
 
-                            {totalTickets > 0 && (
+                            {totalTicketsCount > 0 && (
                                 <div className={cx('selectedQuantity')}>
                                     <img
                                         src={ticketIcon}
@@ -291,12 +353,36 @@ const Booking = () => {
                                         strong
                                         className={cx('ticketCountText')}
                                     >
-                                        x {totalTickets} vé đã chọn
+                                        x {totalTicketsCount} vé đã chọn
                                     </Text>
                                 </div>
                             )}
                         </Space>
+
                         <Divider />
+
+                        {/* Cũng sử dụng state isSeatedEvent tại đây để hiện tóm tắt mã ghế */}
+                        {isSeatedEvent && selectedSeats.length > 0 && (
+                            <div className={cx('seatDetails')}>
+                                <Text strong>Vị trí:</Text>
+                                <div
+                                    style={{
+                                        marginTop: '8px',
+                                        display: 'flex',
+                                        flexWrap: 'wrap',
+                                        gap: '4px'
+                                    }}
+                                >
+                                    {selectedSeats.map(s => (
+                                        <Text code key={s.id}>
+                                            {s.zone}-{s.seatLabel}
+                                        </Text>
+                                    ))}
+                                </div>
+                                <Divider />
+                            </div>
+                        )}
+
                         <div className={cx('totalRow')}>
                             <Text strong>Tổng thanh toán</Text>
                             <Title level={4} type='success'>
@@ -307,13 +393,18 @@ const Booking = () => {
                             type='primary'
                             block
                             size='large'
-                            disabled={totalTickets === 0}
+                            disabled={totalTicketsCount === 0}
                             loading={submitting}
                             onClick={handleCheckout}
+                            style={{
+                                background: '#2dc275',
+                                borderColor: '#2dc275',
+                                height: '50px'
+                            }}
                         >
-                            {totalTickets > 0
-                                ? 'Thanh toán ngay'
-                                : 'Vui lòng chọn vé'}
+                            {totalTicketsCount > 0
+                                ? 'Tiếp tục'
+                                : 'Vui lòng chọn vé/ghế'}
                         </Button>
                     </div>
                 </Col>

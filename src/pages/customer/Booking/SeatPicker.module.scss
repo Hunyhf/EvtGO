@@ -1,0 +1,107 @@
+@use '@styles/variables' as *;
+@use '@styles/mixins' as *;
+
+.seatPicker {
+    padding: 24px;
+    background-color: #1a1d23;
+    border-radius: 10px;
+    border: 1px solid #303030;
+
+    .stageWrapper {
+        text-align: center;
+        margin-bottom: 32px;
+
+        .stage {
+            width: 80%;
+            margin: 0 auto;
+            padding: 8px;
+            background: linear-gradient(180deg, #393f4e 0%, #2a2d34 100%);
+            color: $text-color;
+            border-radius: 0 0 50px 50px;
+            font-weight: $font-weight-bold;
+            letter-spacing: 5px;
+            border-bottom: 2px solid #555;
+            text-transform: uppercase;
+        }
+    }
+
+    .legend {
+        @include flex(center, center);
+        gap: 16px;
+        margin-bottom: 24px;
+
+        .legendItem {
+            @include flex(center, center);
+            gap: 6px;
+            color: $text-color;
+            font-size: $font-size-sm;
+        }
+    }
+
+    .zoneContainer {
+        margin-bottom: 32px;
+
+        .zoneHeader {
+            margin-bottom: 12px;
+            border-bottom: 1px solid #303030;
+            padding-bottom: 6px;
+
+            :global(.ant-tag) {
+                margin: 0;
+            }
+        }
+
+        .seatGrid {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            justify-content: center;
+        }
+    }
+}
+
+.seat {
+    width: 40px;
+    height: 40px;
+    border-radius: 6px;
+    @include flex(center, center);
+    font-size: 11px;
+    color: $white-color;
+    cursor: pointer;
+    transition: 0.2s ease;
+    border: 1px solid transparent;
+    user-select: none;
+    background-color: #303030;
+
+    &:hover:not(.sold) {
+        transform: translateY(-2px);
+        border-color: $primary-color;
+    }
+
+    &.selected {
+        background-color: $primary-color;
+        box-shadow: 0 0 10px rgba(45, 194, 117, 0.4);
+        transform: scale(1.1);
+    }
+
+    &.sold {
+        background-color: $error-color;
+        opacity: 0.3;
+        cursor: not-allowed;
+    }
+
+    &.mini {
+        width: 20px;
+        height: 20px;
+        cursor: default;
+
+        &:hover {
+            transform: none;
+        }
+    }
+}
+
+.loadingBox {
+    @include flex(center, center);
+    padding: 32px;
+}

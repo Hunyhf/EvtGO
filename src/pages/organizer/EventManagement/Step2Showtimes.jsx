@@ -1,5 +1,4 @@
-// src/pages/organizer/EventManagement/Step2Showtimes.jsx
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
     Form,
     Input,
@@ -15,14 +14,16 @@ import {
     Card,
     Tag,
     Select,
-    message
+    App // Thêm App ở đây
 } from 'antd';
 import {
     PlusOutlined,
     DeleteOutlined,
     EditOutlined,
     AuditOutlined,
-    CalendarOutlined
+    CalendarOutlined,
+    AppstoreAddOutlined,
+    InfoCircleOutlined
 } from '@ant-design/icons';
 import dayjs from 'dayjs';
 
@@ -30,70 +31,60 @@ const { Title, Text } = Typography;
 const { Option } = Select;
 
 const Step2Showtimes = ({ setOnNextAction, formData, setFormData }) => {
-    // 1. Khởi tạo tickets từ formData để giữ dữ liệu khi quay lại từ Step 3, 4
+    // 1. Lấy message từ context App để tránh lỗi Static Function
+    const { message } = App.useApp();
+
     const [tickets, setTickets] = useState(formData?.tickets || []);
     const [isTicketModalOpen, setIsTicketModalOpen] = useState(false);
     const [editingTicketIndex, setEditingTicketIndex] = useState(null);
-    const [ticketForm] = Form.useForm();
     const [isFreeTicket, setIsFreeTicket] = useState(false);
+    const [ticketForm] = Form.useForm();
 
-    // 2. Tự động đồng bộ tickets cục bộ vào formData của cha mỗi khi có thay đổi
-    useEffect(() => {
-        setParentFormData(prev => ({ ...prev, tickets }));
-    }, [tickets]);
+    // 2. Hàm Validate được viết bằng useCallback
+    const validateStep = useCallback(async () => {
+        const now = dayjs();
+        const start = formData.startTime ? dayjs(formData.startTime) : null;
+        const end = formData.endTime ? dayjs(formData.endTime) : null;
 
-    // Hàm bọc setParentFormData để đảm bảo logic ổn định
-    const setParentFormData = updateFn => {
-        if (typeof setFormData === 'function') {
-            setFormData(updateFn);
+        if (!start || !end) {
+            message.error(
+                'Vui lòng chọn đầy đủ thời gian bắt đầu và kết thúc!'
+            );
+            return false;
         }
+        if (start.isBefore(now)) {
+            message.error('Thời gian bắt đầu không được nhỏ hơn hiện tại!');
+            return false;
+        }
+        if (start.isAfter(end) || start.isSame(end)) {
+            message.error('Giờ bắt đầu phải nhỏ hơn giờ kết thúc!');
+            return false;
+        }
+        if (tickets.length === 0) {
+            message.error('Vui lòng tạo ít nhất 1 loại vé để tiếp tục!');
+            return false;
+        }
+        return true;
+    }, [formData.startTime, formData.endTime, tickets, message]);
+
+    // 3. Đăng ký hàm validate (Thống nhất logic 2 lớp với cha)
+    useEffect(() => {
+        // () => validateStep tương đương () => async () => { ... }
+        setOnNextAction(() => validateStep);
+
+        // QUAN TRỌNG: KHÔNG return () => setOnNextAction(null)
+        // để tránh lỗi mất function khi re-render lúc chuyển bước
+    }, [validateStep, setOnNextAction]);
+
+    // 4. Cập nhật trực tiếp vào formData (Xóa bỏ useEffect quan sát tickets cũ)
+    const updateTicketsInParent = newTickets => {
+        setTickets(newTickets);
+        setFormData(prev => ({ ...prev, tickets: newTickets }));
     };
 
-    useEffect(() => {
-        setOnNextAction(() => () => async () => {
-            const now = dayjs();
-            const start = formData.startTime ? dayjs(formData.startTime) : null;
-            const end = formData.endTime ? dayjs(formData.endTime) : null;
-
-            // Kiểm tra nhập đủ ngày tháng
-            if (!start || !end) {
-                message.error(
-                    'Vui lòng chọn đầy đủ thời gian bắt đầu và kết thúc sự kiện!'
-                );
-                return false;
-            }
-
-            // VALIDATE 1: Thời gian bắt đầu không được nhỏ hơn thời gian hiện tại
-            if (start.isBefore(now)) {
-                message.error(
-                    'Thời gian bắt đầu sự kiện không được nhỏ hơn thời gian hiện tại!'
-                );
-                return false;
-            }
-
-            // VALIDATE 2: Thời gian bắt đầu phải nhỏ hơn thời gian kết thúc
-            if (start.isAfter(end) || start.isSame(end)) {
-                message.error(
-                    'Ngày và giờ bắt đầu phải nhỏ hơn ngày và giờ kết thúc!'
-                );
-                return false;
-            }
-
-            // Kiểm tra đã tạo vé chưa
-            if (tickets.length === 0) {
-                message.error('Vui lòng tạo ít nhất 1 loại vé cho sự kiện!');
-                return false;
-            }
-
-            return true;
-        });
-        return () => setOnNextAction(null);
-    }, [tickets, formData.startTime, formData.endTime, setOnNextAction]);
-
     const handleTimeChange = (field, value) => {
-        setParentFormData(prev => ({
+        setFormData(prev => ({
             ...prev,
-            // SỬA TẠI ĐÂY: Sử dụng format để giữ đúng giờ địa phương thay vì toISOString()
             [field]: value ? value.format('YYYY-MM-DDTHH:mm:ss') : null
         }));
     };
@@ -106,7 +97,10 @@ const Step2Showtimes = ({ setOnNextAction, formData, setFormData }) => {
             setIsFreeTicket(ticket.price === 0);
         } else {
             ticketForm.resetFields();
-            ticketForm.setFieldsValue({ ticketType: 'STANDARD' });
+            ticketForm.setFieldsValue({
+                ticketType: 'STANDARD',
+                totalQuantity: 1
+            });
             setIsFreeTicket(false);
         }
         setIsTicketModalOpen(true);
@@ -118,65 +112,48 @@ const Step2Showtimes = ({ setOnNextAction, formData, setFormData }) => {
             const newTicket = {
                 ...values,
                 price: isFreeTicket ? 0 : values.price,
-                // Mặc định luôn là PUBLISHED vì đã bỏ trường chọn trạng thái
                 ticketStatus: 'PUBLISHED'
             };
 
+            let updatedTickets;
             if (editingTicketIndex !== null) {
-                const updatedTickets = [...tickets];
+                updatedTickets = [...tickets];
                 updatedTickets[editingTicketIndex] = newTicket;
-                setTickets(updatedTickets);
             } else {
-                setTickets([...tickets, newTicket]);
+                updatedTickets = [...tickets, newTicket];
             }
 
+            updateTicketsInParent(updatedTickets);
             setIsTicketModalOpen(false);
-            ticketForm.resetFields();
-            setIsFreeTicket(false);
             message.success(
                 editingTicketIndex !== null
-                    ? 'Cập nhật vé thành công'
-                    : 'Tạo vé mới thành công'
+                    ? 'Cập nhật thành công'
+                    : 'Tạo mới thành công'
             );
         } catch (error) {
-            console.error('Lỗi khi lưu vé:', error);
+            console.error('Validate failed:', error);
         }
     };
 
     const handleDeleteTicket = index => {
-        setTickets(tickets.filter((_, idx) => idx !== index));
+        const updatedTickets = tickets.filter((_, idx) => idx !== index);
+        updateTicketsInParent(updatedTickets);
     };
 
-    // Vô hiệu hóa các ngày trong quá khứ trên lịch để cải thiện UX
-    const disabledDate = current => {
-        return current && current < dayjs().startOf('day');
-    };
+    const disabledDate = current => current && current < dayjs().startOf('day');
 
     return (
         <div style={{ maxWidth: 1000, margin: '0 auto' }}>
-            {/* --- KHỐI THỜI GIAN --- */}
-            <div
-                style={{
-                    marginBottom: 32,
-                    background: '#2a2d34',
-                    padding: 24,
-                    borderRadius: 8,
-                    border: '1px solid #393f4e'
-                }}
-            >
-                <Title
-                    level={4}
-                    style={{ color: '#fff', marginTop: 0, marginBottom: 20 }}
-                >
+            {/* Phần Thời gian */}
+            <div className='form-section-dark' style={styles.sectionCard}>
+                <Title level={4} style={styles.whiteText}>
                     <CalendarOutlined /> Thời gian diễn ra sự kiện
                 </Title>
                 <Row gutter={24}>
                     <Col span={12}>
                         <Form.Item
                             label={
-                                <span style={{ color: '#fff' }}>
-                                    Bắt đầu sự kiện
-                                </span>
+                                <span style={styles.labelText}>Bắt đầu</span>
                             }
                             required
                         >
@@ -185,7 +162,7 @@ const Step2Showtimes = ({ setOnNextAction, formData, setFormData }) => {
                                 format='HH:mm DD/MM/YYYY'
                                 style={{ width: '100%' }}
                                 size='large'
-                                disabledDate={disabledDate} // Chặn chọn ngày quá khứ
+                                disabledDate={disabledDate}
                                 value={
                                     formData.startTime
                                         ? dayjs(formData.startTime)
@@ -194,16 +171,13 @@ const Step2Showtimes = ({ setOnNextAction, formData, setFormData }) => {
                                 onChange={date =>
                                     handleTimeChange('startTime', date)
                                 }
-                                placeholder='Chọn ngày giờ bắt đầu'
                             />
                         </Form.Item>
                     </Col>
                     <Col span={12}>
                         <Form.Item
                             label={
-                                <span style={{ color: '#fff' }}>
-                                    Kết thúc sự kiện
-                                </span>
+                                <span style={styles.labelText}>Kết thúc</span>
                             }
                             required
                         >
@@ -221,42 +195,80 @@ const Step2Showtimes = ({ setOnNextAction, formData, setFormData }) => {
                                 onChange={date =>
                                     handleTimeChange('endTime', date)
                                 }
-                                placeholder='Chọn ngày giờ kết thúc'
                             />
                         </Form.Item>
                     </Col>
                 </Row>
             </div>
 
-            {/* --- KHỐI DANH SÁCH VÉ --- */}
+            {/* Phần Checkbox IsSeated */}
+            <div
+                style={{
+                    ...styles.sectionCard,
+                    background: formData.isSeated
+                        ? 'rgba(45, 194, 117, 0.1)'
+                        : '#2a2d34',
+                    borderColor: formData.isSeated ? '#2dc275' : '#393f4e',
+                    borderStyle: formData.isSeated ? 'dashed' : 'solid'
+                }}
+            >
+                <Checkbox
+                    checked={formData.isSeated}
+                    onChange={e => {
+                        const isChecked = e.target.checked;
+                        setFormData(prev => ({
+                            ...prev,
+                            isSeated: isChecked,
+                            // Xóa dữ liệu cũ nếu đổi ý không dùng ghế để tránh rác dữ liệu
+                            seats: isChecked ? prev.seats : [],
+                            seatZones: isChecked ? prev.seatZones : []
+                        }));
+                    }}
+                >
+                    <Space>
+                        <AppstoreAddOutlined
+                            style={{
+                                color: formData.isSeated
+                                    ? '#2dc275'
+                                    : '#9ca6b0',
+                                fontSize: 20
+                            }}
+                        />
+                        <strong
+                            style={{
+                                color: formData.isSeated ? '#2dc275' : '#fff'
+                            }}
+                        >
+                            Sự kiện có sơ đồ ghế ngồi (Người dùng được chọn vị
+                            trí)
+                        </strong>
+                    </Space>
+                </Checkbox>
+                {formData.isSeated && (
+                    <div style={styles.hintText}>
+                        <InfoCircleOutlined /> Hệ thống sẽ thêm{' '}
+                        <strong>Bước 3: Sơ đồ ghế</strong> để bạn thiết lập.
+                    </div>
+                )}
+            </div>
+
+            {/* Danh sách vé */}
             <div style={{ marginBottom: 16 }}>
-                <Title level={4} style={{ color: '#fff', margin: 0 }}>
-                    Cấu hình loại vé
+                <Title level={4} style={styles.whiteText}>
+                    Cấu hình loại vé chung
                 </Title>
                 <Text type='secondary'>
-                    Tạo các hạng vé cho sự kiện của bạn
+                    Dùng cho khu vực đứng hoặc vé không phân vị trí ghế.
                 </Text>
             </div>
 
-            <div
-                style={{
-                    background: '#2a2d34',
-                    padding: 24,
-                    borderRadius: 8,
-                    border: '1px solid #393f4e',
-                    minHeight: 200
-                }}
-            >
+            <div style={styles.ticketContainer}>
                 <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap' }}>
                     {tickets.map((ticket, idx) => (
                         <Card
                             key={idx}
                             size='small'
-                            style={{
-                                width: 280,
-                                background: '#1f1f1f',
-                                borderColor: '#393f4e'
-                            }}
+                            style={styles.ticketCard}
                             actions={[
                                 <EditOutlined
                                     key='edit'
@@ -299,13 +311,7 @@ const Step2Showtimes = ({ setOnNextAction, formData, setFormData }) => {
                                                 ? 'Miễn phí'
                                                 : `${ticket.price.toLocaleString()} VND`}
                                         </Tag>
-                                        <div
-                                            style={{
-                                                color: '#9ca6b0',
-                                                fontSize: 12,
-                                                marginTop: 8
-                                            }}
-                                        >
+                                        <div style={styles.quantityText}>
                                             Số lượng: {ticket.totalQuantity}
                                         </div>
                                     </div>
@@ -316,13 +322,7 @@ const Step2Showtimes = ({ setOnNextAction, formData, setFormData }) => {
                     <Button
                         type='dashed'
                         onClick={() => openTicketModal()}
-                        style={{
-                            width: 280,
-                            height: 120,
-                            borderColor: '#393f4e',
-                            color: '#9ca6b0',
-                            background: 'transparent'
-                        }}
+                        style={styles.addBtn}
                         icon={<PlusOutlined />}
                     >
                         Tạo loại vé mới
@@ -330,23 +330,16 @@ const Step2Showtimes = ({ setOnNextAction, formData, setFormData }) => {
                 </div>
             </div>
 
-            {/* --- MODAL TẠO VÉ (Đã bỏ Trạng thái) --- */}
             <Modal
                 title={<span style={{ color: '#fff' }}>Thông tin loại vé</span>}
                 open={isTicketModalOpen}
                 onCancel={() => setIsTicketModalOpen(false)}
                 footer={null}
-                width={500}
+                width={450}
                 centered
                 styles={{
-                    content: {
-                        background: '#2a2d34',
-                        border: '1px solid #393f4e'
-                    },
-                    header: {
-                        background: 'transparent',
-                        borderBottom: '1px solid #393f4e'
-                    }
+                    content: styles.modalContent,
+                    header: styles.modalHeader
                 }}
             >
                 <Form
@@ -356,28 +349,20 @@ const Step2Showtimes = ({ setOnNextAction, formData, setFormData }) => {
                 >
                     <Form.Item
                         name='ticketType'
-                        label={<span style={{ color: '#fff' }}>Hạng vé</span>}
+                        label={<span style={styles.labelText}>Hạng vé</span>}
                         rules={[{ required: true }]}
                     >
                         <Select size='large'>
-                            <Option value='STANDARD'>
-                                Phổ thông (Standard)
-                            </Option>
-                            <Option value='VIP'>Cao cấp (VIP)</Option>
+                            <Option value='STANDARD'>Phổ thông</Option>
+                            <Option value='VIP'>VIP</Option>
                         </Select>
                     </Form.Item>
 
                     <Form.Item
-                        label={<span style={{ color: '#fff' }}>Giá vé</span>}
+                        label={<span style={styles.labelText}>Giá vé</span>}
                         required
                     >
-                        <div
-                            style={{
-                                display: 'flex',
-                                gap: 10,
-                                alignItems: 'center'
-                            }}
-                        >
+                        <Space.Compact style={{ width: '100%' }}>
                             <Form.Item
                                 name='price'
                                 noStyle
@@ -389,7 +374,7 @@ const Step2Showtimes = ({ setOnNextAction, formData, setFormData }) => {
                                 ]}
                             >
                                 <InputNumber
-                                    style={{ flex: 1 }}
+                                    style={{ width: '70%' }}
                                     size='large'
                                     disabled={isFreeTicket}
                                     min={0}
@@ -402,36 +387,29 @@ const Step2Showtimes = ({ setOnNextAction, formData, setFormData }) => {
                                     parser={v => v.replace(/\$\s?|(,*)/g, '')}
                                 />
                             </Form.Item>
-                            <Checkbox
-                                checked={isFreeTicket}
-                                onChange={e => {
-                                    setIsFreeTicket(e.target.checked);
-                                    ticketForm.setFieldValue('price', 0);
-                                }}
-                                style={{ color: '#fff' }}
-                            >
-                                Miễn phí
-                            </Checkbox>
-                        </div>
+                            <div style={styles.freeCheckWrapper}>
+                                <Checkbox
+                                    checked={isFreeTicket}
+                                    onChange={e => {
+                                        setIsFreeTicket(e.target.checked);
+                                        ticketForm.setFieldValue('price', 0);
+                                    }}
+                                >
+                                    Miễn phí
+                                </Checkbox>
+                            </div>
+                        </Space.Compact>
                     </Form.Item>
 
                     <Form.Item
                         name='totalQuantity'
-                        label={
-                            <span style={{ color: '#fff' }}>Số lượng vé</span>
-                        }
-                        rules={[
-                            {
-                                required: true,
-                                message: 'Vui lòng nhập số lượng'
-                            }
-                        ]}
+                        label={<span style={styles.labelText}>Số lượng</span>}
+                        rules={[{ required: true, message: 'Nhập SL' }]}
                     >
                         <InputNumber
                             style={{ width: '100%' }}
                             size='large'
                             min={1}
-                            placeholder='VD: 100'
                         />
                     </Form.Item>
 
@@ -440,12 +418,7 @@ const Step2Showtimes = ({ setOnNextAction, formData, setFormData }) => {
                         htmlType='submit'
                         block
                         size='large'
-                        style={{
-                            background: '#2dc275',
-                            borderColor: '#2dc275',
-                            height: 48,
-                            marginTop: 16
-                        }}
+                        style={styles.submitBtn}
                     >
                         Lưu vé
                     </Button>
@@ -453,6 +426,56 @@ const Step2Showtimes = ({ setOnNextAction, formData, setFormData }) => {
             </Modal>
         </div>
     );
+};
+
+const styles = {
+    sectionCard: {
+        marginBottom: 32,
+        background: '#2a2d34',
+        padding: 24,
+        borderRadius: 8,
+        border: '1px solid #393f4e',
+        transition: 'all 0.3s'
+    },
+    whiteText: { color: '#fff', marginTop: 0, marginBottom: 20 },
+    labelText: { color: '#fff' },
+    hintText: { marginTop: 12, marginLeft: 32, color: '#9ca6b0', fontSize: 13 },
+    ticketContainer: {
+        background: '#2a2d34',
+        padding: 24,
+        borderRadius: 8,
+        border: '1px solid #393f4e',
+        minHeight: 180
+    },
+    ticketCard: { width: 280, background: '#1f1f1f', borderColor: '#393f4e' },
+    quantityText: { color: '#9ca6b0', fontSize: 12, marginTop: 8 },
+    addBtn: {
+        width: 280,
+        height: 110,
+        borderColor: '#393f4e',
+        color: '#9ca6b0',
+        background: 'transparent'
+    },
+    modalContent: { background: '#2a2d34', border: '1px solid #393f4e' },
+    modalHeader: {
+        background: 'transparent',
+        borderBottom: '1px solid #393f4e'
+    },
+    freeCheckWrapper: {
+        width: '30%',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        border: '1px solid #434343',
+        borderLeft: 'none',
+        background: '#1f1f1f'
+    },
+    submitBtn: {
+        background: '#2dc275',
+        borderColor: '#2dc275',
+        height: 45,
+        marginTop: 8
+    }
 };
 
 export default Step2Showtimes;

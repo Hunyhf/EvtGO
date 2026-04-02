@@ -15,7 +15,7 @@ import {
     Typography,
     DatePicker
 } from 'antd';
-import { InboxOutlined, PlusOutlined } from '@ant-design/icons';
+import { InboxOutlined, PlusOutlined, UserOutlined } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import { genresApi } from '@apis/genresApi';
 
@@ -85,6 +85,7 @@ const Step1Info = ({
                 setParentFormData(prev => ({
                     ...prev,
                     ...values,
+                    // values.artists tự động là mảng chuỗi ["Nghệ sĩ A", "Nghệ sĩ B"]
                     images: imagesArr
                 }));
                 return true;
@@ -244,6 +245,7 @@ const Step1Info = ({
                     form.setFieldsValue({ poster: url });
                     setParentFormData(prev => ({
                         ...prev,
+                        ...form.getFieldsValue(), // Lấy cả list artists đang nhập
                         posterFile: file,
                         poster: url
                     }));
@@ -252,6 +254,7 @@ const Step1Info = ({
                     form.setFieldsValue({ organizerLogo: url });
                     setParentFormData(prev => ({
                         ...prev,
+                        ...form.getFieldsValue(),
                         logoFile: file,
                         organizerLogo: url
                     }));
@@ -265,6 +268,7 @@ const Step1Info = ({
 
     return (
         <Form form={form} layout='vertical'>
+            {/* --- Phần Ảnh Bìa --- */}
             <Card
                 style={{
                     marginBottom: 24,
@@ -326,6 +330,7 @@ const Step1Info = ({
             </Card>
 
             <Row gutter={24}>
+                {/* --- Ban Tổ Chức --- */}
                 <Col span={24} lg={8}>
                     <Card
                         style={{
@@ -390,6 +395,7 @@ const Step1Info = ({
                     </Card>
                 </Col>
 
+                {/* --- Thông Tin Sự Kiện --- */}
                 <Col span={24} lg={16}>
                     <Card
                         style={{
@@ -421,6 +427,31 @@ const Step1Info = ({
                             />
                         </Form.Item>
 
+                        {/* --- MỤC MỚI: NGHỆ SĨ THAM GIA --- */}
+                        <Form.Item
+                            name='artists'
+                            label={
+                                <span style={{ color: '#fff' }}>
+                                    Nghệ sĩ tham gia
+                                </span>
+                            }
+                            tooltip='Nhập tên nghệ sĩ rồi nhấn Enter để thêm nhãn'
+                        >
+                            <Select
+                                mode='tags'
+                                size='large'
+                                placeholder='Nhập tên nghệ sĩ (VD: Sơn Tùng, Đen Vâu...)'
+                                style={{ width: '100%' }}
+                                suffixIcon={
+                                    <UserOutlined
+                                        style={{ color: '#9ca6b0' }}
+                                    />
+                                }
+                                tokenSeparators={[',']} // Cho phép dùng dấu phẩy để tạo nhãn
+                            />
+                        </Form.Item>
+
+                        {/* --- Giấy phép --- */}
                         <Row gutter={16}>
                             <Col span={8}>
                                 <Form.Item
