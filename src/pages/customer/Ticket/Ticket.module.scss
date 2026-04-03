@@ -116,20 +116,20 @@
 
     .infoGrid {
         display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 8px;
+        grid-template-columns: 1fr 1fr; // Hiển thị 2 cột trên màn hình lớn
+        gap: 10px; // Tăng khoảng cách giữa các dòng một chút
 
         @include mobile-width {
-            // Đã thay thế @media tay bằng mixin
-            grid-template-columns: 1fr;
+            grid-template-columns: 1fr; // Chuyển về 1 cột trên mobile
         }
 
         p {
             margin: 0;
             font-size: $font-size-sm;
             color: $text-color;
+
             strong {
-                color: $sub-color;
+                color: $sub-color; // Màu cho tiêu đề nhãn
             }
         }
 
@@ -246,4 +246,120 @@
     text-align: center;
     padding: 50px;
     color: $text-color;
+}
+// Thêm vào Ticket.module.scss
+
+.orderList {
+    display: grid;
+    grid-template-columns: repeat(
+        auto-fill,
+        minmax(350px, 1fr)
+    ); // Hiển thị dạng lưới
+    gap: 20px;
+
+    @include mobile-width {
+        grid-template-columns: 1fr;
+    }
+}
+
+// Ticket.module.scss
+
+.orderCard {
+    background: $white-color;
+    @include radius-common(12px);
+    border: 1px solid $border-color;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
+    cursor: pointer;
+    transition: all 0.3s ease;
+    overflow: hidden; // Để ảnh không tràn góc bo tròn
+
+    &:hover {
+        transform: translateY(-5px);
+        border-color: $primary-color;
+        box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
+    }
+}
+
+.orderCardBody {
+    display: flex;
+    align-items: stretch;
+
+    @include mobile-width {
+        flex-direction: column;
+    }
+}
+
+.eventThumbnail {
+    width: 150px;
+    height: 150px;
+    flex-shrink: 0;
+
+    img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+
+    @include mobile-width {
+        width: 100%;
+        height: 120px;
+    }
+}
+
+.orderDetails {
+    flex: 1;
+    padding: 15px 20px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+
+    @include mobile-width {
+        padding: 15px;
+    }
+}
+
+.orderHeader {
+    margin-bottom: 10px;
+
+    .eventNameDisplay {
+        font-size: $font-size-md;
+        font-weight: $font-weight-bold;
+        color: $secondary-color;
+        margin-bottom: 4px;
+        // Giới hạn 1 dòng cho tên sự kiện
+        display: -webkit-box;
+        -webkit-line-clamp: 1;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+    }
+
+    .orderCode {
+        font-size: $font-size-xs;
+        color: $sub-color;
+        font-family: monospace;
+    }
+}
+
+.orderMeta {
+    p {
+        margin: 2px 0;
+        font-size: $font-size-sm;
+        color: $text-color;
+    }
+
+    .totalAmount {
+        margin-top: 8px;
+        color: $error-color;
+        font-weight: $font-weight-bold;
+        font-size: $font-size-sm;
+    }
+}
+
+.ticketListInModal {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    max-height: 70vh;
+    overflow-y: auto;
+    padding: 10px;
 }

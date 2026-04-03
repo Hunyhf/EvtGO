@@ -7,7 +7,6 @@ import {
     Space,
     Button,
     Divider,
-    message,
     Spin,
     Empty,
     App
@@ -25,7 +24,7 @@ import styles from './Booking.module.scss';
 import { eventApi } from '@apis/eventApi';
 import { ticketApi } from '@apis/ticketApi';
 import orderApi from '@apis/orderApi';
-import seatApi from '@apis/seatApi'; // BƯỚC 1: Import thêm seatApi
+import seatApi from '@apis/seatApi';
 import { AuthContext } from '@contexts/AuthContext';
 import ticketIcon from '@icons/svgs/ticketIcon.svg';
 
@@ -54,18 +53,16 @@ const Booking = () => {
     const [loading, setLoading] = useState(true);
     const [submitting, setSubmitting] = useState(false);
 
-    // BƯỚC 2: Thêm state để tự động nhận diện sự kiện có ghế hay không
     const [isSeatedEvent, setIsSeatedEvent] = useState(false);
 
     useEffect(() => {
         const fetchData = async () => {
             try {
                 setLoading(true);
-                // BƯỚC 3: Gọi song song 3 API: Event, Tickets, và Seats
                 const [resEvent, resTicket, resSeats] = await Promise.all([
                     eventApi.getById(id),
                     ticketApi.getAll({ filter: `event.id:${id}` }),
-                    seatApi.getSeatsByEventId(id).catch(() => []) // Bắt lỗi để không crash nếu API lỗi
+                    seatApi.getSeatsByEventId(id).catch(() => [])
                 ]);
 
                 const eventData = resEvent?.result || resEvent;
@@ -84,7 +81,6 @@ const Booking = () => {
                 );
                 setQuantities(initQty);
 
-                // Nếu API trả về mảng ghế lớn hơn 0 -> Sự kiện này có ghế ngồi
                 const seatData = resSeats?.data || resSeats || [];
                 if (Array.isArray(seatData) && seatData.length > 0) {
                     setIsSeatedEvent(true);
@@ -101,9 +97,6 @@ const Booking = () => {
         if (id) fetchData();
     }, [id, message]);
 
-    // --- Logic Tính Toán ---
-
-    // Thay thế event.isSeated bằng isSeatedEvent
     const totalTicketsCount = useMemo(() => {
         if (isSeatedEvent) return selectedSeats.length;
         return Object.values(quantities).reduce((a, b) => a + b, 0);
@@ -118,8 +111,6 @@ const Booking = () => {
             0
         );
     }, [isSeatedEvent, selectedSeats, quantities, tickets]);
-
-    // --- Xử lý sự kiện ---
 
     const handleQtyChange = (ticketId, value) => {
         setQuantities(prev => ({ ...prev, [ticketId]: value }));
@@ -140,41 +131,73 @@ const Booking = () => {
 
             let orderItems = [];
             if (isSeatedEvent) {
-                // Dùng state mới
-                orderItems = selectedSeats.map(s => ({
-                    seatId: s.id,
-                    price: s.price,
-                    seatLabel: s.seatLabel,
-                    zone: s.zone
-                }));
+                // LUỒNG XỬ LÝ GHẾ: Cần tìm TicketId tương ứng cho mỗi ghế
+                for (const s of selectedSeats) {
+                    const zoneType = s.zone?.trim().toUpperCase() || '';
+
+                    // --- LOGIC TÌM VÉ CẢI TIẾN ---
+                    // 1. Ưu tiên khớp theo GIÁ TIỀN (Chính xác nhất)
+                    // 2. Dự phòng: Khớp theo Tên khu vực/Loại vé
+                    const matchedTicket =
+                        tickets.find(t => t.price === s.price) ||
+                        tickets.find(t => {
+                            const typeName =
+                                t.ticketType?.trim().toUpperCase() || '';
+                            return (
+                                zoneType.includes(typeName) ||
+                                typeName.includes(zoneType)
+                            );
+                        });
+
+                    if (!matchedTicket) {
+                        console.error('Dữ liệu không khớp:', {
+                            seatPrice: s.price,
+                            seatZone: s.zone,
+                            availableTickets: tickets
+                        });
+                        message.error(
+                            `Lỗi dữ liệu: Không tìm thấy loại vé có giá ${s.price?.toLocaleString()}đ tương ứng với khu vực ${s.zone}.`
+                        );
+                        setSubmitting(false);
+                        return;
+                    }
+
+                    orderItems.push({
+                        seatId: s.id,
+                        ticketId: matchedTicket.id,
+                        quantity: 1
+                    });
+                }
             } else {
+                // LUỒNG XỬ LÝ VÉ THƯỜNG
                 orderItems = tickets
                     .filter(t => quantities[t.id] > 0)
                     .map(t => ({
                         ticketId: t.id,
                         quantity: quantities[t.id],
-                        price: t.price,
-                        ticketType: t.ticketType
+                        ticketType: t.ticketType, // Bổ sung thêm dòng này để lấy tên loại vé
+                        price: t.price // Bổ sung thêm dòng này để tính toán giá tiền bên Checkout
                     }));
             }
 
             const orderData = {
-                eventId: Number(id),
-                totalPrice: totalPrice,
                 items: orderItems,
-                isSeated: isSeatedEvent // Cập nhật payload
+                isSeated: isSeatedEvent
             };
 
             const res = await orderApi.createOrder(orderData);
 
             if (res) {
+                const resData = res.result || res;
                 navigate(`/booking/${id}/checkout`, {
                     state: {
                         event,
-                        selectedItems: orderItems,
+                        selectedItems: isSeatedEvent
+                            ? selectedSeats
+                            : orderItems,
                         totalPrice,
-                        orderId: res.id || res.result?.id,
-                        isSeated: isSeatedEvent // Cập nhật state truyền đi
+                        orderId: resData.id,
+                        isSeated: isSeatedEvent
                     }
                 });
             }
@@ -229,7 +252,6 @@ const Booking = () => {
 
             <Row gutter={[32, 32]}>
                 <Col xs={24} lg={16}>
-                    {/* Dùng state isSeatedEvent thay vì event.isSeated */}
                     {isSeatedEvent ? (
                         <SeatPicker
                             eventId={id}
@@ -306,9 +328,9 @@ const Booking = () => {
                                                     onClick={() =>
                                                         handleQtyChange(
                                                             ticket.id,
-                                                            quantities[
+                                                            (quantities[
                                                                 ticket.id
-                                                            ] + 1
+                                                            ] || 0) + 1
                                                         )
                                                     }
                                                 >
@@ -361,7 +383,6 @@ const Booking = () => {
 
                         <Divider />
 
-                        {/* Cũng sử dụng state isSeatedEvent tại đây để hiện tóm tắt mã ghế */}
                         {isSeatedEvent && selectedSeats.length > 0 && (
                             <div className={cx('seatDetails')}>
                                 <Text strong>Vị trí:</Text>
