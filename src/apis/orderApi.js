@@ -5,7 +5,9 @@ const orderApi = {
     createOrder: data => {
         return axiosClient.post('/api/v1/orders', data);
     },
-
+    cancelOrder: id => {
+        return axiosClient.post(`/api/v1/orders/${id}/cancel`);
+    },
     // Thanh toán đơn hàng
     payOrder: data => {
         return axiosClient.post('/api/v1/orders/pay', data);

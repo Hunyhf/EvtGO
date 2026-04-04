@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useContext, useMemo } from 'react';
-import { useLocation, useNavigate, Navigate } from 'react-router-dom'; // Thêm Navigate để phòng vệ
+import { useLocation, useNavigate, Navigate } from 'react-router-dom';
 import {
     Row,
     Col,
@@ -8,8 +8,8 @@ import {
     Checkbox,
     Space,
     Divider,
-    message,
-    App
+    App,
+    Modal // Sử dụng component Modal để điều khiển bằng hook
 } from 'antd';
 import {
     ArrowLeftOutlined,
@@ -26,12 +26,12 @@ import styles from './Checkout.module.scss';
 import { AuthContext } from '@contexts/AuthContext';
 import orderApi from '@apis/orderApi';
 import ticketIcon from '@icons/svgs/ticketIcon.svg';
+import useModal from '@hooks/useModal'; // Import hook tự tạo của bạn
 
 dayjs.locale('vi');
 const cx = classNames.bind(styles);
 const { Title, Text } = Typography;
 
-// Mở rộng nhãn vé
 const TICKET_LABELS = {
     VIP: 'VÉ VIP',
     STANDARD: 'VÉ TIÊU CHUẨN',
@@ -44,18 +44,23 @@ const Checkout = () => {
     const { user } = useContext(AuthContext);
     const { message } = App.useApp();
 
+    // Sử dụng hook useModal tự tạo của bạn
+    const {
+        isOpen: isCancelModalOpen,
+        open: openCancelModal,
+        close: closeCancelModal
+    } = useModal();
+
     const [timeLeft, setTimeLeft] = useState(null);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [agreed, setAgreed] = useState(false);
 
-    // FIX 1: Lấy đúng tên biến từ Booking.jsx gửi sang
     const event = state?.event;
     const selectedItems = state?.selectedItems || [];
     const totalPrice = state?.totalPrice || 0;
     const orderId = state?.orderId;
     const isSeated = state?.isSeated || false;
 
-    // Tính tổng số lượng (Nếu là ghế thì 1 item = 1 vé)
     const totalQuantity = useMemo(
         () =>
             isSeated
@@ -83,13 +88,14 @@ const Checkout = () => {
         [event]
     );
 
+    // Xử lý đếm ngược 10 phút
     useEffect(() => {
         if (!orderId) return;
         const storageKey = `checkout_expiration_order_${orderId}`;
         let expirationTime = localStorage.getItem(storageKey);
 
         if (!expirationTime) {
-            expirationTime = Date.now() + 900 * 1000;
+            expirationTime = Date.now() + 600 * 1000;
             localStorage.setItem(storageKey, expirationTime);
         }
 
@@ -98,6 +104,9 @@ const Checkout = () => {
             const difference = Math.floor((expirationTime - now) / 1000);
             if (difference <= 0) {
                 localStorage.removeItem(storageKey);
+                orderApi
+                    .cancelOrder(orderId)
+                    .catch(err => console.error('Lỗi hủy đơn', err));
                 return 0;
             }
             return difference;
@@ -113,14 +122,26 @@ const Checkout = () => {
         return () => clearInterval(timer);
     }, [orderId]);
 
+    // Mở modal xác nhận thay vì điều hướng ngay lập tức
     const handleBack = () => {
-        if (orderId)
-            localStorage.removeItem(`checkout_expiration_order_${orderId}`);
+        openCancelModal();
+    };
+
+    // Hàm thực hiện hủy đơn thực tế khi người dùng xác nhận trên Modal
+    const handleConfirmCancel = async () => {
+        if (orderId) {
+            try {
+                await orderApi.cancelOrder(orderId);
+                localStorage.removeItem(`checkout_expiration_order_${orderId}`);
+            } catch (error) {
+                console.error('Lỗi khi hủy đơn hàng:', error);
+            }
+        }
+        closeCancelModal();
         navigate(-1);
     };
 
     const sendConfirmationEmail = async () => {
-        // FIX 2: Logic hiển thị nội dung email cho cả 2 loại vé
         const ticketDetailStr = selectedItems
             .map(t =>
                 isSeated
@@ -149,7 +170,6 @@ const Checkout = () => {
                 templateParams,
                 'fvefLbNeEdGweDTg5'
             );
-            console.log('Email sent successfully!');
         } catch (error) {
             console.error('Failed to send confirmation email', error);
         }
@@ -180,7 +200,6 @@ const Checkout = () => {
                 }, 1500);
             }
         } catch (error) {
-            console.error('Lỗi thanh toán:', error);
             message.error(
                 error.response?.data?.message || 'Lỗi xử lý đơn hàng'
             );
@@ -189,19 +208,41 @@ const Checkout = () => {
     };
 
     const formatTime = seconds => {
-        if (seconds === null) return '15:00';
+        if (seconds === null) return '10:00';
         const mins = Math.floor(seconds / 60);
         const secs = seconds % 60;
         return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
     };
 
-    // PHÒNG VỆ: Nếu người dùng refresh trang (mất state) thì về trang chủ thay vì hiện trang trắng
     if (!state || !event || selectedItems.length === 0) {
         return <Navigate to='/' replace />;
     }
 
     return (
         <div className={cx('checkoutPage')}>
+            {/* Modal cảnh báo hủy đơn sử dụng hook useModal */}
+            <Modal
+                title='Hủy đơn hàng?'
+                open={isCancelModalOpen}
+                onOk={handleConfirmCancel}
+                onCancel={closeCancelModal}
+                okText='Đồng ý'
+                cancelText='Hủy bỏ'
+                okButtonProps={{ danger: true }}
+                centered
+            >
+                <div style={{ marginTop: '10px' }}>
+                    <p>
+                        Bạn có chắc chắn muốn tiếp tục? Bạn sẽ mất vị trí mình
+                        đã lựa chọn.
+                    </p>
+                    <p style={{ color: '#ff4d4f', fontWeight: '500' }}>
+                        Đơn hàng đang trong quá trình thanh toán hoặc đã thanh
+                        toán thành công cũng có thể bị huỷ.
+                    </p>
+                </div>
+            </Modal>
+
             <div className={cx('eventBanner')}>
                 <div
                     className={cx('blurBg')}
@@ -308,7 +349,6 @@ const Checkout = () => {
                                                 style={{ width: '18px' }}
                                             />
                                             <Text className={cx('ticketText')}>
-                                                {/* FIX 3: Hiển thị linh hoạt Ghế hoặc Loại vé */}
                                                 {isSeated
                                                     ? `Ghế ${item.zone}-${item.seatLabel}`
                                                     : `${item.quantity}x ${TICKET_LABELS[item.ticketType] || item.ticketType}`}

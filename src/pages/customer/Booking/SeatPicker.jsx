@@ -29,14 +29,45 @@ const SeatPicker = ({ eventId, onSelectionChange }) => {
         if (eventId) fetchSeats();
     }, [eventId, message]);
 
+    // ✅ SẮP XẾP + NHÓM GHẾ
     const groupedSeats = useMemo(() => {
-        return seats.reduce((groups, seat) => {
+        const sortedSeats = [...seats].sort((a, b) => {
+            // Sắp xếp theo zone
+            const zoneCompare = (a.zone || '').localeCompare(
+                b.zone || '',
+                undefined,
+                {
+                    numeric: true,
+                    sensitivity: 'base'
+                }
+            );
+            if (zoneCompare !== 0) return zoneCompare;
+
+            // Sắp xếp theo seatLabel trong cùng zone
+            return (a.seatLabel || '').localeCompare(
+                b.seatLabel || '',
+                undefined,
+                {
+                    numeric: true,
+                    sensitivity: 'base'
+                }
+            );
+        });
+
+        return sortedSeats.reduce((groups, seat) => {
             const zoneName = seat.zone || 'Khu vực chung';
             if (!groups[zoneName]) groups[zoneName] = [];
             groups[zoneName].push(seat);
             return groups;
         }, {});
     }, [seats]);
+
+    // ✅ SẮP XẾP TÊN ZONE
+    const sortedZoneNames = useMemo(() => {
+        return Object.keys(groupedSeats).sort((a, b) =>
+            a.localeCompare(b, undefined, { numeric: true })
+        );
+    }, [groupedSeats]);
 
     const handleSeatClick = seat => {
         if (seat.status !== 'AVAILABLE') return;
@@ -68,11 +99,12 @@ const SeatPicker = ({ eventId, onSelectionChange }) => {
 
     return (
         <div className={cx('seatPicker')}>
+            {/* Sân khấu */}
             <div className={cx('stageWrapper')}>
-                <div className={cx('stage')}>SÂN KHẤU </div>
+                <div className={cx('stage')}>SÂN KHẤU</div>
             </div>
 
-            {/* Chú thích màu sắc */}
+            {/* Chú thích */}
             <div className={cx('legend')}>
                 <div className={cx('legendItem')}>
                     <div className={cx('seat', 'mini')} />
@@ -88,12 +120,13 @@ const SeatPicker = ({ eventId, onSelectionChange }) => {
                 </div>
             </div>
 
-            {/* Danh sách ghế theo Zone */}
-            {Object.keys(groupedSeats).map(zone => (
+            {/* Render theo thứ tự zone đã sort */}
+            {sortedZoneNames.map(zone => (
                 <div key={zone} className={cx('zoneContainer')}>
                     <Divider orientation='left' className={cx('zoneHeader')}>
                         <Tag color='gold'>{zone}</Tag>
                     </Divider>
+
                     <div className={cx('seatGrid')}>
                         {groupedSeats[zone].map(seat => {
                             const isSelected = selectedSeats.some(

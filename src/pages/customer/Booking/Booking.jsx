@@ -175,8 +175,8 @@ const Booking = () => {
                     .map(t => ({
                         ticketId: t.id,
                         quantity: quantities[t.id],
-                        ticketType: t.ticketType, // Bổ sung thêm dòng này để lấy tên loại vé
-                        price: t.price // Bổ sung thêm dòng này để tính toán giá tiền bên Checkout
+                        ticketType: t.ticketType,
+                        price: t.price
                     }));
             }
 
