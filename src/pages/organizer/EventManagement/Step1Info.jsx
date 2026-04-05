@@ -76,17 +76,37 @@ const Step1Info = ({
                     return false;
                 }
 
+                // --- ĐÃ CHỈNH SỬA: PHÂN LOẠI ẢNH BÌA VÀ ẢNH LOGO RÕ RÀNG ---
                 const imagesArr = [];
-                if (parentFormData.posterFile)
-                    imagesArr.push(parentFormData.posterFile);
-                if (parentFormData.logoFile)
-                    imagesArr.push(parentFormData.logoFile);
+                if (parentFormData.posterFile) {
+                    const pFile = parentFormData.posterFile;
+                    pFile.isCover = true; // Đánh dấu đây là ảnh bìa (Poster 1280x720)
+                    imagesArr.push(pFile);
+                }
+                if (parentFormData.logoFile) {
+                    const lFile = parentFormData.logoFile;
+                    lFile.isCover = false; // Đánh dấu đây KHÔNG phải ảnh bìa (Logo)
+                    imagesArr.push(lFile);
+                }
+
+                // CHUYỂN CHUỖI THÀNH MẢNG CHO NGHỆ SĨ
+                let artistsArray = [];
+                if (values.artists) {
+                    // Nếu nó là chuỗi, cắt theo dấu phẩy, xóa khoảng trắng thừa ở đầu/cuối mỗi tên
+                    artistsArray =
+                        typeof values.artists === 'string'
+                            ? values.artists
+                                  .split(',')
+                                  .map(name => name.trim())
+                                  .filter(name => name !== '')
+                            : values.artists;
+                }
 
                 setParentFormData(prev => ({
                     ...prev,
                     ...values,
-                    // values.artists tự động là mảng chuỗi ["Nghệ sĩ A", "Nghệ sĩ B"]
-                    images: imagesArr
+                    artists: artistsArray, // Ghi đè artists bằng mảng đã xử lý chuẩn cho AI
+                    images: imagesArr // Lưu mảng file đã được phân loại isCover
                 }));
                 return true;
             } catch (error) {
@@ -115,53 +135,64 @@ const Step1Info = ({
         };
 
         fetchInitialData();
+    }, []);
 
+    useEffect(() => {
         if (parentFormData) {
-            form.setFieldsValue({
-                ...parentFormData,
-                permitIssuedAt: parentFormData.permitIssuedAt
-                    ? dayjs(parentFormData.permitIssuedAt)
-                    : null
-            });
+            const isFormEmpty = !form.getFieldValue('name');
 
-            // 1. Khôi phục ảnh cho flow tạo mới (khi quay lại từ bước 2)
-            if (parentFormData.poster) {
-                setPosterUrl(parentFormData.poster);
-                form.setFieldsValue({ poster: parentFormData.poster });
-            }
-            if (parentFormData.organizerLogo) {
-                setLogoUrl(parentFormData.organizerLogo);
+            if (isFormEmpty) {
                 form.setFieldsValue({
-                    organizerLogo: parentFormData.organizerLogo
+                    ...parentFormData,
+                    // Nếu artists đang là mảng (từ server trả về), nối lại thành chuỗi ngăn cách bằng dấu phẩy
+                    artists: Array.isArray(parentFormData.artists)
+                        ? parentFormData.artists.join(', ')
+                        : parentFormData.artists,
+                    permitIssuedAt: parentFormData.permitIssuedAt
+                        ? dayjs(parentFormData.permitIssuedAt)
+                        : null
                 });
-            }
 
-            // 2. Khôi phục ảnh cho flow chỉnh sửa (dữ liệu từ server)
-            if (parentFormData.images && parentFormData.images.length > 0) {
-                const posterData = parentFormData.images.find(
-                    img => img.isCover === true
-                );
-                if (posterData) {
-                    const fullUrl = `${IMAGE_BASE_URL}/${parentFormData.id}/${posterData.url}`;
-                    setPosterUrl(fullUrl);
-                    form.setFieldsValue({ poster: fullUrl });
+                // 1. Khôi phục ảnh cho flow tạo mới (khi quay lại từ bước 2)
+                if (parentFormData.poster) {
+                    setPosterUrl(parentFormData.poster);
+                    form.setFieldsValue({ poster: parentFormData.poster });
+                }
+                if (parentFormData.organizerLogo) {
+                    setLogoUrl(parentFormData.organizerLogo);
+                    form.setFieldsValue({
+                        organizerLogo: parentFormData.organizerLogo
+                    });
                 }
 
-                const logoData = parentFormData.images.find(
-                    img => img.isCover === false
-                );
-                if (logoData) {
-                    const fullUrl = `${IMAGE_BASE_URL}/${parentFormData.id}/${logoData.url}`;
-                    setLogoUrl(fullUrl);
-                    form.setFieldsValue({ organizerLogo: fullUrl });
-                }
-            }
+                // 2. Khôi phục ảnh cho flow chỉnh sửa (dữ liệu từ server)
+                if (parentFormData.images && parentFormData.images.length > 0) {
+                    const posterData = parentFormData.images.find(
+                        img => img.isCover === true
+                    );
+                    if (posterData) {
+                        const fullUrl = `${IMAGE_BASE_URL}/${parentFormData.id}/${posterData.url}`;
+                        setPosterUrl(fullUrl);
+                        form.setFieldsValue({ poster: fullUrl });
+                    }
 
-            if (parentFormData.province)
-                handleProvinceChange(parentFormData.province, false);
-            if (parentFormData.district)
-                handleDistrictChange(parentFormData.district, false);
+                    const logoData = parentFormData.images.find(
+                        img => img.isCover === false
+                    );
+                    if (logoData) {
+                        const fullUrl = `${IMAGE_BASE_URL}/${parentFormData.id}/${logoData.url}`;
+                        setLogoUrl(fullUrl);
+                        form.setFieldsValue({ organizerLogo: fullUrl });
+                    }
+                }
+
+                if (parentFormData.province)
+                    handleProvinceChange(parentFormData.province, false);
+                if (parentFormData.district)
+                    handleDistrictChange(parentFormData.district, false);
+            }
         }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [parentFormData]);
 
     const handleProvinceChange = async (value, resetChildren = true) => {
@@ -245,7 +276,7 @@ const Step1Info = ({
                     form.setFieldsValue({ poster: url });
                     setParentFormData(prev => ({
                         ...prev,
-                        ...form.getFieldsValue(), // Lấy cả list artists đang nhập
+                        ...form.getFieldsValue(),
                         posterFile: file,
                         poster: url
                     }));
@@ -427,7 +458,7 @@ const Step1Info = ({
                             />
                         </Form.Item>
 
-                        {/* --- MỤC MỚI: NGHỆ SĨ THAM GIA --- */}
+                        {/* --- CHỈNH SỬA: SỬ DỤNG INPUT BÌNH THƯỜNG --- */}
                         <Form.Item
                             name='artists'
                             label={
@@ -435,19 +466,16 @@ const Step1Info = ({
                                     Nghệ sĩ tham gia
                                 </span>
                             }
-                            tooltip='Nhập tên nghệ sĩ rồi nhấn Enter để thêm nhãn'
+                            tooltip='Nhập tên các nghệ sĩ, ngăn cách nhau bằng dấu phẩy. Ví dụ: Sơn Tùng, Đen Vâu'
                         >
-                            <Select
-                                mode='tags'
+                            <Input
                                 size='large'
-                                placeholder='Nhập tên nghệ sĩ (VD: Sơn Tùng, Đen Vâu...)'
-                                style={{ width: '100%' }}
-                                suffixIcon={
+                                placeholder='VD: Sơn Tùng, Đen Vâu...'
+                                suffix={
                                     <UserOutlined
                                         style={{ color: '#9ca6b0' }}
                                     />
                                 }
-                                tokenSeparators={[',']} // Cho phép dùng dấu phẩy để tạo nhãn
                             />
                         </Form.Item>
 
