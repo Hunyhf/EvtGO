@@ -114,9 +114,8 @@ const OrderManagement = () => {
             }
         },
         [eventId, message]
-    ); // dependency: eventId đổi thì hàm này được tạo lại version mới
+    );
 
-    // 3. EFFECT GỌI API CLEAR ĐƯỢC ESLINT-DISABLE CÙI BẮP
     useEffect(() => {
         fetchOrders(1, pagination.pageSize);
     }, [fetchOrders, pagination.pageSize]);
