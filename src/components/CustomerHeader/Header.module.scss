@@ -470,7 +470,6 @@
     }
 
     .bottomNavItem {
-        // Đổi từ __item
         @include flex(center, center);
         flex-direction: column;
         text-decoration: none;
@@ -483,6 +482,28 @@
             width: 22px;
             height: 22px;
             fill: $white-color;
+        }
+
+        &.active {
+            color: $primary-color;
+            svg {
+                fill: $primary-color;
+            }
+        }
+    }
+    .bottomNavItemTicket {
+        @include flex(center, center);
+        flex-direction: column;
+        text-decoration: none;
+        color: $white-color;
+        font-size: 1.1rem;
+        gap: 4px;
+        flex: 1;
+
+        svg {
+            width: 22px;
+            height: 22px;
+            fill: none;
         }
 
         &.active {

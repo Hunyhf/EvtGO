@@ -337,7 +337,7 @@ function Header() {
 
                 <Link
                     to={isAuthenticated ? '/my-tickets' : '#'}
-                    className={cx('bottomNavItem', {
+                    className={cx('bottomNavItemTicket', {
                         active: pathname === '/my-tickets'
                     })}
                     onClick={e => handleProtectedAction(e)}
