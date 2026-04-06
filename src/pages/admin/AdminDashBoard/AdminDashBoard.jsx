@@ -23,10 +23,11 @@ import styles from './AdminDashBoard.module.scss';
 import { callFetchAllUsers } from '../../../apis/userApi';
 import { eventApi } from '../../../apis/eventApi';
 import orderApi from '../../../apis/orderApi';
-
+import { useNavigate } from 'react-router-dom'; // Thêm import này
 const { Title, Text } = Typography;
 
 function AdminDashBoard() {
+    const navigate = useNavigate(); // Khởi tạo navigate
     const [loading, setLoading] = useState(true);
     const [stats, setStats] = useState({
         totalUsers: 0,
@@ -161,17 +162,19 @@ function AdminDashBoard() {
             value: stats.totalUsers,
             icon: <UserOutlined style={{ color: '#1890ff' }} />,
             color: '#e6f7ff',
-            suffix: 'người'
+            suffix: 'người',
+            path: '/admin/users'
         },
         {
             title: 'Tổng sự kiện',
             value: stats.totalEvents,
             icon: <CalendarOutlined style={{ color: '#722ed1' }} />,
             color: '#f9f0ff',
-            suffix: 'sự kiện'
+            suffix: 'sự kiện',
+            path: '/admin/events'
         },
         {
-            title: 'Doanh thu (PAID)',
+            title: 'Doanh thu ',
             value: stats.revenue,
             icon: <DollarOutlined style={{ color: '#52c41a' }} />,
             color: '#f6ffed',
@@ -182,7 +185,8 @@ function AdminDashBoard() {
             value: stats.pendingEvents,
             icon: <ClockCircleOutlined style={{ color: '#fa8c16' }} />,
             color: '#fff7e6',
-            suffix: ''
+            suffix: '',
+            path: '/admin/events'
         }
     ];
 
@@ -206,6 +210,7 @@ function AdminDashBoard() {
                             bordered={false}
                             hoverable
                             className={styles.statCard}
+                            onClick={() => item.path && navigate(item.path)}
                         >
                             <Statistic
                                 title={item.title}

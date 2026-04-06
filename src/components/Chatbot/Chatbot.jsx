@@ -14,8 +14,7 @@ import { AuthContext } from '@contexts/AuthContext';
 
 const cx = classNames.bind(styles);
 
-// Key lưu lịch sử chat và session khách
-const CHAT_STORAGE_KEY = 'etco_chat_history';
+// Key lưu session khách (bỏ key lưu chat chung đi)
 const GUEST_SESSION_KEY = 'etco_guest_session_id';
 
 function Chatbot() {
@@ -25,9 +24,26 @@ function Chatbot() {
     // State mở/đóng chatbot
     const [isOpen, setIsOpen] = useState(false);
 
-    // Khởi tạo danh sách tin nhắn từ localStorage hoặc tin nhắn mặc định
+    // Tạo hoặc lấy sessionId (user hoặc guest)
+    // Đưa hàm này lên trước để sử dụng cho việc khởi tạo state
+    const getSessionId = () => {
+        if (isAuthenticated && user?.id) {
+            return `user_${user.id}`;
+        }
+
+        let guestId = localStorage.getItem(GUEST_SESSION_KEY);
+        if (!guestId) {
+            guestId = `guest_${new Date().getTime()}`;
+            localStorage.setItem(GUEST_SESSION_KEY, guestId);
+        }
+        return guestId;
+    };
+
+    const currentSessionId = getSessionId();
+
+    // Khởi tạo danh sách tin nhắn từ localStorage dựa trên currentSessionId
     const [messages, setMessages] = useState(() => {
-        const saved = localStorage.getItem(CHAT_STORAGE_KEY);
+        const saved = localStorage.getItem(`chat_history_${currentSessionId}`);
         return saved
             ? JSON.parse(saved)
             : [
@@ -50,30 +66,35 @@ function Chatbot() {
     // Ref để scroll xuống cuối danh sách tin nhắn
     const messagesEndRef = useRef(null);
 
-    // Lưu lịch sử chat vào localStorage mỗi khi messages thay đổi
+    // 1. Lưu lịch sử chat vào localStorage mỗi khi messages thay đổi theo Session ID
     useEffect(() => {
-        localStorage.setItem(CHAT_STORAGE_KEY, JSON.stringify(messages));
-    }, [messages]);
+        localStorage.setItem(
+            `chat_history_${currentSessionId}`,
+            JSON.stringify(messages)
+        );
+    }, [messages, currentSessionId]);
 
-    // Tạo hoặc lấy sessionId (user hoặc guest)
-    const getSessionId = () => {
-        if (isAuthenticated && user?.id) {
-            return `user_${user.id}`;
-        }
+    // 2. Cập nhật lại giao diện khi người dùng Đăng nhập / Đăng xuất
+    useEffect(() => {
+        const sessionId = getSessionId();
+        const saved = localStorage.getItem(`chat_history_${sessionId}`);
 
-        let guestId = localStorage.getItem(GUEST_SESSION_KEY);
-        if (!guestId) {
-            guestId = `guest_${new Date().getTime()}`;
-            localStorage.setItem(GUEST_SESSION_KEY, guestId);
+        if (saved) {
+            setMessages(JSON.parse(saved));
+        } else {
+            setMessages([
+                {
+                    role: 'bot',
+                    content: 'Chào bạn! Tôi có thể giúp gì cho bạn hôm nay?'
+                }
+            ]);
         }
-        return guestId;
-    };
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [isAuthenticated, user]);
 
     // Xử lý gửi tin nhắn (text hoặc kèm ảnh)
     const handleSend = async () => {
         if (!input.trim() && !imageFile) return;
-
-        const currentSessionId = getSessionId();
 
         const userMsg = {
             role: 'user',
@@ -130,9 +151,9 @@ function Chatbot() {
         }
     };
 
-    // Xóa toàn bộ lịch sử chat
+    // Xóa toàn bộ lịch sử chat của phiên hiện tại
     const clearChat = () => {
-        localStorage.removeItem(CHAT_STORAGE_KEY);
+        localStorage.removeItem(`chat_history_${currentSessionId}`);
         setMessages([
             {
                 role: 'bot',

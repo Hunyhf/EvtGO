@@ -21,7 +21,7 @@ import classNames from 'classnames/bind';
 import debounce from 'lodash/debounce';
 
 import styles from './GenreManagement.module.scss';
-import { genresApi } from '@apis/genresApi'; // Đảm bảo alias @apis đã được cấu hình
+import { genresApi } from '@apis/genresApi';
 
 const cx = classNames.bind(styles);
 const { Title } = Typography;
