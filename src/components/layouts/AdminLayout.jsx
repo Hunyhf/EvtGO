@@ -4,7 +4,8 @@ import {
     DashboardOutlined,
     UsergroupAddOutlined,
     CalendarOutlined,
-    LogoutOutlined
+    LogoutOutlined,
+    TagsOutlined
 } from '@ant-design/icons';
 import MainDashboardLayout from './MainDashboardLayout';
 import { AuthContext } from '@contexts/AuthContext';
@@ -64,6 +65,12 @@ function AdminLayout() {
             icon: <CalendarOutlined />,
             label: 'Quản lý sự kiện',
             onClick: () => navigate('/admin/events')
+        },
+        {
+            key: '/admin/genres',
+            icon: <TagsOutlined />,
+            label: 'Quản lý thể loại',
+            onClick: () => navigate('/admin/genres')
         }
     ];
 

@@ -24,13 +24,14 @@ import PolicyViewer from '@pages/customer/PolicyViewer/PolicyViewer';
 import AdminDashBoard from '@pages/admin/AdminDashBoard/AdminDashBoard.jsx';
 import UserManagement from '@pages/admin/UserManagement/UserManagement.jsx';
 import AdminEventManagement from '@pages/admin/EventManagement/AdminEventManagement.jsx';
+import GenreManagement from '@pages/admin/GenreManagement/GenreManagement';
 
 // ORGANIZER PAGES
 import EventManagement from '@pages/organizer/EventManagement/EventManagement';
 import CreateEvent from '@pages/organizer/EventManagement/CreateEvent';
 import EditEvent from '@pages/organizer/EventManagement/EditEvent';
 import OrderManagement from '@pages/organizer/OrderManagement/OrderManagement';
-import EventSummary from '@pages/organizer/EventManagement/EventSummary/EventSummary.jsx'; // Trang Summary mới
+import EventSummary from '@pages/organizer/EventManagement/EventSummary/EventSummary.jsx';
 import StaffManagement from '@pages/organizer/EventManagement/StaffManagement';
 
 // STAFF PAGES
@@ -52,7 +53,8 @@ export const BREADCRUMB_LABELS = {
     '/organizer/events/create': 'Tạo sự kiện mới',
     '/admin': 'Tổng quan',
     '/admin/users': 'Quản lý người dùng',
-    '/admin/events': 'Quản lý sự kiện'
+    '/admin/events': 'Quản lý sự kiện',
+    '/admin/genres': 'Quản lý thể loại'
 };
 
 export const routes = createBrowserRouter([
@@ -150,7 +152,8 @@ export const routes = createBrowserRouter([
                 children: [
                     { index: true, element: <AdminDashBoard /> },
                     { path: 'users', element: <UserManagement /> },
-                    { path: 'events', element: <AdminEventManagement /> }
+                    { path: 'events', element: <AdminEventManagement /> },
+                    { path: 'genres', element: <GenreManagement /> }
                 ]
             },
 

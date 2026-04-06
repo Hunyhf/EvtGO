@@ -1,0 +1,76 @@
+@import '../../../assets/styles/variables';
+@import '../../../assets/styles/mixins';
+
+.genre-management {
+    padding: 24px;
+    background-color: transparent;
+
+    &__header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 24px;
+    }
+
+    &__title {
+        margin: 0 !important;
+        color: $white-color !important;
+    }
+
+    &__container {
+        background: rgba(255, 255, 255, 0.05);
+        padding: 20px;
+        border-radius: 8px;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    &__table {
+        :global {
+            .ant-table {
+                background: transparent;
+                color: $white-color;
+            }
+            .ant-table-thead > tr > th {
+                background: rgba(255, 255, 255, 0.1);
+                color: $white-color;
+                border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+            }
+            .ant-table-tbody > tr > td {
+                border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            }
+            .ant-table-row:hover > td {
+                background: rgba(255, 255, 255, 0.05) !important;
+            }
+        }
+    }
+
+    &__modal {
+        :global {
+            .ant-modal-content {
+                background-color: #1f1f1f;
+                border: 1px solid #303030;
+            }
+            .ant-modal-header {
+                background-color: #1f1f1f;
+                border-bottom: 1px solid #303030;
+            }
+            .ant-modal-title {
+                color: $white-color;
+            }
+        }
+    }
+}
+
+.action-btns {
+    display: flex;
+    gap: 8px;
+}
+
+.btn-primary {
+    background-color: $primary-color;
+    border-color: $primary-color;
+    &:hover {
+        background-color: darken($primary-color, 10%) !important;
+        border-color: darken($primary-color, 10%) !important;
+    }
+}

@@ -4,10 +4,11 @@ import classNames from 'classnames/bind';
 import styles from './Nav.module.scss';
 import { genresApi } from '@apis/genresApi';
 import { AuthContext } from '@contexts/AuthContext';
-import Cookies from 'js-cookie';
 import { slugify } from '@utils/stringUtils';
+
 const cx = classNames.bind(styles);
 
+// Giữ lại làm fallback khi API lỗi
 const DEFAULT_GENRES = [
     { id: 1, name: 'Nhạc sống' },
     { id: 2, name: 'Sân khấu và Nghệ thuật' },
@@ -18,24 +19,14 @@ const DEFAULT_GENRES = [
 
 function Nav() {
     const [genres, setGenres] = useState(DEFAULT_GENRES);
-
-    const { isAuthenticated, isLoading } = useContext(AuthContext) || {};
+    const { isAuthenticated } = useContext(AuthContext) || {};
 
     useEffect(() => {
         const fetchGenres = async () => {
-            // Kiểm tra token
-            const token = Cookies.get('access_token');
-
-            if (!token) {
-                setGenres(DEFAULT_GENRES);
-                return;
-            }
-
             try {
-                // Gọi API lấy danh sách thể loại
+                // Luôn gọi API để lấy dữ liệu mới nhất từ Database
                 const res = await genresApi.getAll();
 
-                // Kiểm tra cấu trúc trả về từ Backend Spring Boot
                 if (res && res.result) {
                     setGenres(res.result);
                 } else if (Array.isArray(res)) {
@@ -46,12 +37,13 @@ function Nav() {
                     '>>> [Nav] Lỗi lấy danh mục, dùng mặc định:',
                     error
                 );
+                // Chỉ dùng danh sách cứng khi API gặp lỗi thực sự
                 setGenres(DEFAULT_GENRES);
             }
         };
 
         fetchGenres();
-    }, [isAuthenticated, isLoading]);
+    }, [isAuthenticated]); // Re-fetch khi trạng thái đăng nhập thay đổi để đồng bộ
 
     return (
         <nav className={cx('wrapper')}>
