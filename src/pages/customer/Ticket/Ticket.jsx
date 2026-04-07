@@ -27,7 +27,7 @@ function Ticket() {
         close: closeOrderModal
     } = useModal();
 
-    // Modal phóng to QR (như cũ)
+    // Modal phóng to QR
     const {
         isOpen: isQrModalOpen,
         open: openQrModal,
@@ -84,6 +84,7 @@ function Ticket() {
 
     // Xử lý khi nhấn vào 1 vé trong đơn hàng (để xem QR)
     const handleTicketClick = ticket => {
+        if (!ticket.qrCode) return; // Chặn click nếu vé không có QR
         setSelectedTicketQr(ticket);
         openQrModal();
     };
@@ -93,6 +94,12 @@ function Ticket() {
             <div className={cx('loading')}>Đang tải lịch sử mua hàng...</div>
         );
 
+    // Biến kiểm tra xem đơn hàng đang chọn có vé thật hay chưa
+    const hasValidTickets =
+        selectedOrder &&
+        groupedTickets[selectedOrder.id] &&
+        groupedTickets[selectedOrder.id].length > 0;
+
     return (
         <div className={cx('container')}>
             <h1 className={cx('pageTitle')}>Lịch sử mua vé</h1>
@@ -101,11 +108,22 @@ function Ticket() {
             <div className={cx('orderList')}>
                 {orders.length > 0 ? (
                     orders.map(order => {
-                        // Lấy thông tin từ vé đầu tiên của đơn hàng này để hiển thị ảnh/tên sự kiện
+                        // Ưu tiên lấy thông tin từ vé thật, nếu không có thì lấy từ chi tiết đơn hàng BE
                         const firstTicket = groupedTickets[order.id]?.[0];
                         const eventName =
                             firstTicket?.event?.name ||
+                            order.items?.[0]?.eventName ||
                             'Sự kiện không xác định';
+
+                        // Số lượng: Tổng số vé từ order items, fallback sang length của group
+                        const totalTickets =
+                            order.items?.reduce(
+                                (sum, item) => sum + item.quantity,
+                                0
+                            ) ||
+                            groupedTickets[order.id]?.length ||
+                            0;
+
                         const imageUrl = firstTicket?.event?.image
                             ? getEventImageUrl(
                                   firstTicket.event.id,
@@ -148,9 +166,7 @@ function Ticket() {
                                             <p>
                                                 Số lượng:{' '}
                                                 <strong>
-                                                    {groupedTickets[order.id]
-                                                        ?.length || 0}{' '}
-                                                    vé
+                                                    {totalTickets} vé
                                                 </strong>
                                             </p>
                                             <p className={cx('totalAmount')}>
@@ -172,7 +188,8 @@ function Ticket() {
                     </div>
                 )}
             </div>
-            {/* MODAL CHI TIẾT ĐƠN HÀNG (Hiển thị các vé như giao diện cũ) */}
+
+            {/* MODAL CHI TIẾT ĐƠN HÀNG */}
             <Modal
                 title={`Chi tiết đơn hàng: ${selectedOrder?.orderCode}`}
                 open={isOrderModalOpen}
@@ -182,74 +199,157 @@ function Ticket() {
                 centered
             >
                 <div className={cx('ticketListInModal')}>
-                    {groupedTickets[selectedOrder?.id]?.map(item => {
-                        const imageUrl = item.event?.image
-                            ? getEventImageUrl(item.event.id, item.event.image)
-                            : 'https://images.unsplash.com/photo-1492684223066-81342ee5ff30';
+                    {hasValidTickets
+                        ? /* TRƯỜNG HỢP 1: ĐƠN ĐÃ CÓ VÉ THẬT -> HIỂN THỊ ĐẦY ĐỦ THÔNG TIN SỰ KIỆN VÀ QR */
+                          groupedTickets[selectedOrder.id].map(item => {
+                              const imageUrl = item.event?.image
+                                  ? getEventImageUrl(
+                                        item.event.id,
+                                        item.event.image
+                                    )
+                                  : 'https://images.unsplash.com/photo-1492684223066-81342ee5ff30';
 
-                        return (
-                            <div
-                                key={item.id}
-                                className={cx('ticketRow')}
-                                onClick={() => handleTicketClick(item)}
-                            >
-                                <div className={cx('leftSection')}>
-                                    <img
-                                        src={imageUrl}
-                                        alt={item.event?.name}
-                                    />
-                                </div>
-                                <div className={cx('middleSection')}>
-                                    <h2 className={cx('eventName')}>
-                                        {item.event?.name}
-                                    </h2>
-                                    <div className={cx('infoGrid')}>
-                                        <p>
-                                            <strong>Địa điểm:</strong>{' '}
-                                            {item.event?.location}
-                                        </p>
-                                        <p>
-                                            <strong>Thời gian:</strong>{' '}
-                                            {dayjs(
-                                                item.event?.startTime
-                                            ).format('HH:mm DD/MM/YYYY')}
-                                        </p>
-                                        <p>
-                                            <strong>Loại vé:</strong>{' '}
-                                            {item.ticket?.ticketType}
-                                        </p>
-                                        {/* HIỂN THỊ TÊN KHU VỰC VÀ MÃ VÉ THEO YÊU CẦU */}
-                                        <p>
-                                            <strong>Khu vực:</strong>{' '}
-                                            {item.zone}
-                                        </p>
-                                        <p>
-                                            <strong>Vị trí:</strong>{' '}
-                                            {item.seatLabel}
-                                        </p>
-                                        <p>
-                                            <strong>Mã vé:</strong> #{item.id}
-                                        </p>
-                                    </div>
-                                </div>
-                                <div className={cx('rightSection')}>
-                                    <div className={cx('qrContainer')}>
-                                        <QRCodeCanvas
-                                            value={item.qrCode || 'NO-CODE'}
-                                            size={80}
-                                            level={'H'}
-                                        />
-                                    </div>
-                                    <p className={cx('qrCodeText')}>
-                                        #
-                                        {item.qrCode
-                                            ?.split('-')[0]
-                                            .toUpperCase()}
-                                    </p>
-                                </div>
-                            </div>
-                        );
-                    })}
+                              return (
+                                  <div
+                                      key={item.id}
+                                      className={cx('ticketRow')}
+                                      onClick={() => handleTicketClick(item)}
+                                  >
+                                      <div className={cx('leftSection')}>
+                                          <img
+                                              src={imageUrl}
+                                              alt={item.event?.name}
+                                          />
+                                      </div>
+                                      <div className={cx('middleSection')}>
+                                          <h2 className={cx('eventName')}>
+                                              {item.event?.name}
+                                          </h2>
+                                          <div className={cx('infoGrid')}>
+                                              <p>
+                                                  <strong>Địa điểm:</strong>{' '}
+                                                  {item.event?.location}
+                                              </p>
+                                              <p>
+                                                  <strong>Thời gian:</strong>{' '}
+                                                  {dayjs(
+                                                      item.event?.startTime
+                                                  ).format('HH:mm DD/MM/YYYY')}
+                                              </p>
+                                              <p>
+                                                  <strong>Loại vé:</strong>{' '}
+                                                  {item.ticket?.ticketType}
+                                              </p>
+                                              <p>
+                                                  <strong>Khu vực:</strong>{' '}
+                                                  {item.zone}
+                                              </p>
+                                              <p>
+                                                  <strong>Vị trí:</strong>{' '}
+                                                  {item.seatLabel}
+                                              </p>
+                                              <p>
+                                                  <strong>Mã vé:</strong> #
+                                                  {item.id}
+                                              </p>
+                                          </div>
+                                      </div>
+                                      <div className={cx('rightSection')}>
+                                          <div className={cx('qrContainer')}>
+                                              <QRCodeCanvas
+                                                  value={
+                                                      item.qrCode || 'NO-CODE'
+                                                  }
+                                                  size={80}
+                                                  level={'H'}
+                                              />
+                                          </div>
+                                          <p className={cx('qrCodeText')}>
+                                              #
+                                              {item.qrCode
+                                                  ?.split('-')[0]
+                                                  .toUpperCase()}
+                                          </p>
+                                      </div>
+                                  </div>
+                              );
+                          })
+                        : /* TRƯỜNG HỢP 2: ĐƠN CHƯA CÓ VÉ HOẶC ĐÃ HỦY -> LẤY DỮ LIỆU TỪ ITEMS CỦA BACKEND */
+                          selectedOrder?.items?.map((item, index) => {
+                              return (
+                                  <div
+                                      key={index}
+                                      className={cx('ticketRow')}
+                                      style={{ cursor: 'default' }}
+                                  >
+                                      <div className={cx('leftSection')}>
+                                          {/* Ảnh mặc định do BE không trả về ảnh trong OrderItemDTO */}
+                                          <img
+                                              src='https://images.unsplash.com/photo-1492684223066-81342ee5ff30'
+                                              alt={item.eventName}
+                                          />
+                                      </div>
+                                      <div className={cx('middleSection')}>
+                                          <h2 className={cx('eventName')}>
+                                              {item.eventName}
+                                          </h2>
+                                          <div className={cx('infoGrid')}>
+                                              <p>
+                                                  <strong>Loại vé:</strong>{' '}
+                                                  {item.ticketType}
+                                              </p>
+                                              <p>
+                                                  <strong>Số lượng:</strong>{' '}
+                                                  {item.quantity} vé
+                                              </p>
+                                              <p>
+                                                  <strong>Khu vực:</strong>{' '}
+                                                  {item.zone || 'Chưa xếp'}
+                                              </p>
+                                              <p>
+                                                  <strong>Vị trí:</strong>{' '}
+                                                  {item.seatLabel || 'Chưa xếp'}
+                                              </p>
+                                              <p>
+                                                  <strong>Đơn giá:</strong>{' '}
+                                                  {item.pricePerUnit?.toLocaleString(
+                                                      'vi-VN'
+                                                  )}{' '}
+                                                  VNĐ
+                                              </p>
+                                              <p>
+                                                  <strong>Tổng tiền:</strong>{' '}
+                                                  {item.subtotal?.toLocaleString(
+                                                      'vi-VN'
+                                                  )}{' '}
+                                                  VNĐ
+                                              </p>
+                                          </div>
+                                      </div>
+                                      <div
+                                          className={cx('rightSection')}
+                                          style={{
+                                              justifyContent: 'center',
+                                              backgroundColor: '#f5f5f5'
+                                          }}
+                                      >
+                                          <Tag
+                                              color={
+                                                  selectedOrder.orderStatus ===
+                                                  'CANCELLED'
+                                                      ? 'red'
+                                                      : 'orange'
+                                              }
+                                          >
+                                              {selectedOrder.orderStatus ===
+                                              'CANCELLED'
+                                                  ? 'Đã hủy'
+                                                  : 'Chưa xuất vé'}
+                                          </Tag>
+                                      </div>
+                                  </div>
+                              );
+                          })}
                 </div>
             </Modal>
 

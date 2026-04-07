@@ -1,48 +1,54 @@
-.mobileOnly {
+.scannerWrapper {
+    position: relative;
+    width: 100%;
+    min-height: 300px;
+    background: #000;
+    border-radius: 12px;
+    overflow: hidden;
+}
+
+.readerCanvas {
+    width: 100% !important;
+    border: none !important;
+
+    // Ẩn các nút bấm mặc định nếu thư viện cố hiện
+    button {
+        display: none !important;
+    }
+    #reader__dashboard {
+        display: none !important;
+    }
+}
+
+.cameraLoading {
     display: flex;
     flex-direction: column;
-    align-items: center;
     justify-content: center;
-    height: 100vh;
-    text-align: center;
-    padding: 20px;
-    background: #0f0c29;
+    align-items: center;
+    height: 300px;
     color: #fff;
 }
 
-.scannerBody {
-    padding: 16px;
+.resultContainer {
+    padding: 10px;
     background: #fff;
-    min-height: 100vh;
-    color: #333;
+    animation: slideUp 0.3s ease-out;
+}
 
-    .header {
-        margin-bottom: 24px;
-        text-align: center;
-        h3 {
-            color: #000;
-            margin-bottom: 4px;
-        }
+.scanHint {
+    text-align: center;
+    margin-top: 20px;
+    color: #666;
+    font-style: italic;
+}
+
+@keyframes slideUp {
+    from {
+        transform: translateY(20px);
+        opacity: 0;
     }
-
-    .inputArea {
-        margin-top: 20px;
-        input {
-            width: 100%;
-            padding: 15px;
-            border: 2px solid #eee;
-            border-radius: 10px;
-            font-size: 1.1rem;
-            margin-bottom: 12px;
-        }
-        button {
-            width: 100%;
-            padding: 15px;
-            background: #2dc275;
-            color: white;
-            border: none;
-            border-radius: 10px;
-            font-weight: bold;
-        }
+    to {
+        transform: translateY(0);
+        opacity: 1;
     }
 }
