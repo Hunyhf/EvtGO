@@ -20,11 +20,13 @@ import NotFound from '@pages/customer/NotFound/NotFound.jsx';
 import EventDetail from '@pages/customer/EventDetail/EventDetail';
 import Ticket from '@pages/customer/Ticket/Ticket';
 import PolicyViewer from '@pages/customer/PolicyViewer/PolicyViewer';
+
 // ADMIN PAGES
 import AdminDashBoard from '@pages/admin/AdminDashBoard/AdminDashBoard.jsx';
 import UserManagement from '@pages/admin/UserManagement/UserManagement.jsx';
 import AdminEventManagement from '@pages/admin/EventManagement/AdminEventManagement.jsx';
 import GenreManagement from '@pages/admin/GenreManagement/GenreManagement';
+import DocumentManagement from '@pages/admin/DocumentManagement/DocumentManagement';
 
 // ORGANIZER PAGES
 import EventManagement from '@pages/organizer/EventManagement/EventManagement';
@@ -153,7 +155,8 @@ export const routes = createBrowserRouter([
                     { index: true, element: <AdminDashBoard /> },
                     { path: 'users', element: <UserManagement /> },
                     { path: 'events', element: <AdminEventManagement /> },
-                    { path: 'genres', element: <GenreManagement /> }
+                    { path: 'genres', element: <GenreManagement /> },
+                    { path: 'ai-documents', element: <DocumentManagement /> }
                 ]
             },
 

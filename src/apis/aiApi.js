@@ -9,8 +9,12 @@ export const aiApi = {
         formData.append('message', message);
         if (sessionId) formData.append('sessionId', sessionId);
         formData.append('image', imageFile);
-        return axiosClient.post('/api/v1/ai/chat-with-image', formData, {
-            headers: { 'Content-Type': 'multipart/form-data' }
-        });
+
+        return axiosClient.post('/api/v1/ai/chat-with-image', formData);
+    },
+    uploadDocument: file => {
+        const formData = new FormData();
+        formData.append('file', file);
+        return axiosClient.post('/api/v1/ai/ingest', formData);
     }
 };

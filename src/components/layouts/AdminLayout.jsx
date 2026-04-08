@@ -5,35 +5,18 @@ import {
     UsergroupAddOutlined,
     CalendarOutlined,
     LogoutOutlined,
-    TagsOutlined
+    TagsOutlined,
+    RobotOutlined
 } from '@ant-design/icons';
 import MainDashboardLayout from './MainDashboardLayout';
 import { AuthContext } from '@contexts/AuthContext';
 import { callLogout } from '@apis/authApi';
 
-/**
- * Layout dành riêng cho khu vực Admin
- * Bao gồm:
- * - Sidebar menu điều hướng
- * - Header admin
- * - Dropdown user (logout)
- * - Outlet render nội dung con
- */
 function AdminLayout() {
     const navigate = useNavigate();
     const location = useLocation();
-
-    /**
-     * Lấy hàm logout từ AuthContext
-     * Dùng để xóa thông tin user sau khi gọi API logout
-     */
     const { logoutContext } = useContext(AuthContext);
 
-    /**
-     * Xử lý đăng xuất trong Admin
-     * - Gọi API logout
-     * - Clear context (token, user)
-     */
     const handleLogout = async () => {
         try {
             await callLogout();
@@ -71,12 +54,16 @@ function AdminLayout() {
             icon: <TagsOutlined />,
             label: 'Quản lý thể loại',
             onClick: () => navigate('/admin/genres')
+        },
+        // 2. THÊM MỤC QUẢN LÝ TÀI LIỆU AI TẠI ĐÂY
+        {
+            key: '/admin/ai-documents',
+            icon: <RobotOutlined />,
+            label: 'Huấn luyện AI',
+            onClick: () => navigate('/admin/ai-documents')
         }
     ];
 
-    /**
-     * Dropdown menu tài khoản admin (góc phải header)
-     */
     const userMenuItems = [
         {
             key: 'logout',
@@ -95,7 +82,6 @@ function AdminLayout() {
             logoLink='/admin'
             extraHeaderActions={null}
         >
-            {/* Render các trang con của Admin */}
             <Outlet />
         </MainDashboardLayout>
     );
