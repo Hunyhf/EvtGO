@@ -22,6 +22,7 @@ import { ticketApi } from '@apis/ticketApi';
 import { getEventImageUrl } from '@utils/imageHelper';
 import { slugify } from '@utils/stringUtils'; // Quan trọng: Thêm slugify để so khớp
 import useModal from '@hooks/useModal';
+import Nav from '@components/Nav/Nav.jsx';
 
 const cx = classNames.bind(styles);
 const LOCATIONS = [
@@ -193,6 +194,7 @@ function Genre() {
 
     return (
         <div className={cx('genrePage')}>
+            <Nav />
             <div className={cx('container')}>
                 <div className={cx('toolbar')}>
                     <div className={cx('titleSection')}>

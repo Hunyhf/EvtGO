@@ -141,8 +141,6 @@ export const routes = createBrowserRouter([
                 ]
             },
 
-            // --- NHÓM STAFF ---
-
             // --- NHÓM ADMIN ---
             {
                 path: '/admin',
@@ -208,6 +206,8 @@ export const routes = createBrowserRouter([
                     }
                 ]
             },
+            // --- NHÓM STAFF ---
+
             {
                 path: '/staff',
                 element: (
