@@ -99,6 +99,14 @@
             transform: none;
         }
     }
+
+    &.recommended {
+        background-color: #ffc107 !important; // Màu vàng
+        border-color: #e0a800 !important;
+        color: #fff !important;
+        animation: pulse 1.5s infinite; // Hiệu ứng nhấp nháy nhẹ gây chú ý
+        box-shadow: 0 0 8px rgba(255, 193, 7, 0.6);
+    }
 }
 
 .loadingBox {
