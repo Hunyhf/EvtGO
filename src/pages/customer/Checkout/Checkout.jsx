@@ -25,6 +25,7 @@ import emailjs from '@emailjs/browser';
 import styles from './Checkout.module.scss';
 import { AuthContext } from '@contexts/AuthContext';
 import orderApi from '@apis/orderApi';
+import transactionApi from '@apis/transactionApi'; // Thêm import transactionApi
 import ticketIcon from '@icons/svgs/ticketIcon.svg';
 import useModal from '@hooks/useModal'; // Import hook tự tạo của bạn
 
@@ -190,6 +191,34 @@ const Checkout = () => {
             const payRes = await orderApi.payOrder({ orderId });
 
             if (payRes) {
+                // --- BẮT ĐẦU SỬA LẠI LOGIC LƯU TRANSACTION TRÊN FE ---
+                try {
+                    // Lấy danh sách các vé vừa được tạo từ phản hồi của API payOrder
+                    const tickets = payRes.userTickets || [];
+
+                    if (tickets.length > 0) {
+                        // Tính số tiền trên mỗi vé (vì 1 Order có thể có nhiều vé, chia đều số tiền)
+                        const amountPerTicket = totalPrice / tickets.length;
+
+                        // Tạo mảng các request tạo Transaction cho từng vé
+                        const transactionPromises = tickets.map(ticket =>
+                            transactionApi.createTransaction({
+                                userTicketId: ticket.id, // <-- Đã lấy đúng field BE cần
+                                amount: amountPerTicket,
+                                paymentMethod: 'ONLINE',
+                                status: 'SUCCESS'
+                            })
+                        );
+
+                        // Gọi đồng thời tất cả API tạo transaction bằng Promise.all
+                        await Promise.all(transactionPromises);
+                    }
+                } catch (txnError) {
+                    // Bắt lỗi âm thầm, không ảnh hưởng đến trải nghiệm (khách vẫn mua thành công)
+                    console.error('Lỗi khi lưu transaction vào DB:', txnError);
+                }
+                // --- KẾT THÚC ---
+
                 message.success('Thanh toán thành công!');
                 localStorage.removeItem(`checkout_expiration_order_${orderId}`);
                 sendConfirmationEmail();

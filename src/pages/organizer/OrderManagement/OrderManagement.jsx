@@ -1,10 +1,12 @@
-import React, { useEffect, useState, useCallback, useMemo } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Table, Tag, Card, App } from 'antd';
 import dayjs from 'dayjs';
 import orderApi from '@apis/orderApi';
 
 const DEFAULT_PAGE_SIZE = 10;
+
+// Đưa baseColumns ra ngoài hoặc vào trong đều được, nhưng cần sửa lại logic đếm vé
 const baseColumns = [
     {
         title: 'Mã đơn hàng',
@@ -30,10 +32,12 @@ const baseColumns = [
         title: 'Số lượng',
         key: 'totalQuantity',
         render: (_, record) => {
-            // Tính tổng quantity từ danh sách items trong ResOrderDTO
-            const total =
-                record.items?.reduce((acc, item) => acc + item.quantity, 0) ||
-                0;
+            // FIX LỖI 3: Fallback an toàn cho cả `orderItems` và `items`
+            const itemsList = record.orderItems || record.items || [];
+            const total = itemsList.reduce(
+                (acc, item) => acc + (item.quantity || 1),
+                0
+            );
             return <span>{total} vé</span>;
         }
     },
@@ -78,27 +82,42 @@ const OrderManagement = () => {
         total: 0
     });
 
-    // 2. BỌC USECALLBACK CHO HÀM CALL API
+    // BỌC USECALLBACK CHO HÀM CALL API
     const fetchOrders = useCallback(
         async (page = 1, pageSize = DEFAULT_PAGE_SIZE) => {
             setLoading(true);
             try {
                 const pageForBE = page - 1;
-                let query = `size=${pageSize}&page=${pageForBE}&sort=createdAt,desc`;
 
+                // FIX LỖI 2: Sử dụng URLSearchParams để build query an toàn
+                const params = new URLSearchParams({
+                    size: pageSize,
+                    page: pageForBE,
+                    sort: 'createdAt,desc'
+                });
+
+                // SỬ DỤNG SPRING FILTER SYNTAX - Đã đổi `orderItems` thành `items`
                 if (eventId) {
-                    query += `&filter=orderItems.ticket.event.id:${eventId}`;
+                    params.append('filter', `items.ticket.event.id:${eventId}`);
                 }
 
-                const response = await orderApi.getAllOrders(query);
-                const payload = response.result ? response : response.data;
+                const response = await orderApi.getAllOrders(params.toString());
 
-                if (payload && payload.result) {
-                    setOrders(payload.result);
+                // FIX LỖI 1: Trích xuất response an toàn (hỗ trợ nhiều cấp bọc trả về do class RestResponse)
+                const responseBody =
+                    response?.data?.data || response?.data || response;
+
+                // Lấy mảng dữ liệu và metadata
+                const itemsArray =
+                    responseBody?.result || responseBody?.content || [];
+                const metaData = responseBody?.meta || {};
+
+                if (Array.isArray(itemsArray)) {
+                    setOrders(itemsArray);
                     setPagination({
-                        current: payload.meta?.page || 1,
-                        pageSize: payload.meta?.pageSize || DEFAULT_PAGE_SIZE,
-                        total: payload.meta?.total || 0
+                        current: page,
+                        pageSize: metaData.pageSize || DEFAULT_PAGE_SIZE,
+                        total: metaData.total || 0
                     });
                 } else {
                     setOrders([]);

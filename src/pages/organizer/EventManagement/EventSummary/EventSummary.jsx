@@ -14,6 +14,7 @@ import styles from './EventSummary.module.scss';
 
 import orderApi from '@apis/orderApi';
 import { ticketApi } from '@apis/ticketApi';
+import transactionApi from '@apis/transactionApi';
 
 const cx = classNames.bind(styles);
 
@@ -23,24 +24,37 @@ function EventSummary() {
     const [timeFilter, setTimeFilter] = useState('24h');
     const [loading, setLoading] = useState(true);
     const [rawOrders, setRawOrders] = useState([]);
+    const [rawTransactions, setRawTransactions] = useState([]);
     const [totalTickets, setTotalTickets] = useState(0);
 
-    // 1. Fetch dữ liệu thô từ API
+    // 1. Fetch dữ liệu từ API
     useEffect(() => {
         const fetchSummaryData = async () => {
             setLoading(true);
             try {
-                // Chạy song song 2 API để tối ưu tốc độ
-                const [ticketResponse, orderResponse] = await Promise.all([
-                    ticketApi.getAll({ eventId: eventId }),
-                    orderApi.getAllOrders(`size=1000&eventId=${eventId}`)
-                ]);
+                const orderFilter = `orderItems.ticket.event.id:'${eventId}'`;
+                const transactionFilter = `order.event.id:'${eventId}'`;
 
-                // Xử lý tổng vé từ Ticket API (Thẻ tổng quan)
+                const [ticketResponse, orderResponse, transactionResponse] =
+                    await Promise.all([
+                        ticketApi.getAll({ eventId: eventId }),
+                        orderApi.getAllOrders(
+                            `size=1000&filter=${orderFilter}`
+                        ),
+                        transactionApi.getAllTransactions(
+                            `size=1000&filter=${transactionFilter}`
+                        )
+                    ]);
+
+                // --- GIỮ NGUYÊN LOGIC VÉ ĐÃ BÁN BAN ĐẦU THEO YÊU CẦU ---
+                const ticketPayload =
+                    ticketResponse?.result || ticketResponse?.data;
                 const tickets =
-                    ticketResponse?.result ||
-                    ticketResponse?.data?.result ||
+                    ticketPayload?.result ||
+                    ticketPayload?.content ||
+                    ticketPayload ||
                     [];
+
                 const totalSold = Array.isArray(tickets)
                     ? tickets.reduce(
                           (sum, t) =>
@@ -50,10 +64,40 @@ function EventSummary() {
                     : 0;
                 setTotalTickets(totalSold);
 
-                // Lưu danh sách đơn hàng để xử lý biểu đồ
-                setRawOrders(
-                    orderResponse?.result || orderResponse?.data?.result || []
-                );
+                // Xử lý danh sách Order
+                const orderPayload =
+                    orderResponse?.result || orderResponse?.data;
+                let orders =
+                    orderPayload?.result ||
+                    orderPayload?.content ||
+                    orderPayload ||
+                    [];
+                if (!Array.isArray(orders)) orders = [];
+
+                // Xử lý danh sách Transaction
+                const transactionPayload =
+                    transactionResponse?.result || transactionResponse?.data;
+                let transactions =
+                    transactionPayload?.result ||
+                    transactionPayload?.content ||
+                    transactionPayload ||
+                    [];
+                if (!Array.isArray(transactions)) transactions = [];
+                setRawTransactions(transactions);
+
+                // Gắn transaction vào order tương ứng
+                const ordersWithTransactions = orders.map(order => {
+                    const matchedTxn = transactions.find(
+                        t =>
+                            String(t.orderId) === String(order.id) ||
+                            String(t.order_id) === String(order.id)
+                    );
+                    return { ...order, transactionData: matchedTxn };
+                });
+
+                setRawOrders(ordersWithTransactions);
+
+                console.log('✅ Data Loaded:', { orders, transactions });
             } catch (error) {
                 console.error('Lỗi khi tải dữ liệu tổng quan:', error);
             } finally {
@@ -64,43 +108,36 @@ function EventSummary() {
         if (eventId) fetchSummaryData();
     }, [eventId]);
 
-    // 2. Xử lý dữ liệu biểu đồ (Dùng useMemo để tránh tính toán lại khi re-render)
+    // 2. Xử lý dữ liệu biểu đồ và Tổng doanh thu
     const { chartData, totalRevenue } = useMemo(() => {
         let calculatedRevenue = 0;
         const dataMap = {};
 
-        rawOrders.forEach(order => {
+        const dataSource =
+            rawTransactions.length > 0 ? rawTransactions : rawOrders;
+
+        dataSource.forEach(item => {
             const status = (
-                order.order_status ||
-                order.orderStatus ||
-                order.status ||
+                item.status ||
+                item.transaction_status ||
+                item.orderStatus ||
+                item.order_status ||
                 ''
             ).toUpperCase();
+            const isSuccess = ['SUCCESS', 'COMPLETED', '00', 'PAID'].includes(
+                status
+            );
 
-            // Chỉ tính các đơn hàng đã thanh toán thành công
-            if (status === 'PAID' || status === 'COMPLETED') {
-                const orderTotal = order.total_amount || order.totalAmount || 0;
-                calculatedRevenue += orderTotal;
+            if (isSuccess) {
+                const amount = Number(
+                    item.amount || item.totalAmount || item.total_amount || 0
+                );
+                calculatedRevenue += amount;
 
-                // --- FIX LỖI HIỂN THỊ SAI SỐ VÉ ---
-                // Backend ResOrderDTO trả về trường là 'items'
-                const items =
-                    order.items || order.orderItems || order.order_items;
-
-                // Tính tổng quantity của tất cả items trong đơn hàng (ví dụ: 1 Standard + 1 VIP = 2 vé)
-                const orderTicketsCount =
-                    Array.isArray(items) && items.length > 0
-                        ? items.reduce(
-                              (s, i) => s + (Number(i.quantity) || 1),
-                              0
-                          )
-                        : Number(
-                              order.totalQuantity || order.total_quantity || 1
-                          );
-
-                const createdAt = order.created_at || order.createdAt;
-                if (createdAt) {
-                    const date = new Date(createdAt);
+                const dateStr =
+                    item.createdAt || item.paidAt || item.created_at;
+                if (dateStr) {
+                    const date = new Date(dateStr);
                     let timeKey;
                     let sortVal;
 
@@ -109,7 +146,7 @@ function EventSummary() {
                         sortVal = date.getHours();
                     } else {
                         timeKey = `${date.getDate().toString().padStart(2, '0')}/${(date.getMonth() + 1).toString().padStart(2, '0')}`;
-                        sortVal = date.getTime(); // Sort theo timestamp cho chính xác
+                        sortVal = date.getTime();
                     }
 
                     if (!dataMap[timeKey]) {
@@ -120,22 +157,30 @@ function EventSummary() {
                             sortVal
                         };
                     }
-                    dataMap[timeKey].revenue += orderTotal;
-                    dataMap[timeKey].tickets += orderTicketsCount;
+                    dataMap[timeKey].revenue += amount;
+                    // Lấy số lượng vé từ order items nếu có, hoặc mặc định là 1 lượt mua
+                    const items = item.orderItems || item.items || [];
+                    const ticketCount =
+                        items.length > 0
+                            ? items.reduce((s, i) => s + (i.quantity || 1), 0)
+                            : item.totalQuantity || 1;
+
+                    dataMap[timeKey].tickets += ticketCount;
                 }
             }
         });
 
-        // Chuyển object sang array và sắp xếp
         const formatted = Object.values(dataMap).sort(
             (a, b) => a.sortVal - b.sortVal
         );
         return { chartData: formatted, totalRevenue: calculatedRevenue };
-    }, [rawOrders, timeFilter]);
+    }, [rawOrders, rawTransactions, timeFilter]);
 
     if (loading)
         return (
-            <div style={{ padding: '20px', textAlign: 'center' }}>
+            <div
+                style={{ padding: '20px', textAlign: 'center', color: '#fff' }}
+            >
                 Đang xử lý dữ liệu...
             </div>
         );
@@ -146,7 +191,7 @@ function EventSummary() {
                 <div className={cx('tab', 'active')}>Doanh thu</div>
             </div>
 
-            <h2 className={cx('sectionTitle')}>Tổng quan</h2>
+            <h2 className={cx('sectionTitle')}>Tổng quan sự kiện</h2>
             <div className={cx('cardsContainer')}>
                 <div className={cx('statCard')}>
                     <div className={cx('cardLabel')}>Tổng doanh thu</div>
@@ -169,7 +214,7 @@ function EventSummary() {
                         </div>
                         <div className={cx('legendItem')}>
                             <span className={cx('dot', 'dotGreen')}></span>
-                            Số vé bán
+                            Lượt mua
                         </div>
                     </div>
 
@@ -208,15 +253,15 @@ function EventSummary() {
                                 <CartesianGrid
                                     strokeDasharray='3 3'
                                     vertical={false}
-                                    stroke='#f0f0f0'
+                                    stroke='#333'
                                 />
                                 <XAxis
                                     dataKey='time'
                                     axisLine={false}
                                     tickLine={false}
                                     tick={{ fill: '#9ca6b0', fontSize: 12 }}
-                                    dy={10}
                                 />
+                                {/* Trục Y bên trái cho Doanh thu */}
                                 <YAxis
                                     yAxisId='left'
                                     axisLine={false}
@@ -226,6 +271,7 @@ function EventSummary() {
                                         v.toLocaleString('vi-VN')
                                     }
                                 />
+                                {/* BỔ SUNG: Trục Y bên phải cho Số vé */}
                                 <YAxis
                                     yAxisId='right'
                                     orientation='right'
@@ -240,14 +286,15 @@ function EventSummary() {
                                             : value,
                                         name === 'revenue'
                                             ? 'Doanh thu'
-                                            : 'Số vé'
+                                            : 'Số vé/Lượt'
                                     ]}
                                     contentStyle={{
-                                        borderRadius: '8px',
+                                        background: '#1f1f1f',
                                         border: 'none',
-                                        boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
+                                        borderRadius: '8px'
                                     }}
                                 />
+                                {/* Đường biểu diễn Doanh thu */}
                                 <Line
                                     yAxisId='left'
                                     type='monotone'
@@ -256,6 +303,7 @@ function EventSummary() {
                                     strokeWidth={3}
                                     dot={{ r: 4 }}
                                 />
+                                {/* BỔ SUNG: Đường biểu diễn Số vé bán */}
                                 <Line
                                     yAxisId='right'
                                     type='monotone'

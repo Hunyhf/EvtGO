@@ -20,7 +20,7 @@ import NotFound from '@pages/customer/NotFound/NotFound.jsx';
 import EventDetail from '@pages/customer/EventDetail/EventDetail';
 import Ticket from '@pages/customer/Ticket/Ticket';
 import PolicyViewer from '@pages/customer/PolicyViewer/PolicyViewer';
-
+import Transactions from '@pages/customer/Transaction/Transaction.jsx';
 // ADMIN PAGES
 import AdminDashBoard from '@pages/admin/AdminDashBoard/AdminDashBoard.jsx';
 import UserManagement from '@pages/admin/UserManagement/UserManagement.jsx';
@@ -50,6 +50,7 @@ export const BREADCRUMB_LABELS = {
     '/booking': 'Chọn vé',
     '/booking/:id/checkout': 'Thanh toán',
     '/my-tickets': 'Vé của tôi',
+    '/transactions': 'Lịch sử giao dịch',
     '/profile': 'Hồ sơ cá nhân',
     '/organizer': 'Quản lý sự kiện',
     '/organizer/events/create': 'Tạo sự kiện mới',
@@ -93,6 +94,14 @@ export const routes = createBrowserRouter([
                         element: (
                             <ProtectedRoute allowedRoles={[ROLE_ID.CUSTOMER]}>
                                 <Ticket />
+                            </ProtectedRoute>
+                        )
+                    },
+                    {
+                        path: 'transactions',
+                        element: (
+                            <ProtectedRoute allowedRoles={[ROLE_ID.CUSTOMER]}>
+                                <Transactions />
                             </ProtectedRoute>
                         )
                     },
