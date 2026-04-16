@@ -1,17 +1,16 @@
-// src/App.jsx
 import React from 'react';
 import { RouterProvider } from 'react-router-dom';
-import { ConfigProvider, App as AntdApp, theme } from 'antd'; // Import thêm
-import InactivityTimeout from '@components/InactivityTimeout'; // Import component mới
+import { ConfigProvider, App as AntdApp, theme } from 'antd';
+import InactivityTimeout from '@components/InactivityTimeout';
 import { routes } from './routes';
 
 function App() {
     return (
         <ConfigProvider
             theme={{
-                algorithm: theme.darkAlgorithm, // Hoặc theme.defaultAlgorithm
+                algorithm: theme.darkAlgorithm,
                 token: {
-                    colorPrimary: '#2dc275' // Màu chủ đạo của bạn
+                    colorPrimary: '#2dc275'
                 }
             }}
         >

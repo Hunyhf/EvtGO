@@ -37,7 +37,7 @@ function EventDashboardLayout() {
         }
     ];
 
-    // User Menu (Giữ nguyên như OrganizerLayout)
+    // User Menu
     const userMenuItems = [
         {
             key: 'profile',
@@ -72,7 +72,7 @@ function EventDashboardLayout() {
             menuItems={menuItems}
             userMenuItems={userMenuItems}
             logoTitle={logoTitle}
-            logoLink='/organizer/events' // Bấm vào sẽ quay về danh sách sự kiện
+            logoLink='/organizer/events'
         >
             <Outlet />
         </MainDashboardLayout>

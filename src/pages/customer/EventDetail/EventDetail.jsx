@@ -59,7 +59,6 @@ const EventDetail = () => {
 
     const descriptionRef = useRef(null);
 
-    // 1. Chỉ quản lý class body, xóa window.scrollTo vì đã có ScrollToTop global
     useEffect(() => {
         document.body.classList.add('is-event-detail');
         return () => {
@@ -67,7 +66,6 @@ const EventDetail = () => {
         };
     }, []);
 
-    // 2. Fetch data với cleanup logic tốt hơn
     useEffect(() => {
         let isMounted = true;
 
@@ -106,7 +104,6 @@ const EventDetail = () => {
         };
     }, [id]);
 
-    // 3. Kiểm tra độ dài nội dung giới thiệu (delay nhẹ để DOM ổn định)
     useEffect(() => {
         if (!loading && event?.description && descriptionRef.current) {
             const timeout = setTimeout(() => {
@@ -120,7 +117,6 @@ const EventDetail = () => {
         }
     }, [event?.description, loading]);
 
-    // 4. useMemo để tính toán dữ liệu, tránh re-render logic nặng
     const derivedData = useMemo(() => {
         if (!event) return null;
 
@@ -179,7 +175,6 @@ const EventDetail = () => {
         }
     };
 
-    // 5. Skeleton được thiết kế lại theo Layout thật để tránh "nhảy" UI
     if (loading)
         return (
             <div className={cx('eventDetail', 'loadingState')}>

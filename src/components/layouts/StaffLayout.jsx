@@ -1,6 +1,6 @@
-import { useContext } from 'react'; //
+import { useContext } from 'react';
 import { Outlet } from 'react-router-dom';
-import { AuthContext } from '../../contexts/AuthContext'; //
+import { AuthContext } from '@contexts/AuthContext';
 
 function StaffLayout() {
     // Lấy hàm logoutContext từ AuthContext

@@ -1,5 +1,3 @@
-// src/utils/imageHelper.js
-
 // Lấy Base URL từ biến môi trường
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080';
 

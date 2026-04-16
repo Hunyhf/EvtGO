@@ -1,7 +1,6 @@
-// src/pages/organizer/EventManagement/EditEvent.jsx
 import React, { useState, useEffect } from 'react';
 import { useOutletContext, useNavigate, useParams } from 'react-router-dom';
-import { Steps, Button, Card, Space, Modal, App, Spin } from 'antd'; // Dùng App từ antd
+import { Steps, Button, Card, Space, Modal, App, Spin } from 'antd';
 import {
     InfoCircleOutlined,
     ClockCircleOutlined,
@@ -20,7 +19,7 @@ import Step4Payment from './Step4Payment';
 const EditEvent = () => {
     const { id } = useParams();
     const navigate = useNavigate();
-    const { message } = App.useApp(); // Khắc phục lỗi Warning: Static function
+    const { message } = App.useApp();
     const { setCurrentStep, onNextAction, setOnNextAction } =
         useOutletContext();
 

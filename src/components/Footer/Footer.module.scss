@@ -1,12 +1,12 @@
 @use '@styles/mixins';
-@use '@styles/variables' as v; // Alias để sử dụng biến dễ dàng
+@use '@styles/variables';
 
 .footerContainer {
-    background-color: var(--f-bg, v.$third-color);
-    color: var(--f-text, v.$text-color);
-    padding: 20px 0 40px;
+    background-color: var(--f-bg, $third-color);
+    color: var(--f-text, $text-color);
+    padding: 30px 0;
     transition: all 0.3s ease;
-    font-family: v.$font-family;
+    font-family: $font-family;
 
     .content {
         max-width: 1200px;
@@ -23,9 +23,9 @@
 
     .column {
         .title {
-            color: v.$white-color;
-            font-size: v.$font-size-md;
-            font-weight: v.$font-weight-bold;
+            color: $white-color;
+            font-size: $font-size-md;
+            font-weight: $font-weight-bold;
             margin-bottom: 15px;
             text-transform: uppercase;
 
@@ -35,15 +35,15 @@
         }
 
         .text {
-            font-size: v.$font-size-sm;
+            font-size: $font-size-sm;
             line-height: 1.6;
             margin-bottom: 8px;
         }
 
         .highlight {
-            color: v.$primary-color;
-            font-size: v.$font-size-xl;
-            font-weight: v.$font-weight-bold;
+            color: $primary-color;
+            font-size: $font-size-xl;
+            font-weight: $font-weight-bold;
             margin: 5px 0;
         }
 
@@ -54,35 +54,62 @@
 
             li {
                 margin-bottom: 10px;
-
                 a {
-                    color: v.$text-color;
+                    color: $text-color;
                     text-decoration: none;
-                    font-size: v.$font-size-sm;
+                    font-size: $font-size-sm;
                     transition: color 0.2s;
 
                     &:hover {
-                        color: v.$primary-color;
+                        color: $primary-color;
                     }
                 }
             }
         }
     }
 
-    // Responsive cho Tablet và Mobile
-    @media (max-width: v.$tablet-width) {
+    @media (max-width: $tablet-width) {
         .grid {
             grid-template-columns: repeat(2, 1fr);
+            gap: 30px;
         }
     }
 
-    @media (max-width: v.$mobile-width) {
+    // Mobile: Tối ưu cho màn hình nhỏ
+    @media (max-width: $mobile-width) {
+        padding: 25px 0; // Thu hẹp padding dọc của toàn bộ footer
+        display: block !important;
+
         .grid {
-            grid-template-columns: 1fr;
-            gap: 30px;
+            grid-template-columns: 1fr; // Chuyển về 1 cột
+            gap: 25px; // Giảm khoảng cách giữa các khối nội dung
+            text-align: center; // Căn giữa nội dung để trông gọn và cân đối hơn
         }
 
-        // Ghi đè thuộc tính cũ (display: none) nếu bạn muốn hiện footer trên mobile
-        display: block !important;
+        .column {
+            .title {
+                font-size: $font-size-sm; // Thu nhỏ tiêu đề một chút
+                margin-bottom: 8px; // Giảm khoảng cách dưới tiêu đề
+
+                &.spacing {
+                    margin-top: 10px; // Giảm khoảng cách trống giữa các đoạn trong cùng 1 cột
+                }
+            }
+
+            .text {
+                margin-bottom: 4px;
+            }
+
+            .highlight {
+                font-size: $font-size-lg; // Thu nhỏ số hotline/nổi bật để không chiếm quá nhiều chỗ
+                margin: 2px 0;
+            }
+
+            .list {
+                li {
+                    margin-bottom: 6px; // Làm danh sách menu sát nhau hơn
+                }
+            }
+        }
     }
 }

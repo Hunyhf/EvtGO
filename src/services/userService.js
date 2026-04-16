@@ -9,7 +9,6 @@ export const userService = {
             const updatedData = res?.data || res;
 
             if (updatedData) {
-                // Logic Cookie: Lưu tuổi người dùng vào cookie nếu có
                 if (payload.age) {
                     Cookies.set(`user_age_${userId}`, payload.age, {
                         expires: 7

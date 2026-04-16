@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 // Lưu ý: Hãy điều chỉnh lại đường dẫn import này cho đúng với thư mục của bạn nhé!
-import transactionApi from '../../../apis/transactionApi';
+import transactionApi from '@apis/transactionApi';
 
 const Transaction = () => {
     // 1. Khai báo các state để lưu dữ liệu

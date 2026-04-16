@@ -1,7 +1,5 @@
-// src/pages/organizer/EventManagement/CreateEvent.jsx
 import React, { useState, useEffect, useMemo } from 'react';
 import { useOutletContext, useNavigate } from 'react-router-dom';
-// Sử dụng App từ antd để tránh lỗi Static Function warning
 import { Steps, Button, Card, Space, App } from 'antd';
 import {
     InfoCircleOutlined,

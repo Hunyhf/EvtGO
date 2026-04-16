@@ -11,7 +11,6 @@ const EventCard = ({ data }) => {
      * Dữ liệu từ DTO BE trả về đã tách riêng Date và Time (String).
      * Cần ghép lại để dayjs hiểu được định dạng YYYY-MM-DD HH:mm:ss
      */
-    // FIX TẠI ĐÂY: Ghép startDate và startTime
     const startString = data.startDate
         ? `${data.startDate} ${data.startTime || '00:00:00'}`
         : null;

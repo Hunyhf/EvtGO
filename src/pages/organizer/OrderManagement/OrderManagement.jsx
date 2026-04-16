@@ -6,7 +6,6 @@ import orderApi from '@apis/orderApi';
 
 const DEFAULT_PAGE_SIZE = 10;
 
-// Đưa baseColumns ra ngoài hoặc vào trong đều được, nhưng cần sửa lại logic đếm vé
 const baseColumns = [
     {
         title: 'Mã đơn hàng',
@@ -105,7 +104,6 @@ const OrderManagement = () => {
 
                 const response = await orderApi.getAllOrders(params.toString());
 
-                // FIX LỖI 1: Trích xuất response an toàn (hỗ trợ nhiều cấp bọc trả về do class RestResponse)
                 const responseBody =
                     response?.data?.data || response?.data || response;
 

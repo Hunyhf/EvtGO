@@ -27,7 +27,6 @@
     }
 
     .headerRight {
-        // Đổi từ __right
         margin-left: 220px;
         height: 100%;
         flex: 1;
@@ -46,7 +45,6 @@
     }
 
     .headerActions {
-        // Đổi từ __actions
         height: 100%;
         margin-left: auto;
         @include flex(center, center, 8px);
@@ -60,7 +58,6 @@
     }
 
     .headerTickets {
-        // Đổi từ __tickets
         font-size: $font-size-md;
         font-weight: $font-weight-bold;
         color: $white-color;
@@ -84,7 +81,6 @@
     }
 
     .headerGuest {
-        // Đổi từ __guest
         height: 100%;
         font-size: $font-size-md;
         font-weight: $font-weight-bold;
@@ -100,7 +96,6 @@
     }
 
     .headerDivider {
-        // Đổi từ __divider
         opacity: 0.9;
         margin-left: 42px;
         color: $sub-color;
@@ -110,7 +105,6 @@
     }
 
     .textHide {
-        // Đổi từ __text--hide
         @include tablet-width {
             display: none;
         }
@@ -121,7 +115,6 @@
 }
 
 .headerSearch {
-    // Đổi từ .header-search
     position: relative;
     width: 359px;
     height: 43px;
@@ -144,7 +137,6 @@
     }
 
     .headerSearchIcon {
-        // Đổi từ __icon
         width: 29px;
         height: 29px;
         cursor: pointer;
@@ -167,7 +159,6 @@
     }
 
     .headerSearchInput {
-        // Đổi từ __input
         width: 194px;
         height: 18px;
         border: none;
@@ -185,7 +176,6 @@
     }
 
     .headerSearchBtn {
-        // Đổi từ __btn
         height: 29px;
         padding: 0 12px;
         margin-left: auto;
@@ -211,7 +201,6 @@
 }
 
 .searchHistory {
-    // Đổi từ .search-history
     position: absolute;
     top: calc(100% + 8px);
     left: 0;
@@ -224,7 +213,6 @@
     overflow: hidden;
 
     .searchHistoryTitle {
-        // Đổi từ __title
         padding: 8px 16px;
         font-size: $font-size-xs;
         color: #888;
@@ -235,14 +223,12 @@
     }
 
     .searchHistoryList {
-        // Đổi từ __list
         list-style: none;
         padding: 0;
         margin: 0;
     }
 
     .searchHistoryItem {
-        // Đổi từ __item
         padding: 10px 16px;
         @include flex(space-between, center);
         cursor: pointer;
@@ -263,7 +249,6 @@
     }
 
     .searchHistoryRemove {
-        // Đổi từ __remove
         background: none;
         border: none;
         color: #ccc;
@@ -284,7 +269,6 @@
 }
 
 .mobileSearchOverlay {
-    // Đổi từ .mobile-search-overlay
     display: none;
 
     @include mobile-width {
@@ -360,7 +344,6 @@
 }
 
 .headerUser {
-    // Đổi từ .header-user
     @include flex(center, center, 8px);
     color: $white-color;
     font-size: $font-size-md;
@@ -391,7 +374,6 @@
     }
 
     .userToggle {
-        // Đổi từ __toggle
         svg {
             width: 12px;
             height: 12px;
@@ -400,7 +382,6 @@
     }
 
     .userDropdown {
-        // Đổi từ __dropdown
         position: absolute;
         top: 110%;
         right: 0;
@@ -417,7 +398,6 @@
         padding: 8px 0;
 
         .dropdownItem {
-            // Đổi từ __dropdown-item
             @include flex(flex-start, center, 12px);
             padding: 12px 16px;
             color: $sub-color;
@@ -432,27 +412,20 @@
         }
 
         .dropdownIcon {
-            // Đổi từ __dropdown-icon
             width: $icon-size-md;
             height: $icon-size-md;
             stroke: $primary-color;
             flex-shrink: 0;
 
             &.profileIcon {
-                // Đổi từ --profile
                 border: solid 2px $sub-color;
                 border-radius: 50%;
-            }
-            &.logoutIcon {
-                // Đổi từ --logout
-                // style cho logout icon nếu cần
             }
         }
     }
 }
 
 .bottomNav {
-    // Đổi từ .bottom-nav
     display: none;
 
     @include mobile-width {
@@ -513,7 +486,6 @@
 }
 
 .logoImg {
-    // Đổi từ .logo-img
     @include mobile-width {
         &.hideMobile {
             display: none;
@@ -522,7 +494,6 @@
 }
 
 .backHomeText {
-    // Đổi từ .back-home-text
     display: none;
     @include mobile-width {
         display: block;

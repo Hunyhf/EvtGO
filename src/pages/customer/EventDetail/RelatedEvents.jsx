@@ -1,4 +1,3 @@
-// src/pages/customer/EventDetail/RelatedEvents.jsx
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Typography, Row, Col, Button, Spin } from 'antd';
@@ -91,7 +90,6 @@ const RelatedEvents = ({ genreId, currentEventId, genreName }) => {
         };
     }, [genreId, currentEventId]);
 
-    // CẬP NHẬT TẠI ĐÂY: Chuyển sang dùng slug thay vì query params
     const handleSeeMore = () => {
         if (genreName) {
             navigate(`/genre/${slugify(genreName)}`);

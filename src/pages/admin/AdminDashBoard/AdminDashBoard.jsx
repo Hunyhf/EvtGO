@@ -20,14 +20,14 @@ import {
 import styles from './AdminDashBoard.module.scss';
 
 // Import các API
-import { callFetchAllUsers } from '../../../apis/userApi';
-import { eventApi } from '../../../apis/eventApi';
-import orderApi from '../../../apis/orderApi';
-import { useNavigate } from 'react-router-dom'; // Thêm import này
+import { callFetchAllUsers } from '@apis/userApi';
+import { eventApi } from '@apis/eventApi';
+import orderApi from '@apis/orderApi';
+import { useNavigate } from 'react-router-dom';
 const { Title, Text } = Typography;
 
 function AdminDashBoard() {
-    const navigate = useNavigate(); // Khởi tạo navigate
+    const navigate = useNavigate();
     const [loading, setLoading] = useState(true);
     const [stats, setStats] = useState({
         totalUsers: 0,
@@ -85,7 +85,7 @@ function AdminDashBoard() {
         }
     };
 
-    // --- Cột cho bảng Người dùng ---
+    //  Cột cho bảng Người dùng
     const userColumns = [
         { title: 'Tên', dataIndex: 'name', key: 'name' },
         { title: 'Email', dataIndex: 'email', key: 'email', ellipsis: true },
@@ -108,7 +108,7 @@ function AdminDashBoard() {
         }
     ];
 
-    // --- Cột cho bảng Sự kiện (Xử lý tên dài bằng Tooltip + Ellipsis) ---
+    //  Cột cho bảng Sự kiện (Xử lý tên dài bằng Tooltip + Ellipsis)
     const eventColumns = [
         {
             title: 'Tên sự kiện',

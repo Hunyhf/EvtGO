@@ -1,4 +1,3 @@
-// src/apis/axiosClient.js
 import axios from 'axios';
 import Cookies from 'js-cookie';
 import { message } from 'antd';

@@ -31,7 +31,7 @@ function Home() {
     useEffect(() => {
         const fetchTrending = async () => {
             setLoadingTrending(true);
-            const data = await eventApi.getUnifiedTrending(); // Chỉ 1 dòng duy nhất
+            const data = await eventApi.getUnifiedTrending();
             setTrendingEvents(data);
             setLoadingTrending(false);
         };

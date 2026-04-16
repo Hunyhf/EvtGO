@@ -296,16 +296,6 @@ function Genre() {
                         </Radio.Group>
                     </div>
 
-                    <div className={cx('filterSection', 'flexBetween')}>
-                        <h4>Sự kiện Miễn phí</h4>
-                        <Switch
-                            checked={tempFilters.isFree}
-                            onChange={val =>
-                                setTempFilters({ ...tempFilters, isFree: val })
-                            }
-                        />
-                    </div>
-
                     <div className={cx('filterSection')}>
                         <h4>Thể loại</h4>
                         <div className={cx('chipGroup')}>

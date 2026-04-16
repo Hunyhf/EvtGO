@@ -11,7 +11,7 @@ import {
 import styles from './Chatbot.module.scss';
 import { aiApi } from '@apis/aiApi';
 import { AuthContext } from '@contexts/AuthContext';
-
+import ReactMarkdown from 'react-markdown';
 const cx = classNames.bind(styles);
 
 // Key lưu session khách (bỏ key lưu chat chung đi)
@@ -188,7 +188,14 @@ function Chatbot() {
                                         <img src={msg.imageUrl} alt='preview' />
                                     )}
                                     <div className={cx('text')}>
-                                        {msg.content}
+                                        {/* Kiểm tra nếu là tin nhắn của bot thì render Markdown */}
+                                        {msg.role === 'bot' ? (
+                                            <ReactMarkdown>
+                                                {msg.content}
+                                            </ReactMarkdown>
+                                        ) : (
+                                            msg.content
+                                        )}
                                     </div>
                                 </div>
                             </div>
@@ -196,7 +203,6 @@ function Chatbot() {
                         {isLoading && <Spin className={cx('loading')} />}
                         <div ref={messagesEndRef} />
                     </div>
-
                     {/* Thanh nhập và gửi tin nhắn */}
                     <div className={cx('footer')}>
                         <label className={cx('actionBtn')}>

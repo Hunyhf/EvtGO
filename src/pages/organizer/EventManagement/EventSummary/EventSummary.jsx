@@ -102,7 +102,7 @@ function EventSummary() {
 
                 setRawOrders(ordersWithTransactions);
 
-                console.log('✅ Data Loaded:', { orders, transactions });
+                console.log('Data Loaded:', { orders, transactions });
             } catch (error) {
                 console.error('Lỗi khi tải dữ liệu tổng quan:', error);
             } finally {

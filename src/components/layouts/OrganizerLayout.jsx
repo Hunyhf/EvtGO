@@ -1,5 +1,4 @@
-// src/components/layouts/OrganizerLayout.jsx
-import React, { useState, useContext } from 'react'; // Thêm useContext
+import React, { useState, useContext } from 'react';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { Button } from 'antd';
 import {
@@ -10,8 +9,8 @@ import {
     PlusOutlined
 } from '@ant-design/icons';
 import MainDashboardLayout from './MainDashboardLayout';
-import { AuthContext } from '@contexts/AuthContext'; // Import AuthContext
-import { callLogout } from '@apis/authApi'; // Import API logout
+import { AuthContext } from '@contexts/AuthContext';
+import { callLogout } from '@apis/authApi';
 
 function OrganizerLayout() {
     const navigate = useNavigate();

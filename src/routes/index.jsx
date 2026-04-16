@@ -1,12 +1,12 @@
-// src/routes/index.jsx
 import { createBrowserRouter, Outlet } from 'react-router-dom';
 import ScrollToTop from '@components/Common/ScrollToTop';
+
 // Import các Layout
 import AdminLayout from '@components/layouts/AdminLayout.jsx';
 import CustomerLayout from '@components/layouts/CustomerLayout.jsx';
 import OrganizerLayout from '@components/layouts/OrganizerLayout.jsx';
 import StaffLayout from '@components/layouts/StaffLayout.jsx';
-import EventDashboardLayout from '@components/layouts/EventDashboardLayout.jsx'; // Layout mới cho chi tiết sự kiện
+import EventDashboardLayout from '@components/layouts/EventDashboardLayout.jsx';
 
 // Import Pages
 
@@ -21,6 +21,7 @@ import EventDetail from '@pages/customer/EventDetail/EventDetail';
 import Ticket from '@pages/customer/Ticket/Ticket';
 import PolicyViewer from '@pages/customer/PolicyViewer/PolicyViewer';
 import Transactions from '@pages/customer/Transaction/Transaction.jsx';
+
 // ADMIN PAGES
 import AdminDashBoard from '@pages/admin/AdminDashBoard/AdminDashBoard.jsx';
 import UserManagement from '@pages/admin/UserManagement/UserManagement.jsx';
@@ -38,6 +39,7 @@ import StaffManagement from '@pages/organizer/EventManagement/StaffManagement';
 
 // STAFF PAGES
 import TicketScanner from '@pages/staff/TicketScanner';
+
 // Import Protection, Context & Constants
 import ProtectedRoute from '@components/ProtectedRoute';
 import { AuthProvider } from '@contexts/AuthContext';
@@ -150,7 +152,7 @@ export const routes = createBrowserRouter([
                 ]
             },
 
-            // --- NHÓM ADMIN ---
+            // NHÓM ADMIN
             {
                 path: '/admin',
                 element: (
@@ -167,7 +169,7 @@ export const routes = createBrowserRouter([
                 ]
             },
 
-            // --- NHÓM ORGANIZER ---
+            // NHÓM ORGANIZER
             {
                 path: '/organizer',
                 element: (
@@ -215,7 +217,7 @@ export const routes = createBrowserRouter([
                     }
                 ]
             },
-            // --- NHÓM STAFF ---
+            // NHÓM STAFF
 
             {
                 path: '/staff',
@@ -226,7 +228,7 @@ export const routes = createBrowserRouter([
                 ),
                 children: [
                     {
-                        index: true, // Thay đổi ở đây: Đặt scanner làm trang chủ của Staff
+                        index: true,
                         element: <TicketScanner />
                     },
                     {
@@ -235,7 +237,7 @@ export const routes = createBrowserRouter([
                     }
                 ]
             },
-            // --- ERROR ROUTES ---
+            // ERROR ROUTES
             { path: '/404', element: <NotFound /> },
             { path: '*', element: <NotFound /> }
         ]

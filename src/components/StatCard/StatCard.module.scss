@@ -12,12 +12,10 @@
     }
 
     .content {
-        // Đổi từ __content
         @include flex(flex-start, center, 16px);
     }
 
     .icon {
-        // Đổi từ __icon
         width: 48px;
         height: 48px;
         @include radius-common();
@@ -26,7 +24,6 @@
     }
 
     .title {
-        // Đổi từ __title
         color: $text-color;
         font-size: $font-size-sm;
         font-weight: $font-weight-semi-bold;

@@ -1,4 +1,3 @@
-// src/pages/organizer/EventManagement/Step3Settings.jsx
 import React, { useEffect } from 'react';
 import { Form, Input, Card, Typography, Row, Col, message, Tag } from 'antd';
 import { AppstoreAddOutlined } from '@ant-design/icons';

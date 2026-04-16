@@ -9,6 +9,7 @@ import DropDownIcon from '@icons/svgs/dropdownIcon.svg?react';
 import UserIcon from '@icons/svgs/userIcon.svg?react';
 import LogOutIcon from '@icons/svgs/logOutIcon.svg?react';
 import HomeIcon from '@icons/svgs/homeIcon.svg?react';
+
 import logo from '@images/logo.png';
 import { AuthContext } from '@contexts/AuthContext';
 import { callLogout } from '@apis/authApi';
@@ -88,7 +89,7 @@ function Header() {
     const handleProtectedAction = (e, targetPath) => {
         if (!isAuthenticated) {
             e.preventDefault();
-            openAuthModal(); // Sử dụng hàm từ hook
+            openAuthModal();
         } else if (targetPath) {
             navigate(targetPath);
         }
@@ -96,7 +97,7 @@ function Header() {
 
     return (
         <>
-            {/* ===== Header Desktop ===== */}
+            {/* Header Desktop */}
             <header className={cx('header')}>
                 <div className={cx('headerInner')}>
                     <div className={cx('headerLogo')}>
@@ -110,14 +111,14 @@ function Header() {
                             />
                             {!isHomePage && (
                                 <span className={cx('backHomeText')}>
-                                    ← Về trang chủ
+                                    Về trang chủ
                                 </span>
                             )}
                         </Link>
                     </div>
 
                     <div className={cx('headerRight')}>
-                        {/* ===== Search Bar ===== */}
+                        {/* Search Bar */}
                         <div className={cx('headerSearch')} ref={searchRef}>
                             <div
                                 className={cx('headerSearchIcon')}
@@ -188,7 +189,7 @@ function Header() {
                             </button>
                         </div>
 
-                        {/* ===== Actions ===== */}
+                        {/* Actions */}
                         <div className={cx('headerActions')}>
                             <Link
                                 to={isAuthenticated ? '/my-tickets' : '#'}
@@ -268,7 +269,7 @@ function Header() {
                 </div>
             </header>
 
-            {/* ===== Overlay Search (Mobile) ===== */}
+            {/* Overlay Search (Mobile) */}
             {isMobileSearchOpen && (
                 <div className={cx('mobileSearchOverlay')}>
                     <div className={cx('mobileSearchHeader')}>
@@ -323,7 +324,7 @@ function Header() {
                 </div>
             )}
 
-            {/* ===== Bottom Navigation (Mobile) ===== */}
+            {/* Bottom Navigation (Mobile) */}
             <nav className={cx('bottomNav')}>
                 <Link
                     to='/'
@@ -361,7 +362,7 @@ function Header() {
             {/* Modal xác thực sử dụng hook */}
             <AuthModal
                 isOpen={showAuthModal}
-                onClose={closeAuthModal} // Truyền trực tiếp hàm close từ hook
+                onClose={closeAuthModal} 
             />
         </>
     );

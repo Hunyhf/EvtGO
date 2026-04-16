@@ -1,8 +1,6 @@
-// src/pages/customer/Ticket/Ticket.jsx
-
 import React, { useEffect, useState } from 'react';
 import { QRCodeCanvas } from 'qrcode.react';
-import { Pagination, Modal, Tag } from 'antd'; // Thêm Tag từ antd
+import { Pagination, Modal, Tag } from 'antd';
 import dayjs from 'dayjs';
 import classNames from 'classnames/bind';
 

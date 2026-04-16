@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Typography, Divider, Tag, Spin, App, Modal } from 'antd'; // Thêm Modal
+import { Typography, Divider, Tag, Spin, App, Modal } from 'antd';
 import seatApi from '@apis/seatApi';
 import styles from './SeatPicker.module.scss';
 import classNames from 'classnames/bind';
@@ -31,10 +31,6 @@ const SeatPicker = ({ eventId, onSelectionChange }) => {
         };
         if (eventId) fetchSeats();
     }, [eventId, message]);
-
-    // ==========================================
-    // LOGIC GỢI Ý VÀ CẢNH BÁO GHẾ (Chuyển từ BE sang)
-    // ==========================================
     useEffect(() => {
         if (selectedSeats.length === 0) {
             setRecommendedSeats([]);
@@ -97,7 +93,7 @@ const SeatPicker = ({ eventId, onSelectionChange }) => {
 
         if (recommendations.length > 0) {
             isWarning = true;
-            msgText = `⚠️ Cảnh báo: Vui lòng không để trống 1 ghế lẻ (${recommendations.map(r => r.seatLabel).join(', ')}) ở giữa các ghế đã chọn!`;
+            msgText = ` Cảnh báo: Vui lòng không để trống 1 ghế lẻ (${recommendations.map(r => r.seatLabel).join(', ')}) ở giữa các ghế đã chọn!`;
         }
 
         // Logic 2: Cảnh báo "Chừa ghế trống vô duyên" (VD: A1, A2 có người, chọn A4 -> Cảnh báo chừa A3)
@@ -137,7 +133,7 @@ const SeatPicker = ({ eventId, onSelectionChange }) => {
 
             if (recommendations.length > 0) {
                 isWarning = true;
-                msgText = `⚠️ Cảnh báo: Vui lòng không để trống 1 ghế lẻ (${recommendations.map(r => r.seatLabel).join(', ')}) cạnh các ghế đã có người ngồi!`;
+                msgText = ` Cảnh báo: Vui lòng không để trống 1 ghế lẻ (${recommendations.map(r => r.seatLabel).join(', ')}) cạnh các ghế đã có người ngồi!`;
             }
         }
 
@@ -189,10 +185,8 @@ const SeatPicker = ({ eventId, onSelectionChange }) => {
             });
         }
     }, [selectedSeats, seats]);
-    // ==========================================
 
     const groupedSeats = useMemo(() => {
-        // ... (Giữ nguyên logic groupedSeats cũ của bạn)
         const sortedSeats = [...seats].sort((a, b) => {
             const zoneCompare = (a.zone || '').localeCompare(
                 b.zone || '',

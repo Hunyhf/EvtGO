@@ -1,4 +1,3 @@
-// src/apis/producerApi.js
 import axiosClient from './axiosClient';
 
 const producerApi = {

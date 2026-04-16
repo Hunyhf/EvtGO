@@ -26,12 +26,10 @@
         letter-spacing: -0.5px;
     }
 
-    // src/pages/customer/Profile/Profile.module.scss
-
     .avatarSection {
         margin-bottom: 3rem;
         position: relative;
-        cursor: pointer; // Hiển thị bàn tay khi rẽ qua ảnh
+        cursor: pointer;
 
         .avatarImg {
             width: 13rem;

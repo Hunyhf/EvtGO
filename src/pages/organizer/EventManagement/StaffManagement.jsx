@@ -7,7 +7,6 @@ import {
     UserAddOutlined
 } from '@ant-design/icons';
 
-// Import API user và API eventStaff mới tạo
 import { callFetchAllUsers, callUpdateUser } from '@apis/userApi';
 import {
     callGetStaffsByEventId,
@@ -40,11 +39,10 @@ const StaffManagement = () => {
             const staffs = res?.result || res || [];
 
             // Map lại dữ liệu để lấy thông tin user hiển thị ra bảng
-            // Tuỳ thuộc vào ResEventStaffDTO của bạn chứa gì, ở đây giả định có field 'user' và 'id' của event_staff
             const formattedList = staffs.map(item => ({
                 eventStaffId: item.id,
-                name: item.userName, // Ánh xạ đúng tên biến từ Java DTO
-                email: item.userEmail // Ánh xạ đúng tên biến từ Java DTO
+                name: item.userName,
+                email: item.userEmail
             }));
 
             setStaffList(formattedList);

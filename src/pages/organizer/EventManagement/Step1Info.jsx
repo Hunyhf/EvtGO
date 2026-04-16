@@ -1,4 +1,3 @@
-// src/pages/organizer/EventManagement/Step1Info.jsx
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import ReactQuill from 'react-quill';
@@ -31,7 +30,7 @@ const getBase64 = (img, callback) => {
     reader.readAsDataURL(img);
 };
 
-// --- KIỂM TRA KÍCH THƯỚC ẢNH ---
+//  KIỂM TRA KÍCH THƯỚC ẢNH
 const checkImageDimensions = (file, targetWidth, targetHeight) => {
     return new Promise((resolve, reject) => {
         const reader = new FileReader();
@@ -76,7 +75,7 @@ const Step1Info = ({
                     return false;
                 }
 
-                // --- ĐÃ CHỈNH SỬA: PHÂN LOẠI ẢNH BÌA VÀ ẢNH LOGO RÕ RÀNG ---
+                //  ĐÃ CHỈNH SỬA: PHÂN LOẠI ẢNH BÌA VÀ ẢNH LOGO RÕ RÀNG
                 const imagesArr = [];
                 if (parentFormData.posterFile) {
                     const pFile = parentFormData.posterFile;
@@ -299,7 +298,7 @@ const Step1Info = ({
 
     return (
         <Form form={form} layout='vertical'>
-            {/* --- Phần Ảnh Bìa --- */}
+            {/*  Phần Ảnh Bìa  */}
             <Card
                 style={{
                     marginBottom: 24,
@@ -361,7 +360,7 @@ const Step1Info = ({
             </Card>
 
             <Row gutter={24}>
-                {/* --- Ban Tổ Chức --- */}
+                {/*  Ban Tổ Chức  */}
                 <Col span={24} lg={8}>
                     <Card
                         style={{
@@ -426,7 +425,7 @@ const Step1Info = ({
                     </Card>
                 </Col>
 
-                {/* --- Thông Tin Sự Kiện --- */}
+                {/*  Thông Tin Sự Kiện  */}
                 <Col span={24} lg={16}>
                     <Card
                         style={{
@@ -458,7 +457,7 @@ const Step1Info = ({
                             />
                         </Form.Item>
 
-                        {/* --- CHỈNH SỬA: SỬ DỤNG INPUT BÌNH THƯỜNG --- */}
+                        {/*  CHỈNH SỬA: SỬ DỤNG INPUT BÌNH THƯỜNG  */}
                         <Form.Item
                             name='artists'
                             label={
@@ -479,7 +478,7 @@ const Step1Info = ({
                             />
                         </Form.Item>
 
-                        {/* --- Giấy phép --- */}
+                        {/*  Giấy phép  */}
                         <Row gutter={16}>
                             <Col span={8}>
                                 <Form.Item

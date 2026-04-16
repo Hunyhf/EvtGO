@@ -1,4 +1,3 @@
-// src/pages/admin/EventManagement/AdminEventManagement.jsx
 import React, { useState, useEffect } from 'react';
 import {
     Table,

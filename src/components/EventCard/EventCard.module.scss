@@ -14,7 +14,7 @@
         transform: translateY(-5px);
     }
 
-    // Thêm hiệu ứng mờ cho toàn bộ card nếu đã diễn ra (tùy chọn)
+    // Thêm hiệu ứng mờ cho toàn bộ card nếu đã diễn ra
     &.isPastCard {
         opacity: 0.85;
         filter: grayscale(0.2);
@@ -24,7 +24,7 @@
 .eventImage {
     width: 100%;
     aspect-ratio: 16 / 9;
-    position: relative; // QUAN TRỌNG: Để định vị nhãn overlay bên trong
+    position: relative;
 
     img {
         width: 100%;
@@ -32,12 +32,11 @@
         object-fit: cover;
     }
 
-    // NHÃN "ĐÃ DIỄN RA" GÓC TRÊN BÊN PHẢI
     .pastLabel {
         position: absolute;
         top: 1rem;
         right: 1rem;
-        background-color: $error-color; // Màu nền tối mờ
+        background-color: $error-color;
         color: variables.$white-color;
         padding: 0.4rem 1rem;
         border-radius: 0.4rem;

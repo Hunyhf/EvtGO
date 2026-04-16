@@ -1,4 +1,3 @@
-// src/hooks/useHomeData.js
 import { useState, useEffect } from 'react';
 import { genresApi } from '@apis/genresApi';
 import { eventApi } from '@apis/eventApi';

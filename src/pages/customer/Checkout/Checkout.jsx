@@ -185,7 +185,6 @@ const Checkout = () => {
         closeCancelModal();
     };
 
-    // ... (Hàm sendConfirmationEmail và handleConfirmOrder giữ nguyên như cũ)
     const sendConfirmationEmail = async () => {
         const ticketDetailStr = selectedItems
             .map(t =>

@@ -55,7 +55,6 @@ function AdminLayout() {
             label: 'Quản lý thể loại',
             onClick: () => navigate('/admin/genres')
         },
-        // 2. THÊM MỤC QUẢN LÝ TÀI LIỆU AI TẠI ĐÂY
         {
             key: '/admin/ai-documents',
             icon: <RobotOutlined />,

@@ -9,7 +9,6 @@
     @include flex(center, center);
 
     .navList {
-        // Đổi từ .nav-list
         height: 100%;
         list-style: none;
         @include flex(center, center, 30px);
@@ -28,13 +27,11 @@
     }
 
     .navItem {
-        // Đổi từ .nav-item
         flex-shrink: 0;
         height: 100%;
     }
 
     .navLink {
-        // Đổi từ .nav-link
         color: rgba($white-color, 0.7);
         font-size: $font-size-sm;
         text-decoration: none;

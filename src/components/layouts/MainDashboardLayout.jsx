@@ -1,5 +1,4 @@
-// src/components/layouts/MainDashboardLayout.jsx
-import React, { useState, useContext } from 'react'; // Thêm useContext
+import React, { useState, useContext } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import {
     Layout,
