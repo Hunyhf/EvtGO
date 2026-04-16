@@ -1,5 +1,10 @@
-import React, { useState, useEffect, useContext, useMemo } from 'react';
-import { useLocation, useNavigate, Navigate } from 'react-router-dom';
+import React, { useState, useEffect, useContext, useMemo, useRef } from 'react';
+import {
+    useLocation,
+    useNavigate,
+    Navigate,
+    useBlocker
+} from 'react-router-dom';
 import {
     Row,
     Col,
@@ -9,7 +14,7 @@ import {
     Space,
     Divider,
     App,
-    Modal // Sử dụng component Modal để điều khiển bằng hook
+    Modal
 } from 'antd';
 import {
     ArrowLeftOutlined,
@@ -25,9 +30,9 @@ import emailjs from '@emailjs/browser';
 import styles from './Checkout.module.scss';
 import { AuthContext } from '@contexts/AuthContext';
 import orderApi from '@apis/orderApi';
-import transactionApi from '@apis/transactionApi'; // Thêm import transactionApi
+import transactionApi from '@apis/transactionApi';
 import ticketIcon from '@icons/svgs/ticketIcon.svg';
-import useModal from '@hooks/useModal'; // Import hook tự tạo của bạn
+import useModal from '@hooks/useModal';
 
 dayjs.locale('vi');
 const cx = classNames.bind(styles);
@@ -41,11 +46,10 @@ const TICKET_LABELS = {
 
 const Checkout = () => {
     const navigate = useNavigate();
-    const { state } = useLocation();
+    const { state: locationState } = useLocation();
     const { user } = useContext(AuthContext);
     const { message } = App.useApp();
 
-    // Sử dụng hook useModal tự tạo của bạn
     const {
         isOpen: isCancelModalOpen,
         open: openCancelModal,
@@ -55,80 +59,92 @@ const Checkout = () => {
     const [timeLeft, setTimeLeft] = useState(null);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [agreed, setAgreed] = useState(false);
+    const [isSuccess, setIsSuccess] = useState(false);
 
-    const event = state?.event;
-    const selectedItems = state?.selectedItems || [];
-    const totalPrice = state?.totalPrice || 0;
-    const orderId = state?.orderId;
-    const isSeated = state?.isSeated || false;
+    const event = locationState?.event;
+    const selectedItems = locationState?.selectedItems || [];
+    const totalPrice = locationState?.totalPrice || 0;
+    const orderId = locationState?.orderId;
+    const isSeated = locationState?.isSeated || false;
 
-    const totalQuantity = useMemo(
-        () =>
-            isSeated
-                ? selectedItems.length
-                : selectedItems.reduce(
-                      (sum, item) => sum + (item.quantity || 0),
-                      0
-                  ),
-        [selectedItems, isSeated]
-    );
+    // Refs để xử lý trong Event Listeners
+    const isSuccessRef = useRef(isSuccess);
+    const isTimeoutRef = useRef(false);
 
-    const startDateTime = useMemo(
-        () =>
-            event
-                ? dayjs(`${event.startDate} ${event.startTime || '00:00:00'}`)
-                : null,
-        [event]
-    );
-
-    const endDateTime = useMemo(
-        () =>
-            event?.endTime
-                ? dayjs(`${event.startDate} ${event.endTime}`)
-                : null,
-        [event]
-    );
-
-    // Xử lý đếm ngược 10 phút
     useEffect(() => {
-        if (!orderId) return;
+        isSuccessRef.current = isSuccess;
+    }, [isSuccess]);
+
+    useEffect(() => {
+        // Tạo một điểm dừng giả trong lịch sử duyệt web
+        window.history.pushState(null, null, window.location.pathname);
+
+        const handlePopState = () => {
+            if (!isSuccessRef.current && !isTimeoutRef.current) {
+                // Đẩy ngược lại để giữ người dùng ở trang Checkout
+                window.history.pushState(null, null, window.location.pathname);
+                // Mở Modal cảnh báo
+                openCancelModal();
+            }
+        };
+
+        window.addEventListener('popstate', handlePopState);
+        return () => window.removeEventListener('popstate', handlePopState);
+    }, [openCancelModal]);
+
+    const blocker = useBlocker(
+        ({ currentLocation, nextLocation }) =>
+            !isSuccessRef.current &&
+            !isTimeoutRef.current &&
+            currentLocation.pathname !== nextLocation.pathname
+    );
+
+    useEffect(() => {
+        if (blocker.state === 'blocked') {
+            openCancelModal();
+        }
+    }, [blocker.state, openCancelModal]);
+
+    useEffect(() => {
+        if (!orderId || isSuccess) return;
         const storageKey = `checkout_expiration_order_${orderId}`;
         let expirationTime = localStorage.getItem(storageKey);
-
         if (!expirationTime) {
             expirationTime = Date.now() + 600 * 1000;
             localStorage.setItem(storageKey, expirationTime);
         }
-
         const calculateTimeLeft = () => {
             const now = Date.now();
             const difference = Math.floor((expirationTime - now) / 1000);
-            if (difference <= 0) {
+            return difference > 0 ? difference : 0;
+        };
+        setTimeLeft(calculateTimeLeft());
+        const timer = setInterval(() => {
+            if (isSuccessRef.current) {
+                clearInterval(timer);
+                return;
+            }
+            const remaining = calculateTimeLeft();
+            setTimeLeft(remaining);
+            if (remaining <= 0) {
+                clearInterval(timer);
                 localStorage.removeItem(storageKey);
                 orderApi
                     .cancelOrder(orderId)
                     .catch(err => console.error('Lỗi hủy đơn', err));
-                return 0;
+                message.error('Thời gian thanh toán đã hết!');
+                isTimeoutRef.current = true;
+                navigate('/', { replace: true });
             }
-            return difference;
-        };
-
-        setTimeLeft(calculateTimeLeft());
-        const timer = setInterval(() => {
-            const remaining = calculateTimeLeft();
-            setTimeLeft(remaining);
-            if (remaining <= 0) clearInterval(timer);
         }, 1000);
-
         return () => clearInterval(timer);
-    }, [orderId]);
+    }, [orderId, isSuccess, navigate, message]);
 
-    // Mở modal xác nhận thay vì điều hướng ngay lập tức
     const handleBack = () => {
+        // Nút Quay lại trên giao diện gọi trực tiếp Modal
         openCancelModal();
     };
 
-    // Hàm thực hiện hủy đơn thực tế khi người dùng xác nhận trên Modal
     const handleConfirmCancel = async () => {
         if (orderId) {
             try {
@@ -138,10 +154,38 @@ const Checkout = () => {
                 console.error('Lỗi khi hủy đơn hàng:', error);
             }
         }
+
+        // Tắt các chế độ chặn để thực hiện navigate
+        isSuccessRef.current = true;
         closeCancelModal();
-        navigate(-1);
+
+        if (blocker.state === 'blocked') {
+            // Trường hợp 1: Người dùng bấm Logo hoặc Link ngoài (Blocker bắt được)
+            // Đi đến trang đó (ví dụ trang chủ) và dùng replace để xóa Checkout khỏi lịch sử
+            navigate(blocker.location.pathname, {
+                replace: true,
+                state: blocker.location.state
+            });
+            blocker.reset();
+        } else {
+            // Trường hợp 2: Người dùng bấm nút Back (trình duyệt/điện thoại) hoặc nút UI "Quay lại"
+            // Điều hướng thẳng về trang Booking của sự kiện hiện tại
+            // Dùng replace: true để đè trang Checkout, ngăn người dùng bấm Forward quay lại
+            navigate(`/booking/${event?.id}`, {
+                replace: true,
+                state: { event } // Truyền lại event để trang booking có dữ liệu
+            });
+        }
     };
 
+    const handleCloseModal = () => {
+        if (blocker.state === 'blocked') {
+            blocker.reset();
+        }
+        closeCancelModal();
+    };
+
+    // ... (Hàm sendConfirmationEmail và handleConfirmOrder giữ nguyên như cũ)
     const sendConfirmationEmail = async () => {
         const ticketDetailStr = selectedItems
             .map(t =>
@@ -150,7 +194,6 @@ const Checkout = () => {
                     : `${t.quantity}x ${TICKET_LABELS[t.ticketType] || t.ticketType}`
             )
             .join(', ');
-
         const templateParams = {
             customer_name: user?.name || 'Khách hàng',
             event_name: event.name,
@@ -163,7 +206,6 @@ const Checkout = () => {
             to_email: user?.email,
             ticket_link: `${window.location.origin}/my-tickets`
         };
-
         try {
             await emailjs.send(
                 'service_9oozl9c',
@@ -172,7 +214,7 @@ const Checkout = () => {
                 'fvefLbNeEdGweDTg5'
             );
         } catch (error) {
-            console.error('Failed to send confirmation email', error);
+            console.error('Failed to send email', error);
         }
     };
 
@@ -185,46 +227,35 @@ const Checkout = () => {
             return message.error(
                 'Không tìm thấy mã đơn hàng. Vui lòng đặt vé lại!'
             );
-
         try {
             setIsSubmitting(true);
             const payRes = await orderApi.payOrder({ orderId });
-
             if (payRes) {
-                // --- BẮT ĐẦU SỬA LẠI LOGIC LƯU TRANSACTION TRÊN FE ---
+                setIsSuccess(true);
                 try {
-                    // Lấy danh sách các vé vừa được tạo từ phản hồi của API payOrder
                     const tickets = payRes.userTickets || [];
-
                     if (tickets.length > 0) {
-                        // Tính số tiền trên mỗi vé (vì 1 Order có thể có nhiều vé, chia đều số tiền)
                         const amountPerTicket = totalPrice / tickets.length;
-
-                        // Tạo mảng các request tạo Transaction cho từng vé
                         const transactionPromises = tickets.map(ticket =>
                             transactionApi.createTransaction({
-                                userTicketId: ticket.id, // <-- Đã lấy đúng field BE cần
+                                userTicketId: ticket.id,
                                 amount: amountPerTicket,
                                 paymentMethod: 'ONLINE',
                                 status: 'SUCCESS'
                             })
                         );
-
-                        // Gọi đồng thời tất cả API tạo transaction bằng Promise.all
-                        await Promise.all(transactionPromises);
+                        await Promise.allSettled(transactionPromises);
                     }
                 } catch (txnError) {
-                    // Bắt lỗi âm thầm, không ảnh hưởng đến trải nghiệm (khách vẫn mua thành công)
-                    console.error('Lỗi khi lưu transaction vào DB:', txnError);
+                    console.error('Lỗi transaction:', txnError);
                 }
-                // --- KẾT THÚC ---
-
                 message.success('Thanh toán thành công!');
                 localStorage.removeItem(`checkout_expiration_order_${orderId}`);
                 sendConfirmationEmail();
                 setTimeout(() => {
                     navigate('/my-tickets', {
-                        state: { activeTab: 'tickets' }
+                        state: { activeTab: 'tickets' },
+                        replace: true
                     });
                 }, 1500);
             }
@@ -236,25 +267,49 @@ const Checkout = () => {
         }
     };
 
+    const totalQuantity = useMemo(
+        () =>
+            isSeated
+                ? selectedItems.length
+                : selectedItems.reduce(
+                      (sum, item) => sum + (item.quantity || 0),
+                      0
+                  ),
+        [selectedItems, isSeated]
+    );
+    const startDateTime = useMemo(
+        () =>
+            event
+                ? dayjs(`${event.startDate} ${event.startTime || '00:00:00'}`)
+                : null,
+        [event]
+    );
+    const endDateTime = useMemo(
+        () =>
+            event?.endTime
+                ? dayjs(`${event.startDate} ${event.endTime}`)
+                : null,
+        [event]
+    );
+
     const formatTime = seconds => {
-        if (seconds === null) return '10:00';
+        if (seconds === null || seconds <= 0) return '00:00';
         const mins = Math.floor(seconds / 60);
         const secs = seconds % 60;
         return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
     };
 
-    if (!state || !event || selectedItems.length === 0) {
+    if (!locationState || !event || selectedItems.length === 0) {
         return <Navigate to='/' replace />;
     }
 
     return (
         <div className={cx('checkoutPage')}>
-            {/* Modal cảnh báo hủy đơn sử dụng hook useModal */}
             <Modal
                 title='Hủy đơn hàng?'
                 open={isCancelModalOpen}
                 onOk={handleConfirmCancel}
-                onCancel={closeCancelModal}
+                onCancel={handleCloseModal}
                 okText='Đồng ý'
                 cancelText='Hủy bỏ'
                 okButtonProps={{ danger: true }}
@@ -301,16 +356,6 @@ const Checkout = () => {
                                     {` | ${startDateTime.format('dddd, DD/MM/YYYY')}`}
                                     {` • ${event.location}`}
                                 </Text>
-                                <div className={cx('ticketSummaryInline')}>
-                                    <img
-                                        src={ticketIcon}
-                                        alt='ticket'
-                                        className={cx('ticketIcon')}
-                                    />
-                                    <Text strong className={cx('ticketCount')}>
-                                        x {totalQuantity} vé
-                                    </Text>
-                                </div>
                             </div>
                         </div>
                         <div className={cx('countdownBox')}>
@@ -364,7 +409,6 @@ const Checkout = () => {
                             </div>
                         </Space>
                     </Col>
-
                     <Col xs={24} lg={8}>
                         <div className={cx('orderSummary')}>
                             <Title level={4}>Thông tin đặt vé</Title>

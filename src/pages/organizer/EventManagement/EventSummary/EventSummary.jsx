@@ -35,9 +35,14 @@ function EventSummary() {
                 const orderFilter = `orderItems.ticket.event.id:'${eventId}'`;
                 const transactionFilter = `order.event.id:'${eventId}'`;
 
+                const ticketFilter = `event.id:'${eventId}'`;
+
                 const [ticketResponse, orderResponse, transactionResponse] =
                     await Promise.all([
-                        ticketApi.getAll({ eventId: eventId }),
+                        ticketApi.getAll({
+                            size: 1000,
+                            filter: ticketFilter
+                        }),
                         orderApi.getAllOrders(
                             `size=1000&filter=${orderFilter}`
                         ),

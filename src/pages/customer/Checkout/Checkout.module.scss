@@ -210,7 +210,9 @@
         grid-template-columns: 1fr;
         text-align: center;
         .backBtn {
-            display: none;
+            position: absolute;
+            top: 0;
+            left: 0;
         }
         .countdownBox {
             width: fit-content;

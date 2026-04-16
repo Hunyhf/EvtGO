@@ -1,5 +1,5 @@
-@use '../../../../assets/styles/variables' as *;
-@use '../../../../assets/styles/mixins' as *;
+@use '@styles/variables';
+@use '@styles/mixins';
 
 .wrapper {
     padding: 24px;

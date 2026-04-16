@@ -249,8 +249,10 @@ function Ticket() {
                                                   {item.seatLabel}
                                               </p>
                                               <p>
-                                                  <strong>Mã vé:</strong> #
-                                                  {item.id}
+                                                  <strong>Mã vé:</strong>{' '}
+                                                  {item.qrCode
+                                                      ?.split('-')[0]
+                                                      .toUpperCase() || 'N/A'}
                                               </p>
                                           </div>
                                       </div>
@@ -264,12 +266,6 @@ function Ticket() {
                                                   level={'H'}
                                               />
                                           </div>
-                                          <p className={cx('qrCodeText')}>
-                                              #
-                                              {item.qrCode
-                                                  ?.split('-')[0]
-                                                  .toUpperCase()}
-                                          </p>
                                       </div>
                                   </div>
                               );
@@ -365,7 +361,7 @@ function Ticket() {
             >
                 {selectedTicketQr && (
                     <div className={cx('qrModalContent')}>
-                        <h2 style={{ color: '#000' }}>
+                        <h2 className={cx('qrEventName')}>
                             {selectedTicketQr.event?.name}
                         </h2>
                         <div className={cx('modalQrWrapper')}>
@@ -375,12 +371,20 @@ function Ticket() {
                                 level={'H'}
                             />
                         </div>
-                        <p
-                            className={cx('modalQrText')}
-                            style={{ color: '#000' }}
-                        >
-                            {selectedTicketQr.qrCode?.toUpperCase()}
-                        </p>
+                        <div className={cx('modalTicketInfo')}>
+                            <p>
+                                <strong>Loại vé:</strong>{' '}
+                                {selectedTicketQr.ticket?.ticketType}
+                            </p>
+                            <p>
+                                <strong>Khu vực:</strong>{' '}
+                                {selectedTicketQr.zone}
+                            </p>
+                            <p className={cx('highlightSeat')}>
+                                <strong>Vị trí:</strong>{' '}
+                                {selectedTicketQr.seatLabel}
+                            </p>
+                        </div>
                     </div>
                 )}
             </Modal>

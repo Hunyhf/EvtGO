@@ -89,7 +89,6 @@ const OrderManagement = () => {
             try {
                 const pageForBE = page - 1;
 
-                // FIX LỖI 2: Sử dụng URLSearchParams để build query an toàn
                 const params = new URLSearchParams({
                     size: pageSize,
                     page: pageForBE,
@@ -98,7 +97,10 @@ const OrderManagement = () => {
 
                 // SỬ DỤNG SPRING FILTER SYNTAX - Đã đổi `orderItems` thành `items`
                 if (eventId) {
-                    params.append('filter', `items.ticket.event.id:${eventId}`);
+                    params.append(
+                        'filter',
+                        `orderItems.ticket.event.id:${eventId}`
+                    );
                 }
 
                 const response = await orderApi.getAllOrders(params.toString());

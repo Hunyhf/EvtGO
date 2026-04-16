@@ -13,10 +13,6 @@ const Transaction = () => {
             try {
                 // Gọi API để lấy dữ liệu
                 const response = await transactionApi.getAllTransactions();
-
-                // Lưu ý: Dựa vào cấu trúc trả về của API, bạn có thể cần điều chỉnh.
-                // Nếu Backend trả về dạng { statusCode, message, data: [...] }
-                // thì bạn có thể cần dùng setTransactions(response.data.data) hoặc response.data tùy cách cấu hình axios.
                 const data = response.data?.data || response.data || [];
 
                 setTransactions(data);
