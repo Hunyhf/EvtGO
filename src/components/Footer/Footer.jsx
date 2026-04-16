@@ -55,15 +55,19 @@ function Footer() {
                         <h3 className={cx('title')}>Về công ty chúng tôi</h3>
                         <ul className={cx('list')}>
                             <li>
-                                <a href='#'>Quy chế hoạt động</a>
+                                <Link to='/quy-che-hoat-dong'>
+                                    Quy chế hoạt động
+                                </Link>
                             </li>
                             <li>
-                                <a href='#'>Chính sách bảo mật thông tin</a>
+                                <Link to='/chinh-sach-bao-mat-thong-tin'>
+                                    Chính sách bảo mật thông tin
+                                </Link>
                             </li>
                             <li>
-                                <a href='#'>
+                                <Link to='/giai-quyet-tranh-chap-phat-sinh'>
                                     Cơ chế giải quyết tranh chấp/ khiếu nại
-                                </a>
+                                </Link>
                             </li>
                             <li>
                                 <Link to='/chinh-sach-bao-mat-thanh-toan'>
@@ -81,7 +85,9 @@ function Footer() {
                                 </Link>
                             </li>
                             <li>
-                                <a href='#'>Phương thức thanh toán</a>
+                                <Link to='/phuong-thuc-thanh-toan'>
+                                    Phương thức thanh toán
+                                </Link>
                             </li>
                         </ul>
                     </div>

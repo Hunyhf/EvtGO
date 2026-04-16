@@ -148,6 +148,42 @@ export const routes = createBrowserRouter([
                                 title='Điều kiện vận chuyển và giao nhận'
                             />
                         )
+                    },
+                    {
+                        path: 'chinh-sach-bao-mat-thong-tin',
+                        element: (
+                            <PolicyViewer
+                                fileName='chinh-sach-bao-mat-thong-tin.pdf'
+                                title='Chính sách bảo mật thông tin'
+                            />
+                        )
+                    },
+                    {
+                        path: 'giai-quyet-tranh-chap-phat-sinh',
+                        element: (
+                            <PolicyViewer
+                                fileName='giai-quyet-tranh-chap-phat-sinh.pdf'
+                                title='Cơ chế giải quyết tranh chấp/ khiếu nại'
+                            />
+                        )
+                    },
+                    {
+                        path: 'phuong-thuc-thanh-toan',
+                        element: (
+                            <PolicyViewer
+                                fileName='phuong-thuc-thanh-toan.pdf'
+                                title='Phương thức thanh toán'
+                            />
+                        )
+                    },
+                    {
+                        path: 'quy-che-hoat-dong',
+                        element: (
+                            <PolicyViewer
+                                fileName='quy-che-hoat-dong.pdf'
+                                title='Quy chế hoạt động'
+                            />
+                        )
                     }
                 ]
             },
