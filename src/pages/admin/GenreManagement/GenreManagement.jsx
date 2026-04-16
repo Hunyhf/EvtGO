@@ -134,14 +134,7 @@ function GenreManagementContent() {
             key: 'name',
             render: text => <strong style={{ color: '#fff' }}>{text}</strong>
         },
-        {
-            title: 'Mô tả',
-            dataIndex: 'description',
-            key: 'description',
-            render: text => (
-                <span style={{ color: '#ccc' }}>{text || 'Chưa có mô tả'}</span>
-            )
-        },
+
         {
             title: 'Thao tác',
             key: 'actions',

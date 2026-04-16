@@ -1,9 +1,10 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Table, Tag, Card, App } from 'antd';
+import { Table, Tag, Card, App, Input, Row, Col } from 'antd'; // Thêm Input, Row, Col để làm thanh tìm kiếm
 import dayjs from 'dayjs';
 import orderApi from '@apis/orderApi';
 
+const { Search } = Input;
 const DEFAULT_PAGE_SIZE = 10;
 
 const baseColumns = [
@@ -31,7 +32,6 @@ const baseColumns = [
         title: 'Số lượng',
         key: 'totalQuantity',
         render: (_, record) => {
-            // FIX LỖI 3: Fallback an toàn cho cả `orderItems` và `items`
             const itemsList = record.orderItems || record.items || [];
             const total = itemsList.reduce(
                 (acc, item) => acc + (item.quantity || 1),
@@ -74,6 +74,7 @@ const OrderManagement = () => {
 
     const [orders, setOrders] = useState([]);
     const [loading, setLoading] = useState(false);
+    const [searchText, setSearchText] = useState(''); // State lưu trữ từ khóa tìm kiếm
 
     const [pagination, setPagination] = useState({
         current: 1,
@@ -81,9 +82,14 @@ const OrderManagement = () => {
         total: 0
     });
 
-    // BỌC USECALLBACK CHO HÀM CALL API
+    /**
+     * Hàm lấy danh sách đơn hàng
+     * @param {number} page - Trang hiện tại (bắt đầu từ 1)
+     * @param {number} pageSize - Số lượng item mỗi trang
+     * @param {string} search - Từ khóa tìm kiếm
+     */
     const fetchOrders = useCallback(
-        async (page = 1, pageSize = DEFAULT_PAGE_SIZE) => {
+        async (page = 1, pageSize = DEFAULT_PAGE_SIZE, search = '') => {
             setLoading(true);
             try {
                 const pageForBE = page - 1;
@@ -94,20 +100,31 @@ const OrderManagement = () => {
                     sort: 'createdAt,desc'
                 });
 
-                // SỬ DỤNG SPRING FILTER SYNTAX - Đã đổi `orderItems` thành `items`
+                // Xây dựng chuỗi Filter
+                let filterArray = [];
+
+                // 1. Lọc theo eventId nếu có
                 if (eventId) {
-                    params.append(
-                        'filter',
-                        `orderItems.ticket.event.id:${eventId}`
+                    filterArray.push(`orderItems.ticket.event.id:${eventId}`);
+                }
+
+                // 2. Lọc theo từ khóa tìm kiếm (Mã đơn hàng hoặc Email)
+                if (search) {
+                    // Cú pháp: (field ~ '*value*' or field2 ~ '*value*')
+                    filterArray.push(
+                        `(orderCode~'*${search}*' or user.email~'*${search}*')`
                     );
                 }
 
-                const response = await orderApi.getAllOrders(params.toString());
+                // Kết hợp các điều kiện bằng 'and'
+                if (filterArray.length > 0) {
+                    params.append('filter', filterArray.join(' and '));
+                }
 
+                const response = await orderApi.getAllOrders(params.toString());
                 const responseBody =
                     response?.data?.data || response?.data || response;
 
-                // Lấy mảng dữ liệu và metadata
                 const itemsArray =
                     responseBody?.result || responseBody?.content || [];
                 const metaData = responseBody?.meta || {};
@@ -116,7 +133,7 @@ const OrderManagement = () => {
                     setOrders(itemsArray);
                     setPagination({
                         current: page,
-                        pageSize: metaData.pageSize || DEFAULT_PAGE_SIZE,
+                        pageSize: metaData.pageSize || pageSize,
                         total: metaData.total || 0
                     });
                 } else {
@@ -135,12 +152,19 @@ const OrderManagement = () => {
         [eventId, message]
     );
 
+    // Gọi API lần đầu hoặc khi pageSize thay đổi
     useEffect(() => {
-        fetchOrders(1, pagination.pageSize);
-    }, [fetchOrders, pagination.pageSize]);
+        fetchOrders(1, pagination.pageSize, searchText);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [eventId, pagination.pageSize]);
 
     const handleTableChange = newPagination => {
-        fetchOrders(newPagination.current, newPagination.pageSize);
+        fetchOrders(newPagination.current, newPagination.pageSize, searchText);
+    };
+
+    const onSearch = value => {
+        setSearchText(value);
+        fetchOrders(1, pagination.pageSize, value); // Tìm kiếm luôn đưa về trang 1
     };
 
     return (
@@ -148,6 +172,20 @@ const OrderManagement = () => {
             title={eventId ? `Đơn hàng sự kiện #${eventId}` : 'Tất cả đơn hàng'}
             variant='outlined'
         >
+            {/* Khu vực thanh tìm kiếm */}
+            <Row justify='end' style={{ marginBottom: 16 }}>
+                <Col xs={24} sm={12} md={8}>
+                    <Search
+                        placeholder='Tìm mã đơn hoặc email khách...'
+                        allowClear
+                        enterButton='Tìm kiếm'
+                        size='middle'
+                        onSearch={onSearch}
+                        loading={loading}
+                    />
+                </Col>
+            </Row>
+
             <Table
                 columns={baseColumns}
                 dataSource={orders}

@@ -28,6 +28,7 @@ import UserManagement from '@pages/admin/UserManagement/UserManagement.jsx';
 import AdminEventManagement from '@pages/admin/EventManagement/AdminEventManagement.jsx';
 import GenreManagement from '@pages/admin/GenreManagement/GenreManagement';
 import DocumentManagement from '@pages/admin/DocumentManagement/DocumentManagement';
+import AdminOrderManagement from '@pages/admin/OrderManagement/AdminOrderManagement';
 
 // ORGANIZER PAGES
 import EventManagement from '@pages/organizer/EventManagement/EventManagement';
@@ -201,7 +202,8 @@ export const routes = createBrowserRouter([
                     { path: 'users', element: <UserManagement /> },
                     { path: 'events', element: <AdminEventManagement /> },
                     { path: 'genres', element: <GenreManagement /> },
-                    { path: 'ai-documents', element: <DocumentManagement /> }
+                    { path: 'ai-documents', element: <DocumentManagement /> },
+                    { path: 'orders', element: <AdminOrderManagement /> }
                 ]
             },
 

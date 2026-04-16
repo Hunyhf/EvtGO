@@ -60,6 +60,12 @@ function AdminLayout() {
             icon: <RobotOutlined />,
             label: 'Huấn luyện AI',
             onClick: () => navigate('/admin/ai-documents')
+        },
+        {
+            key: '/admin/orders',
+            icon: <DashboardOutlined />,
+            label: 'Quản lý đơn hàng',
+            onClick: () => navigate('/admin/orders')
         }
     ];
 
