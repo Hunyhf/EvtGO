@@ -68,51 +68,46 @@ function AdminEventManagement() {
         setLoading(true);
         try {
             const res = await eventApi.getAll({ size: 1000 });
-            let rawEvents =
+
+            // Kiểm tra và lấy mảng dữ liệu an toàn từ các cấu trúc response khác nhau
+            const rawEvents =
                 res?.result ||
                 res?.content ||
                 res?.data ||
                 (Array.isArray(res) ? res : []);
 
             const mappedData = rawEvents.map(event => {
+                // 1. Xử lý ảnh Poster (Cover)
                 const posterObj =
-                    event.images?.find(
-                        img => img.isCover === true || img.cover === true
-                    ) || event.images?.[0];
+                    event.images?.find(img => img.isCover || img.cover) ||
+                    event.images?.[0];
                 const posterUrl = getEventImageUrl(event.id, posterObj?.url);
 
+                // 2. Xử lý ảnh Logo
                 const logoObj =
                     event.images?.find(
                         img => img.isCover === false || img.cover === false
                     ) || (event.images?.length > 1 ? event.images[1] : null);
-
                 const logoUrl = logoObj
                     ? getEventImageUrl(event.id, logoObj.url)
                     : null;
 
-                const isPublished = event.isPublished || event.published;
-                const isActive = event.isActive || event.active;
+                // 3. Xử lý trạng thái hiển thị (Logic rút gọn)
+                const isPublished = !!(event.isPublished || event.published);
+                const isActive = !!(event.isActive || event.active);
 
                 let derivedStatus = 'PENDING';
-                if (!isPublished && isActive) {
-                    derivedStatus = 'PAST';
-                } else if (isPublished && isActive) {
-                    derivedStatus = 'OPEN';
-                } else if (isPublished && !isActive) {
-                    derivedStatus = 'UPCOMING';
-                } else {
-                    derivedStatus = 'PENDING';
-                }
+                if (!isPublished && isActive) derivedStatus = 'PAST';
+                else if (isPublished && isActive) derivedStatus = 'OPEN';
+                else if (isPublished && !isActive) derivedStatus = 'UPCOMING';
 
+                // 4. Xử lý chuỗi thời gian
                 const fullStartTime = event.startDate
                     ? `${event.startDate} ${event.startTime || '00:00:00'}`
                     : null;
-
                 const fullEndTime = event.endDate
                     ? `${event.endDate} ${event.endTime || '23:59:59'}`
-                    : event.endTime && event.startDate
-                      ? `${event.startDate} ${event.endTime}`
-                      : null;
+                    : null;
 
                 return {
                     ...event,
@@ -129,20 +124,16 @@ function AdminEventManagement() {
                 };
             });
 
-            mappedData.sort((a, b) => {
-                const timeA = dayjs(a.fullStartTime).unix();
-                const timeB = dayjs(b.fullStartTime).unix();
-                return timeB - timeA;
-            });
+            mappedData.sort((a, b) => b.id - a.id);
 
             setDataSource(mappedData);
         } catch (error) {
+            console.error('Lỗi fetch events:', error);
             message.error('Không thể tải danh sách sự kiện.');
         } finally {
             setLoading(false);
         }
     };
-
     useEffect(() => {
         fetchEvents();
     }, []);
