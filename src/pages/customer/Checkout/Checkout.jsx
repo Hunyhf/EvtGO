@@ -31,6 +31,7 @@ import styles from './Checkout.module.scss';
 import { AuthContext } from '@contexts/AuthContext';
 import orderApi from '@apis/orderApi';
 import transactionApi from '@apis/transactionApi';
+import paymentApi from '@apis/paymentApi';
 import ticketIcon from '@icons/svgs/ticketIcon.svg';
 import useModal from '@hooks/useModal';
 
@@ -226,41 +227,44 @@ const Checkout = () => {
             return message.error(
                 'Không tìm thấy mã đơn hàng. Vui lòng đặt vé lại!'
             );
+
         try {
             setIsSubmitting(true);
-            const payRes = await orderApi.payOrder({ orderId });
-            if (payRes) {
+
+            // Gọi API Spring Boot để tạo phiên thanh toán MoMo
+            const response = await paymentApi.createMoMoPayment({
+                amount: totalPrice.toString(),
+                orderInfo: `Thanh toan don hang ${orderId} - ${event.name}`,
+                orderId: orderId.toString() // Bắt buộc truyền orderId thật
+            });
+            console.log("MoMo Response: ", response);
+
+            // Tùy theo cách axiosClient của bạn trả về dữ liệu (có bọc trong data hay không)
+            // Thường với MoMo nó sẽ nằm ở response.payUrl hoặc response.data.payUrl
+            const payUrl = response?.payUrl || response?.data?.payUrl || response?.momo?.payUrl;
+
+            if (payUrl) {
+                message.loading('Đang chuẩn bị chuyển hướng sang MoMo...', 2);
+
+                // Đánh dấu isSuccess = true để useBlocker (cảnh báo thoát trang) không chặn
                 setIsSuccess(true);
-                try {
-                    const tickets = payRes.userTickets || [];
-                    if (tickets.length > 0) {
-                        const amountPerTicket = totalPrice / tickets.length;
-                        const transactionPromises = tickets.map(ticket =>
-                            transactionApi.createTransaction({
-                                userTicketId: ticket.id,
-                                amount: amountPerTicket,
-                                paymentMethod: 'ONLINE',
-                                status: 'SUCCESS'
-                            })
-                        );
-                        await Promise.allSettled(transactionPromises);
-                    }
-                } catch (txnError) {
-                    console.error('Lỗi transaction:', txnError);
-                }
-                message.success('Thanh toán thành công!');
+                isSuccessRef.current = true;
+
+                // Xóa bộ đếm ngược trong localStorage
                 localStorage.removeItem(`checkout_expiration_order_${orderId}`);
-                sendConfirmationEmail();
+
+                // Chuyển hướng sang trang thanh toán của MoMo
                 setTimeout(() => {
-                    navigate('/my-tickets', {
-                        state: { activeTab: 'tickets' },
-                        replace: true
-                    });
-                }, 1500);
+                    window.location.href = payUrl;
+                }, 800);
+            } else {
+                message.error('Lỗi: Không lấy được đường dẫn thanh toán từ máy chủ.');
+                setIsSubmitting(false);
             }
         } catch (error) {
+            console.error('Lỗi tạo thanh toán MoMo:', error);
             message.error(
-                error.response?.data?.message || 'Lỗi xử lý đơn hàng'
+                error.response?.data?.message || error.message || 'Lỗi kết nối đến cổng thanh toán MoMo'
             );
             setIsSubmitting(false);
         }
