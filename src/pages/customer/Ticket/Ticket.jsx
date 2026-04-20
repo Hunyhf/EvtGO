@@ -35,12 +35,20 @@ function Ticket() {
     const [currentPage, setCurrentPage] = useState(1);
     const pageSize = 8;
 
+    // Tìm đến hàm fetchData bên trong useEffect
     useEffect(() => {
         const fetchData = async () => {
             try {
-                // 1. Lấy danh sách đơn hàng (History)
+                // 1. Lấy danh sách đơn hàng
                 const orderRes = await orderApi.getAllOrders('');
-                const orderData = orderRes?.result || [];
+                let orderData = orderRes?.result || [];
+
+                // --- THÊM LOGIC LỌC TẠI ĐÂY ---
+                // Chỉ giữ lại các đơn hàng KHÁC trạng thái 'CANCELLED'
+                orderData = orderData.filter(
+                    order => order.orderStatus !== 'CANCELLED'
+                );
+                // ------------------------------
 
                 // 2. Lấy toàn bộ vé lẻ của user
                 const ticketRes = await orderApi.getMyTickets();
@@ -48,7 +56,7 @@ function Ticket() {
                     ? ticketRes
                     : ticketRes?.result || [];
 
-                // 3. Logic nhóm vé theo orderId
+                // 3. Logic nhóm vé (giữ nguyên)
                 const groups = ticketData.reduce((acc, ticket) => {
                     const oId = ticket.orderId;
                     if (!acc[oId]) acc[oId] = [];
@@ -56,7 +64,7 @@ function Ticket() {
                     return acc;
                 }, {});
 
-                // Sắp xếp đơn hàng mới nhất lên đầu
+                // Sắp xếp (giữ nguyên)
                 orderData.sort(
                     (a, b) =>
                         dayjs(b.createdAt).valueOf() -

@@ -3,28 +3,28 @@
 
 .wrapper {
     padding: 24px;
-    background-color: $bg-admin;
+    background-color: transparent; // Để kế thừa nền tối từ Layout cha
     min-height: 100vh;
 }
 
 // Tabs
 .tabs {
     @include flex(flex-start, center, 24px);
-    border-bottom: 2px solid $border-color;
+    border-bottom: 2px solid rgba(255, 255, 255, 0.1);
     margin-bottom: 32px;
 }
 
 .tab {
-    font-size: $font-size-md;
-    font-weight: $font-weight-semi-bold;
-    color: $text-color;
+    font-size: variables.$font-size-md;
+    font-weight: variables.$font-weight-semi-bold;
+    color: rgba(255, 255, 255, 0.6); // Chữ xám nhạt
     padding-bottom: 12px;
     cursor: pointer;
     position: relative;
     transition: color 0.3s ease;
 
     &.active {
-        color: $primary-color;
+        color: variables.$primary-color;
         &::after {
             content: '';
             position: absolute;
@@ -32,64 +32,67 @@
             left: 0;
             width: 100%;
             height: 2px;
-            background-color: $primary-color;
-            @include radius-common(2px);
+            background-color: variables.$primary-color;
+            @include mixins.radius-common(2px);
         }
     }
 
     &:hover:not(.active) {
-        color: $third-color;
+        color: variables.$white-color;
     }
 }
 
 // Section Title
 .sectionTitle {
-    font-size: $font-size-h3;
-    font-weight: $font-weight-bold;
-    color: $secondary-color;
+    font-size: variables.$font-size-h3;
+    font-weight: variables.$font-weight-bold;
+    color: variables.$white-color; // Tiêu đề trắng
     margin-bottom: 16px;
 }
 
-// Cards
+// Cards (Stat Cards)
 .cardsContainer {
-    @include flex(space-between, stretch, 24px);
+    @include mixins.flex(flex-start, stretch, 24px);
     margin-bottom: 32px;
 
-    @include mobile-width {
+    @include mixins.mobile-width {
         flex-direction: column;
     }
 }
 
 .statCard {
     flex: 1;
-    background-color: $third-color; // Nền xám đậm theo yêu cầu
+    max-width: 280px;
+    background-color: #1a1a1a; // Màu tối xám đậm
     padding: 24px;
-    @include radius-common(16px); // Bo góc lớn
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08); // Shadow nhẹ
+    @include mixins.radius-common(16px);
+    border: 1px solid rgba(255, 255, 255, 0.05); // Viền rất mờ
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
 
     .cardLabel {
-        font-size: $font-size-md;
-        color: $text-color;
+        font-size: variables.$font-size-md;
+        color: rgba(255, 255, 255, 0.5); // Label xám mờ
         margin-bottom: 12px;
     }
 
     .cardValue {
-        font-size: $font-size-h2;
-        font-weight: $font-weight-bold;
-        color: $white-color;
+        font-size: variables.$font-size-h2;
+        font-weight: variables.$font-weight-bold;
+        color: variables.$white-color;
     }
 }
 
 // Chart Section
 .chartSection {
-    background-color: $white-color;
+    background-color: #1a1a1a; // Chuyển từ trắng sang màu tối
     padding: 24px;
-    @include radius-common(16px);
-    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.05);
+    @include mixins.radius-common(16px);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
 }
 
 .chartHeader {
-    @include flex(space-between, center);
+    @include mixins.flex(space-between, center);
     margin-bottom: 24px;
     flex-wrap: wrap;
     gap: 16px;
@@ -97,53 +100,57 @@
 
 // Legend
 .legend {
-    @include flex(flex-start, center, 24px);
+    @include mixins.flex(flex-start, center, 24px);
 }
 
 .legendItem {
-    @include flex(flex-start, center, 8px);
-    font-size: $font-size-sm;
-    color: $sub-color;
-    font-weight: $font-weight-semi-bold;
+    @include mixins.flex(flex-start, center, 8px);
+    font-size: variables.$font-size-sm;
+    color: rgba(255, 255, 255, 0.7);
+    font-weight: variables.$font-weight-semi-bold;
 }
 
 .dot {
     width: 12px;
     height: 12px;
-    @include radius-common(50%);
+    @include mixins.radius-common(50%);
 
     &.dotPurple {
-        background-color: #8b5cf6; // Màu tím tùy chỉnh vì trong biến không có
+        background-color: #8b5cf6;
     }
 
     &.dotGreen {
-        background-color: $primary-color;
+        background-color: #2dc275;
     }
 }
 
 // Filters (Pill Buttons)
 .filters {
-    @include flex(flex-end, center, 8px);
-    background-color: $hover-color;
+    @include mixins.flex(flex-end, center, 8px);
+    background-color: rgba(255, 255, 255, 0.05);
     padding: 4px;
-    @include radius-common(24px);
+    @include mixins.radius-common(24px);
 }
 
 .filterBtn {
     padding: 6px 16px;
-    font-size: $font-size-sm;
-    font-weight: $font-weight-semi-bold;
-    color: $text-color;
+    font-size: variables.$font-size-sm;
+    font-weight: variables.$font-weight-semi-bold;
+    color: rgba(255, 255, 255, 0.6);
     background: transparent;
     border: none;
-    @include radius-common(20px);
+    @include mixins.radius-common(20px);
     cursor: pointer;
     transition: all 0.3s ease;
 
     &.active {
-        background-color: $primary-color;
-        color: $white-color;
+        background-color: variables.$primary-color;
+        color: variables.$white-color;
         box-shadow: 0 2px 8px rgba(45, 194, 117, 0.3);
+    }
+
+    &:hover:not(.active) {
+        color: variables.$white-color;
     }
 }
 

@@ -14,7 +14,8 @@ import {
     Space,
     Divider,
     App,
-    Modal
+    Modal,
+    Radio
 } from 'antd';
 import {
     ArrowLeftOutlined,
@@ -35,6 +36,8 @@ import paymentApi from '@apis/paymentApi';
 import ticketIcon from '@icons/svgs/ticketIcon.svg';
 import useModal from '@hooks/useModal';
 
+import momoLogo from '@images/momo.png';
+import vnpayLogo from '@images/vnpay.png';
 dayjs.locale('vi');
 const cx = classNames.bind(styles);
 const { Title, Text } = Typography;
@@ -61,7 +64,7 @@ const Checkout = () => {
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [agreed, setAgreed] = useState(false);
     const [isSuccess, setIsSuccess] = useState(false);
-
+    const [paymentMethod, setPaymentMethod] = useState('momo');
     const event = locationState?.event;
     const selectedItems = locationState?.selectedItems || [];
     const totalPrice = locationState?.totalPrice || 0;
@@ -230,41 +233,42 @@ const Checkout = () => {
 
         try {
             setIsSubmitting(true);
-
-            // Gọi API Spring Boot để tạo phiên thanh toán MoMo
-            const response = await paymentApi.createMoMoPayment({
-                amount: totalPrice.toString(),
-                orderInfo: `Thanh toan don hang ${orderId} - ${event.name}`,
-                orderId: orderId.toString() // Bắt buộc truyền orderId thật
-            });
-            console.log("MoMo Response: ", response);
-
-            // Tùy theo cách axiosClient của bạn trả về dữ liệu (có bọc trong data hay không)
-            // Thường với MoMo nó sẽ nằm ở response.payUrl hoặc response.data.payUrl
-            const payUrl = response?.payUrl || response?.data?.payUrl || response?.momo?.payUrl;
-
-            if (payUrl) {
-                message.loading('Đang chuẩn bị chuyển hướng sang MoMo...', 2);
-
-                // Đánh dấu isSuccess = true để useBlocker (cảnh báo thoát trang) không chặn
+            const payRes = await orderApi.payOrder({ orderId });
+            if (payRes) {
                 setIsSuccess(true);
-                isSuccessRef.current = true;
-
+                try {
+                    const tickets = payRes.userTickets || [];
+                    if (tickets.length > 0) {
+                        const amountPerTicket = totalPrice / tickets.length;
+                        const transactionPromises = tickets.map(ticket =>
+                            transactionApi.createTransaction({
+                                userTicketId: ticket.id,
+                                amount: amountPerTicket,
+                                paymentMethod: 'ONLINE',
+                                status: 'SUCCESS'
+                            })
+                        );
+                        await Promise.allSettled(transactionPromises);
+                    }
+                } catch (txnError) {
+                    console.error('Lỗi transaction:', txnError);
+                }
+                message.success('Thanh toán thành công!');
+                sendConfirmationEmail();
                 // Xóa bộ đếm ngược trong localStorage
                 localStorage.removeItem(`checkout_expiration_order_${orderId}`);
 
                 // Chuyển hướng sang trang thanh toán của MoMo
                 setTimeout(() => {
-                    window.location.href = payUrl;
-                }, 800);
-            } else {
-                message.error('Lỗi: Không lấy được đường dẫn thanh toán từ máy chủ.');
-                setIsSubmitting(false);
+                    navigate('/my-tickets', {
+                        state: { activeTab: 'tickets' },
+                        replace: true
+                    });
+                }, 1500);
             }
         } catch (error) {
-            console.error('Lỗi tạo thanh toán MoMo:', error);
             message.error(
-                error.response?.data?.message || error.message || 'Lỗi kết nối đến cổng thanh toán MoMo'
+                error.response?.data?.message || 'Lỗi xử lý đơn hàng'
             );
             setIsSubmitting(false);
         }
@@ -404,10 +408,66 @@ const Checkout = () => {
                                     <WalletOutlined /> Phương thức thanh toán
                                 </Title>
                                 <div className={cx('cardBody')}>
-                                    <Text italic>
-                                        Hệ thống hỗ trợ thanh toán trực tiếp để
-                                        xác nhận vé ngay lập tức.
-                                    </Text>
+                                    <Radio.Group
+                                        onChange={e =>
+                                            setPaymentMethod(e.target.value)
+                                        }
+                                        value={paymentMethod}
+                                        className={cx('paymentRadioGroup')}
+                                    >
+                                        <Space
+                                            direction='vertical'
+                                            style={{ width: '100%' }}
+                                            size={16}
+                                        >
+                                            <div
+                                                className={cx('paymentOption', {
+                                                    active:
+                                                        paymentMethod === 'momo'
+                                                })}
+                                            >
+                                                <Radio value='momo'>
+                                                    <div
+                                                        className={cx(
+                                                            'optionContent'
+                                                        )}
+                                                    >
+                                                        <img
+                                                            src={momoLogo}
+                                                            alt='momo'
+                                                        />
+                                                        <span>
+                                                            Ví điện tử MoMo
+                                                        </span>
+                                                    </div>
+                                                </Radio>
+                                            </div>
+                                            <div
+                                                className={cx('paymentOption', {
+                                                    active:
+                                                        paymentMethod ===
+                                                        'vnpay'
+                                                })}
+                                            >
+                                                <Radio value='vnpay'>
+                                                    <div
+                                                        className={cx(
+                                                            'optionContent'
+                                                        )}
+                                                    >
+                                                        <img
+                                                            src={vnpayLogo}
+                                                            alt='vnpay'
+                                                        />
+                                                        <span>
+                                                            Cổng thanh toán
+                                                            VNPAY
+                                                        </span>
+                                                    </div>
+                                                </Radio>
+                                            </div>
+                                        </Space>
+                                    </Radio.Group>
                                 </div>
                             </div>
                         </Space>

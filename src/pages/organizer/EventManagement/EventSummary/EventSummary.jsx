@@ -34,7 +34,6 @@ function EventSummary() {
             try {
                 const orderFilter = `orderItems.ticket.event.id:'${eventId}'`;
                 const transactionFilter = `order.event.id:'${eventId}'`;
-
                 const ticketFilter = `event.id:'${eventId}'`;
 
                 const [ticketResponse, orderResponse, transactionResponse] =
@@ -51,7 +50,6 @@ function EventSummary() {
                         )
                     ]);
 
-                // --- GIỮ NGUYÊN LOGIC VÉ ĐÃ BÁN BAN ĐẦU THEO YÊU CẦU ---
                 const ticketPayload =
                     ticketResponse?.result || ticketResponse?.data;
                 const tickets =
@@ -69,7 +67,6 @@ function EventSummary() {
                     : 0;
                 setTotalTickets(totalSold);
 
-                // Xử lý danh sách Order
                 const orderPayload =
                     orderResponse?.result || orderResponse?.data;
                 let orders =
@@ -79,7 +76,6 @@ function EventSummary() {
                     [];
                 if (!Array.isArray(orders)) orders = [];
 
-                // Xử lý danh sách Transaction
                 const transactionPayload =
                     transactionResponse?.result || transactionResponse?.data;
                 let transactions =
@@ -90,7 +86,6 @@ function EventSummary() {
                 if (!Array.isArray(transactions)) transactions = [];
                 setRawTransactions(transactions);
 
-                // Gắn transaction vào order tương ứng
                 const ordersWithTransactions = orders.map(order => {
                     const matchedTxn = transactions.find(
                         t =>
@@ -101,8 +96,6 @@ function EventSummary() {
                 });
 
                 setRawOrders(ordersWithTransactions);
-
-                console.log('Data Loaded:', { orders, transactions });
             } catch (error) {
                 console.error('Lỗi khi tải dữ liệu tổng quan:', error);
             } finally {
@@ -117,7 +110,6 @@ function EventSummary() {
     const { chartData, totalRevenue } = useMemo(() => {
         let calculatedRevenue = 0;
         const dataMap = {};
-
         const dataSource =
             rawTransactions.length > 0 ? rawTransactions : rawOrders;
 
@@ -143,8 +135,7 @@ function EventSummary() {
                     item.createdAt || item.paidAt || item.created_at;
                 if (dateStr) {
                     const date = new Date(dateStr);
-                    let timeKey;
-                    let sortVal;
+                    let timeKey, sortVal;
 
                     if (timeFilter === '24h') {
                         timeKey = `${date.getHours().toString().padStart(2, '0')}:00`;
@@ -163,7 +154,6 @@ function EventSummary() {
                         };
                     }
                     dataMap[timeKey].revenue += amount;
-                    // Lấy số lượng vé từ order items nếu có, hoặc mặc định là 1 lượt mua
                     const items = item.orderItems || item.items || [];
                     const ticketCount =
                         items.length > 0
@@ -184,7 +174,7 @@ function EventSummary() {
     if (loading)
         return (
             <div
-                style={{ padding: '20px', textAlign: 'center', color: '#fff' }}
+                style={{ padding: '50px', textAlign: 'center', color: '#fff' }}
             >
                 Đang xử lý dữ liệu...
             </div>
@@ -251,7 +241,7 @@ function EventSummary() {
                                 margin={{
                                     top: 10,
                                     right: 10,
-                                    left: -20,
+                                    left: 0,
                                     bottom: 0
                                 }}
                             >
@@ -266,7 +256,6 @@ function EventSummary() {
                                     tickLine={false}
                                     tick={{ fill: '#9ca6b0', fontSize: 12 }}
                                 />
-                                {/* Trục Y bên trái cho Doanh thu */}
                                 <YAxis
                                     yAxisId='left'
                                     axisLine={false}
@@ -276,7 +265,6 @@ function EventSummary() {
                                         v.toLocaleString('vi-VN')
                                     }
                                 />
-                                {/* BỔ SUNG: Trục Y bên phải cho Số vé */}
                                 <YAxis
                                     yAxisId='right'
                                     orientation='right'
@@ -294,28 +282,27 @@ function EventSummary() {
                                             : 'Số vé/Lượt'
                                     ]}
                                     contentStyle={{
-                                        background: '#1f1f1f',
-                                        border: 'none',
-                                        borderRadius: '8px'
+                                        background: '#1a1a1a',
+                                        border: '1px solid #333',
+                                        borderRadius: '8px',
+                                        color: '#fff'
                                     }}
                                 />
-                                {/* Đường biểu diễn Doanh thu */}
                                 <Line
                                     yAxisId='left'
                                     type='monotone'
                                     dataKey='revenue'
                                     stroke='#8b5cf6'
                                     strokeWidth={3}
-                                    dot={{ r: 4 }}
+                                    dot={{ r: 4, fill: '#8b5cf6' }}
                                 />
-                                {/* BỔ SUNG: Đường biểu diễn Số vé bán */}
                                 <Line
                                     yAxisId='right'
                                     type='monotone'
                                     dataKey='tickets'
                                     stroke='#2dc275'
                                     strokeWidth={3}
-                                    dot={{ r: 4 }}
+                                    dot={{ r: 4, fill: '#2dc275' }}
                                 />
                             </LineChart>
                         </ResponsiveContainer>

@@ -139,7 +139,11 @@
         }
     }
 }
-
+.paymentOption {
+    img {
+        width: 30px;
+    }
+}
 .ticketInfo {
     .summaryRow {
         @include flex(space-between, center);
