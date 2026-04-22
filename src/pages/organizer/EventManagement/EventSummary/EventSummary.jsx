@@ -15,6 +15,7 @@ import styles from './EventSummary.module.scss';
 import orderApi from '@apis/orderApi';
 import { ticketApi } from '@apis/ticketApi';
 import transactionApi from '@apis/transactionApi';
+import userTicketApi from '@apis/userTicketApi';
 
 const cx = classNames.bind(styles);
 
@@ -26,8 +27,9 @@ function EventSummary() {
     const [rawOrders, setRawOrders] = useState([]);
     const [rawTransactions, setRawTransactions] = useState([]);
     const [totalTickets, setTotalTickets] = useState(0);
+    const [totalScanned, setTotalScanned] = useState(0);
+    const [scannedStats, setScannedStats] = useState([]);
 
-    // 1. Fetch dữ liệu từ API
     useEffect(() => {
         const fetchSummaryData = async () => {
             setLoading(true);
@@ -35,20 +37,27 @@ function EventSummary() {
                 const orderFilter = `orderItems.ticket.event.id:'${eventId}'`;
                 const transactionFilter = `order.event.id:'${eventId}'`;
                 const ticketFilter = `event.id:'${eventId}'`;
+                const userTicketFilter = `ticket.event.id:'${eventId}'`;
 
-                const [ticketResponse, orderResponse, transactionResponse] =
-                    await Promise.all([
-                        ticketApi.getAll({
-                            size: 1000,
-                            filter: ticketFilter
-                        }),
-                        orderApi.getAllOrders(
-                            `size=1000&filter=${orderFilter}`
-                        ),
-                        transactionApi.getAllTransactions(
-                            `size=1000&filter=${transactionFilter}`
-                        )
-                    ]);
+                const [
+                    ticketResponse,
+                    orderResponse,
+                    transactionResponse,
+                    userTicketResponse
+                ] = await Promise.all([
+                    ticketApi.getAll({
+                        size: 1000,
+                        filter: ticketFilter
+                    }),
+                    orderApi.getAllOrders(`size=1000&filter=${orderFilter}`),
+                    transactionApi.getAllTransactions(
+                        `size=1000&filter=${transactionFilter}`
+                    ),
+                    userTicketApi.getAll({
+                        size: 1000,
+                        filter: userTicketFilter
+                    })
+                ]);
 
                 const ticketPayload =
                     ticketResponse?.result || ticketResponse?.data;
@@ -96,6 +105,42 @@ function EventSummary() {
                 });
 
                 setRawOrders(ordersWithTransactions);
+
+                const userTicketPayload =
+                    userTicketResponse?.result || userTicketResponse?.data;
+                const userTickets =
+                    userTicketPayload?.result ||
+                    userTicketPayload?.content ||
+                    userTicketPayload ||
+                    [];
+
+                let scannedCount = 0;
+                const statsMap = {};
+
+                if (Array.isArray(userTickets)) {
+                    userTickets.forEach(ut => {
+                        if (ut.status === 'USED') {
+                            scannedCount++;
+                            const ticketName =
+                                ut.ticket?.name ||
+                                ut.ticketName ||
+                                'Vé không tên';
+
+                            if (!statsMap[ticketName]) {
+                                statsMap[ticketName] = 0;
+                            }
+                            statsMap[ticketName]++;
+                        }
+                    });
+                }
+
+                setTotalScanned(scannedCount);
+                setScannedStats(
+                    Object.keys(statsMap).map(key => ({
+                        name: key,
+                        count: statsMap[key]
+                    }))
+                );
             } catch (error) {
                 console.error('Lỗi khi tải dữ liệu tổng quan:', error);
             } finally {
@@ -106,7 +151,6 @@ function EventSummary() {
         if (eventId) fetchSummaryData();
     }, [eventId]);
 
-    // 2. Xử lý dữ liệu biểu đồ và Tổng doanh thu
     const { chartData, totalRevenue } = useMemo(() => {
         let calculatedRevenue = 0;
         const dataMap = {};
@@ -197,6 +241,29 @@ function EventSummary() {
                 <div className={cx('statCard')}>
                     <div className={cx('cardLabel')}>Số vé đã bán</div>
                     <div className={cx('cardValue')}>{totalTickets} vé</div>
+                </div>
+                <div className={cx('statCard')}>
+                    <div className={cx('cardLabel')}>
+                        Số vé đã quét (Check-in)
+                    </div>
+                    <div className={cx('cardValue')}>{totalScanned} vé</div>
+                    {scannedStats.length > 0 && (
+                        <div className={cx('scannedBreakdown')}>
+                            {scannedStats.map((stat, index) => (
+                                <div
+                                    key={index}
+                                    className={cx('breakdownItem')}
+                                >
+                                    <span className={cx('ticketName')}>
+                                        {stat.name}:
+                                    </span>
+                                    <span className={cx('ticketCount')}>
+                                        {stat.count} vé
+                                    </span>
+                                </div>
+                            ))}
+                        </div>
+                    )}
                 </div>
             </div>
 

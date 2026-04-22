@@ -157,3 +157,28 @@
 .chartContainer {
     margin-top: 24px;
 }
+.scannedBreakdown {
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px dashed #444; /* Đường viền mờ phân cách */
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.breakdownItem {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 14px;
+    color: #cbd5e1; /* Màu chữ nhạt hơn một chút */
+
+    .ticketName {
+        font-weight: 500;
+    }
+
+    .ticketCount {
+        font-weight: bold;
+        color: #2dc275; /* Tô màu xanh lá giống màu lượt mua để đồng bộ */
+    }
+}
