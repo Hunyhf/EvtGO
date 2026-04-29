@@ -484,22 +484,6 @@ const EventDetail = () => {
                                         alt={organizerName}
                                         className={cx('orgLogo')}
                                     />
-                                    <div className={cx('orgMeta')}>
-                                        <Title
-                                            level={5}
-                                            className={cx('orgName')}
-                                        >
-                                            {organizerName}
-                                        </Title>
-                                        <Space direction='vertical' size={2}>
-                                            <Text className={cx('orgSub')}>
-                                                <GlobalOutlined /> evtgo.vn
-                                            </Text>
-                                            <Text className={cx('orgSub')}>
-                                                <TeamOutlined /> 500+ theo dõi
-                                            </Text>
-                                        </Space>
-                                    </div>
                                 </div>
                             </Card>
                         </Col>
