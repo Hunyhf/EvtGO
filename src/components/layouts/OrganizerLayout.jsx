@@ -19,7 +19,7 @@ function OrganizerLayout() {
     // Lấy hàm logoutContext từ AuthContext
     const { logoutContext } = useContext(AuthContext);
 
-    // === LOGIC RIÊNG CỦA ORGANIZER ===
+    // =LOGIC RIÊNG CỦA ORGANIZER
     const [currentStep, setCurrentStep] = useState(1);
     const [onNextAction, setOnNextAction] = useState(null);
 
