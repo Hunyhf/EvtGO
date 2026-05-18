@@ -32,9 +32,9 @@ function Footer() {
                         <h3 className={cx('title')}>Dành cho Khách hàng</h3>
                         <ul className={cx('list')}>
                             <li>
-                                <a href='#'>
+                                <Link to='/dieu-khoan-su-dung-cho-khach-hang'>
                                     Điều khoản sử dụng cho khách hàng
-                                </a>
+                                </Link>
                             </li>
                         </ul>
 
@@ -43,9 +43,9 @@ function Footer() {
                         </h3>
                         <ul className={cx('list')}>
                             <li>
-                                <a href='#'>
+                                <Link to='/dieu-khoan-su-dung-cho-ban-to-chuc'>
                                     Điều khoản sử dụng cho ban tổ chức
-                                </a>
+                                </Link>
                             </li>
                         </ul>
                     </div>

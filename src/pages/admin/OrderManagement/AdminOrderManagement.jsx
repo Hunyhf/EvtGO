@@ -8,11 +8,10 @@ import {
     Row,
     Col,
     Modal,
-    Descriptions,
-    Space
+    Descriptions
 } from 'antd';
 import {
-    FileSearchOutlined,
+    ShoppingOutlined,
     MailOutlined,
     CalendarOutlined,
     DollarCircleOutlined
@@ -150,7 +149,7 @@ const AdminOrderManagement = () => {
         <Card
             title={
                 <span>
-                    <FileSearchOutlined /> Quản lý đơn hàng hệ thống
+                    <ShoppingOutlined /> Quản lý đơn hàng hệ thống
                 </span>
             }
             variant='outlined'
@@ -185,7 +184,6 @@ const AdminOrderManagement = () => {
                 pagination={{ ...pagination, showSizeChanger: true }}
             />
 
-            {/* MODAL CHI TIẾT ĐƠN HÀNG LƯỢC BỎ THÔNG TIN SỰ KIỆN */}
             <Modal
                 title={`Chi tiết đơn hàng: ${selectedOrder?.orderCode || ''}`}
                 open={isModalOpen}

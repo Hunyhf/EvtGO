@@ -43,10 +43,12 @@ function OrganizerLayout() {
             onClick: () => navigate('/organizer/events')
         },
         {
-            key: '/organizer/terms',
+            // Đã sửa từ '/organizer/terms' thành đường dẫn tiếng Việt tương ứng với Route
+            key: '/organizer/dieu-khoan-su-dung-cho-ban-to-chuc',
             icon: <FileProtectOutlined />,
             label: 'Điều khoản',
-            onClick: () => navigate('/organizer/terms')
+            onClick: () =>
+                navigate('/organizer/dieu-khoan-su-dung-cho-ban-to-chuc')
         }
     ];
 

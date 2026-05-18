@@ -14,7 +14,6 @@ function App() {
                 }
             }}
         >
-            {/* Bắt buộc bọc AntdApp để dùng hook useApp() */}
             <AntdApp>
                 <div className='App'>
                     <RouterProvider router={routes} />

@@ -15,9 +15,9 @@ import {
     SearchOutlined,
     CalendarOutlined,
     EnvironmentOutlined,
-    DashboardOutlined,
+    HomeOutlined,
     TeamOutlined,
-    FileTextOutlined,
+    ShoppingOutlined,
     PauseCircleOutlined,
     PlayCircleOutlined
 } from '@ant-design/icons';
@@ -122,7 +122,6 @@ const EventManagement = () => {
 
             const mappedData = (Array.isArray(rawData) ? rawData : []).map(
                 e => {
-                    // Sửa lỗi 3: Dùng đúng field từ BE DTO
                     const isPublishedInDB = e.published; // BE trả về field 'published'
                     const isActive = e.active; // BE trả về field 'active'
 
@@ -139,14 +138,13 @@ const EventManagement = () => {
 
                     let derivedStatus = 'PENDING';
 
-                    // Sửa lỗi 2: Khớp logic với BE
                     // Nếu thời gian hiện tại đã vượt quá thời gian kết thúc -> PAST
                     if (endDay.isBefore(now)) {
                         derivedStatus = 'PAST';
                     }
                     // Nếu sự kiện đã bắt đầu nhưng chưa kết thúc (BE đã set published = false)
                     else if (startDay.isBefore(now) && now.isBefore(endDay)) {
-                        derivedStatus = 'PAST'; // Hoặc bạn có thể thêm status 'ONGOING'
+                        derivedStatus = 'PAST';
                     } else {
                         // Logic cho các sự kiện tương lai
                         if (isPublishedInDB && isActive) {
@@ -170,12 +168,20 @@ const EventManagement = () => {
                 }
             );
 
-            // Sắp xếp: Ưu tiên sự kiện mới nhất lên đầu
-            mappedData.sort(
-                (a, b) =>
-                    dayjs(b.fullStartTime).unix() -
-                    dayjs(a.fullStartTime).unix()
-            );
+            // Sắp xếp theo khoảng cách thời gian đến hiện tại (sự kiện gần nhất sẽ đứng đầu)
+            const nowUnix = dayjs().unix(); // Lấy timestamp của thời điểm hiện tại
+            mappedData.sort((a, b) => {
+                // Tính khoảng cách thời gian (bằng giây) từ sự kiện A đến hiện tại
+                const distanceA = Math.abs(
+                    dayjs(a.fullStartTime).unix() - nowUnix
+                );
+                // Tính khoảng cách thời gian (bằng giây) từ sự kiện B đến hiện tại
+                const distanceB = Math.abs(
+                    dayjs(b.fullStartTime).unix() - nowUnix
+                );
+                // Sắp xếp tăng dần theo khoảng cách (Khoảng cách nhỏ nhất xếp trước)
+                return distanceA - distanceB;
+            });
             setEvents(mappedData);
         } catch (error) {
             console.error('Fetch Error:', error);
@@ -454,7 +460,7 @@ const EventManagement = () => {
                                                 )
                                             }
                                         >
-                                            <DashboardOutlined />
+                                            <HomeOutlined />
                                             <span>Tổng quan</span>
                                         </button>
 
@@ -509,7 +515,7 @@ const EventManagement = () => {
                                                 )
                                             }
                                         >
-                                            <FileTextOutlined />
+                                            <ShoppingOutlined />
                                             <span>Đơn hàng</span>
                                         </button>
                                     </div>

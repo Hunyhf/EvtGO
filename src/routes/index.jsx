@@ -185,6 +185,24 @@ export const routes = createBrowserRouter([
                                 title='Quy chế hoạt động'
                             />
                         )
+                    },
+                    {
+                        path: 'dieu-khoan-su-dung-cho-khach-hang',
+                        element: (
+                            <PolicyViewer
+                                fileName='dieu-khoan-su-dung-cho-khach-hang.pdf'
+                                title='Điều khoản sử dụng dành cho khách hàng'
+                            />
+                        )
+                    },
+                    {
+                        path: 'dieu-khoan-su-dung-cho-ban-to-chuc',
+                        element: (
+                            <PolicyViewer
+                                fileName='dieu-khoan-su-dung-cho-ban-to-chuc.pdf'
+                                title='Điều khoản sử dụng dành cho ban tổ chức'
+                            />
+                        )
                     }
                 ]
             },
@@ -226,8 +244,13 @@ export const routes = createBrowserRouter([
                             { path: 'events/edit/:id', element: <EditEvent /> },
                             { path: 'profile', element: <Profile /> },
                             {
-                                path: 'terms',
-                                element: <div>Trang điều khoản</div>
+                                path: 'dieu-khoan-su-dung-cho-ban-to-chuc',
+                                element: (
+                                    <PolicyViewer
+                                        fileName='dieu-khoan-su-dung-cho-ban-to-chuc.pdf'
+                                        title='Điều khoản sử dụng dành cho ban tổ chức'
+                                    />
+                                )
                             },
                             { path: 'orders', element: <OrderManagement /> },
                             { path: 'staff', element: <StaffManagement /> },

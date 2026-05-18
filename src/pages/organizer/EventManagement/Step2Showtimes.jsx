@@ -20,12 +20,13 @@ import {
     PlusOutlined,
     DeleteOutlined,
     EditOutlined,
-    AuditOutlined,
     CalendarOutlined,
     AppstoreAddOutlined,
     InfoCircleOutlined
 } from '@ant-design/icons';
 import dayjs from 'dayjs';
+
+import TicketIconSvg from '@icons/svgs/ticketIcon.svg';
 
 const { Title, Text } = Typography;
 const { Option } = Select;
@@ -69,14 +70,10 @@ const Step2Showtimes = ({ setOnNextAction, formData, setFormData }) => {
 
     // 3. Đăng ký hàm validate (Thống nhất logic 2 lớp với cha)
     useEffect(() => {
-        // () => validateStep tương đương () => async () => { ... }
         setOnNextAction(() => validateStep);
-
-        // QUAN TRỌNG: KHÔNG return () => setOnNextAction(null)
-        // để tránh lỗi mất function khi re-render lúc chuyển bước
     }, [validateStep, setOnNextAction]);
 
-    // 4. Cập nhật trực tiếp vào formData (Xóa bỏ useEffect quan sát tickets cũ)
+    // 4. Cập nhật trực tiếp vào formData
     const updateTicketsInParent = newTickets => {
         setTickets(newTickets);
         setFormData(prev => ({ ...prev, tickets: newTickets }));
@@ -219,7 +216,6 @@ const Step2Showtimes = ({ setOnNextAction, formData, setFormData }) => {
                         setFormData(prev => ({
                             ...prev,
                             isSeated: isChecked,
-                            // Xóa dữ liệu cũ nếu đổi ý không dùng ghế để tránh rác dữ liệu
                             seats: isChecked ? prev.seats : [],
                             seatZones: isChecked ? prev.seatZones : []
                         }));
@@ -284,10 +280,13 @@ const Step2Showtimes = ({ setOnNextAction, formData, setFormData }) => {
                         >
                             <Card.Meta
                                 avatar={
-                                    <AuditOutlined
+                                    <img
+                                        src={TicketIconSvg}
+                                        alt='Ticket Icon'
                                         style={{
-                                            fontSize: 24,
-                                            color: '#2dc275'
+                                            width: 24,
+                                            height: 24,
+                                            objectFit: 'contain'
                                         }}
                                     />
                                 }
@@ -387,17 +386,6 @@ const Step2Showtimes = ({ setOnNextAction, formData, setFormData }) => {
                                     parser={v => v.replace(/\$\s?|(,*)/g, '')}
                                 />
                             </Form.Item>
-                            <div style={styles.freeCheckWrapper}>
-                                <Checkbox
-                                    checked={isFreeTicket}
-                                    onChange={e => {
-                                        setIsFreeTicket(e.target.checked);
-                                        ticketForm.setFieldValue('price', 0);
-                                    }}
-                                >
-                                    Miễn phí
-                                </Checkbox>
-                            </div>
                         </Space.Compact>
                     </Form.Item>
 

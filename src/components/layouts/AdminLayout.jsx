@@ -1,12 +1,13 @@
 import React, { useContext } from 'react';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import {
-    DashboardOutlined,
     UsergroupAddOutlined,
     CalendarOutlined,
     LogoutOutlined,
-    TagsOutlined,
-    RobotOutlined
+    RobotOutlined,
+    ShoppingOutlined,
+    HomeOutlined,
+    AppstoreOutlined
 } from '@ant-design/icons';
 import MainDashboardLayout from './MainDashboardLayout';
 import { AuthContext } from '@contexts/AuthContext';
@@ -33,7 +34,7 @@ function AdminLayout() {
     const menuItems = [
         {
             key: '/admin',
-            icon: <DashboardOutlined />,
+            icon: <HomeOutlined />,
             label: 'Tổng quan',
             onClick: () => navigate('/admin')
         },
@@ -51,7 +52,7 @@ function AdminLayout() {
         },
         {
             key: '/admin/genres',
-            icon: <TagsOutlined />,
+            icon: <AppstoreOutlined />,
             label: 'Quản lý thể loại',
             onClick: () => navigate('/admin/genres')
         },
@@ -63,7 +64,7 @@ function AdminLayout() {
         },
         {
             key: '/admin/orders',
-            icon: <DashboardOutlined />,
+            icon: <ShoppingOutlined />,
             label: 'Quản lý đơn hàng',
             onClick: () => navigate('/admin/orders')
         }

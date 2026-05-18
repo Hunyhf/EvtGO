@@ -164,12 +164,12 @@ const OrderManagement = () => {
 
     const onSearch = value => {
         setSearchText(value);
-        fetchOrders(1, pagination.pageSize, value); // Tìm kiếm luôn đưa về trang 1
+        fetchOrders(1, pagination.pageSize, value);
     };
 
     return (
         <Card
-            title={eventId ? `Đơn hàng sự kiện #${eventId}` : 'Tất cả đơn hàng'}
+            title={eventId ? `Đơn hàng sự kiện ${eventId}` : 'Tất cả đơn hàng'}
             variant='outlined'
         >
             {/* Khu vực thanh tìm kiếm */}
