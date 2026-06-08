@@ -26,6 +26,7 @@ function Breadcrumb() {
                     <Link to='/' className={cx('link')}>
                         Trang chủ
                     </Link>
+
                     <span className={cx('separator')}> {'>'} </span>
                 </li>
 

@@ -16,9 +16,9 @@ const userTicketApi = {
         return axiosClient.get(`/api/v1/user-tickets/${id}`);
     },
 
-    // Lấy tất cả vé của người dùng (dành cho Admin)
-    getAllUserTickets: () => {
-        return axiosClient.get('/api/v1/user-tickets');
+    // Lấy tất cả vé của người dùng (Có hỗ trợ phân trang và filter động từ cấu trúc Spring Filter)
+    getAllUserTickets: params => {
+        return axiosClient.get('/api/v1/user-tickets', { params });
     },
 
     // Lấy danh sách vé theo ID người dùng cụ thể

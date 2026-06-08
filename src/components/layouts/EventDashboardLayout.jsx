@@ -23,12 +23,13 @@ function EventDashboardLayout() {
             label: 'Tổng kết',
             onClick: () => navigate(`/organizer/events/${eventId}/summary`)
         },
-        {
+
+        /*  {
             key: `/organizer/events/${eventId}/orders`,
             icon: <ShoppingCartOutlined />,
             label: 'Danh sách đơn hàng',
             onClick: () => navigate(`/organizer/events/${eventId}/orders`)
-        },
+        },*/
         {
             key: `/organizer/events/${eventId}/members`,
             icon: <TeamOutlined />,

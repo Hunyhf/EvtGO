@@ -15,7 +15,6 @@ import styles from './EventSummary.module.scss';
 import orderApi from '@apis/orderApi';
 import { ticketApi } from '@apis/ticketApi';
 import transactionApi from '@apis/transactionApi';
-import userTicketApi from '@apis/userTicketApi';
 
 const cx = classNames.bind(styles);
 
@@ -27,55 +26,25 @@ function EventSummary() {
     const [rawOrders, setRawOrders] = useState([]);
     const [rawTransactions, setRawTransactions] = useState([]);
     const [totalTickets, setTotalTickets] = useState(0);
-    const [totalScanned, setTotalScanned] = useState(0);
-    const [scannedStats, setScannedStats] = useState([]);
 
     useEffect(() => {
         const fetchSummaryData = async () => {
             setLoading(true);
             try {
-                const orderFilter = `orderItems.ticket.event.id:'${eventId}'`;
-                const transactionFilter = `order.event.id:'${eventId}'`;
-                const ticketFilter = `event.id:'${eventId}'`;
-                const userTicketFilter = `ticket.event.id:'${eventId}'`;
+                const orderFilter = `orderItems.ticket.event.id:${eventId}`;
+                const ticketFilter = `event.id:${eventId}`;
 
-                const [
-                    ticketResponse,
-                    orderResponse,
-                    transactionResponse,
-                    userTicketResponse
-                ] = await Promise.all([
-                    ticketApi.getAll({
-                        size: 1000,
-                        filter: ticketFilter
-                    }),
-                    orderApi.getAllOrders(`size=1000&filter=${orderFilter}`),
-                    transactionApi.getAllTransactions(
-                        `size=1000&filter=${transactionFilter}`
-                    ),
-                    userTicketApi.getAll({
-                        size: 1000,
-                        filter: userTicketFilter
-                    })
-                ]);
+                // CHỈ GỌI CÁC API MÀ ORGANIZER CHẮC CHẮN CÓ QUYỀN
+                const [ticketResponse, orderResponse, transactionResponse] =
+                    await Promise.all([
+                        ticketApi.getAll({ size: 1000, filter: ticketFilter }),
+                        orderApi.getAllOrders(
+                            `size=1000&filter=${orderFilter}`
+                        ),
+                        transactionApi.getAllTransactions().catch(() => null) // Bỏ qua lỗi nếu bị chặn
+                    ]);
 
-                const ticketPayload =
-                    ticketResponse?.result || ticketResponse?.data;
-                const tickets =
-                    ticketPayload?.result ||
-                    ticketPayload?.content ||
-                    ticketPayload ||
-                    [];
-
-                const totalSold = Array.isArray(tickets)
-                    ? tickets.reduce(
-                          (sum, t) =>
-                              sum + (t.sold_quantity ?? t.soldQuantity ?? 0),
-                          0
-                      )
-                    : 0;
-                setTotalTickets(totalSold);
-
+                // --- XỬ LÝ ĐƠN HÀNG (Dùng để tính doanh thu) ---
                 const orderPayload =
                     orderResponse?.result || orderResponse?.data;
                 let orders =
@@ -84,65 +53,26 @@ function EventSummary() {
                     orderPayload ||
                     [];
                 if (!Array.isArray(orders)) orders = [];
+                setRawOrders(orders);
 
-                const transactionPayload =
-                    transactionResponse?.result || transactionResponse?.data;
-                let transactions =
-                    transactionPayload?.result ||
-                    transactionPayload?.content ||
-                    transactionPayload ||
+                // --- XỬ LÝ VÉ ĐÃ BÁN TỪ BẢNG TICKET ---
+                const ticketPayload =
+                    ticketResponse?.result || ticketResponse?.data;
+                const tickets =
+                    ticketPayload?.result ||
+                    ticketPayload?.content ||
+                    ticketPayload ||
                     [];
-                if (!Array.isArray(transactions)) transactions = [];
-                setRawTransactions(transactions);
-
-                const ordersWithTransactions = orders.map(order => {
-                    const matchedTxn = transactions.find(
-                        t =>
-                            String(t.orderId) === String(order.id) ||
-                            String(t.order_id) === String(order.id)
-                    );
-                    return { ...order, transactionData: matchedTxn };
-                });
-
-                setRawOrders(ordersWithTransactions);
-
-                const userTicketPayload =
-                    userTicketResponse?.result || userTicketResponse?.data;
-                const userTickets =
-                    userTicketPayload?.result ||
-                    userTicketPayload?.content ||
-                    userTicketPayload ||
-                    [];
-
-                let scannedCount = 0;
-                const statsMap = {};
-
-                if (Array.isArray(userTickets)) {
-                    userTickets.forEach(ut => {
-                        if (ut.status === 'USED') {
-                            scannedCount++;
-                            const ticketName =
-                                ut.ticket?.name ||
-                                ut.ticketName ||
-                                'Vé không tên';
-
-                            if (!statsMap[ticketName]) {
-                                statsMap[ticketName] = 0;
-                            }
-                            statsMap[ticketName]++;
-                        }
-                    });
-                }
-
-                setTotalScanned(scannedCount);
-                setScannedStats(
-                    Object.keys(statsMap).map(key => ({
-                        name: key,
-                        count: statsMap[key]
-                    }))
-                );
-            } catch (error) {
-                console.error('Lỗi khi tải dữ liệu tổng quan:', error);
+                const totalSold = Array.isArray(tickets)
+                    ? tickets.reduce(
+                          (sum, t) =>
+                              sum + (t.sold_quantity ?? t.soldQuantity ?? 0),
+                          0
+                      )
+                    : 0;
+                setTotalTickets(totalSold);
+            } catch (mainError) {
+                console.error('Lỗi khi tải dữ liệu tổng quan:', mainError);
             } finally {
                 setLoading(false);
             }
@@ -151,11 +81,13 @@ function EventSummary() {
         if (eventId) fetchSummaryData();
     }, [eventId]);
 
-    const { chartData, totalRevenue } = useMemo(() => {
+    const { chartData, totalRevenue, totalSoldTicketsCount } = useMemo(() => {
         let calculatedRevenue = 0;
+        let calculatedTicketsCount = 0;
         const dataMap = {};
-        const dataSource =
-            rawTransactions.length > 0 ? rawTransactions : rawOrders;
+
+        // Ưu tiên chạy biểu đồ và thống kê theo rawOrders
+        const dataSource = rawOrders.length > 0 ? rawOrders : rawTransactions;
 
         dataSource.forEach(item => {
             const status = (
@@ -165,16 +97,29 @@ function EventSummary() {
                 item.order_status ||
                 ''
             ).toUpperCase();
+
+            // Chỉ tính các đơn hàng hoặc giao dịch đã thanh toán thành công
             const isSuccess = ['SUCCESS', 'COMPLETED', '00', 'PAID'].includes(
                 status
             );
 
             if (isSuccess) {
+                // 1. Tính doanh thu
                 const amount = Number(
                     item.amount || item.totalAmount || item.total_amount || 0
                 );
                 calculatedRevenue += amount;
 
+                // 2. TÍNH SỐ VÉ ĐÃ BÁN TỪ ORDER ITEMS
+                const items = item.orderItems || item.items || [];
+                const ticketCountInOrder =
+                    items.length > 0
+                        ? items.reduce((s, i) => s + (i.quantity || 1), 0)
+                        : item.totalQuantity || 1;
+
+                calculatedTicketsCount += ticketCountInOrder;
+
+                // 3. Xử lý gom nhóm dữ liệu theo thời gian để vẽ biểu đồ
                 const dateStr =
                     item.createdAt || item.paidAt || item.created_at;
                 if (dateStr) {
@@ -198,13 +143,7 @@ function EventSummary() {
                         };
                     }
                     dataMap[timeKey].revenue += amount;
-                    const items = item.orderItems || item.items || [];
-                    const ticketCount =
-                        items.length > 0
-                            ? items.reduce((s, i) => s + (i.quantity || 1), 0)
-                            : item.totalQuantity || 1;
-
-                    dataMap[timeKey].tickets += ticketCount;
+                    dataMap[timeKey].tickets += ticketCountInOrder;
                 }
             }
         });
@@ -212,7 +151,12 @@ function EventSummary() {
         const formatted = Object.values(dataMap).sort(
             (a, b) => a.sortVal - b.sortVal
         );
-        return { chartData: formatted, totalRevenue: calculatedRevenue };
+
+        return {
+            chartData: formatted,
+            totalRevenue: calculatedRevenue,
+            totalSoldTicketsCount: calculatedTicketsCount
+        };
     }, [rawOrders, rawTransactions, timeFilter]);
 
     if (loading)
@@ -240,31 +184,11 @@ function EventSummary() {
                 </div>
                 <div className={cx('statCard')}>
                     <div className={cx('cardLabel')}>Số vé đã bán</div>
-                    <div className={cx('cardValue')}>{totalTickets} vé</div>
-                </div>
-                <div className={cx('statCard')}>
-                    <div className={cx('cardLabel')}>
-                        Số vé đã quét (Check-in)
+                    <div className={cx('cardValue')}>
+                        {totalSoldTicketsCount} vé
                     </div>
-                    <div className={cx('cardValue')}>{totalScanned} vé</div>
-                    {scannedStats.length > 0 && (
-                        <div className={cx('scannedBreakdown')}>
-                            {scannedStats.map((stat, index) => (
-                                <div
-                                    key={index}
-                                    className={cx('breakdownItem')}
-                                >
-                                    <span className={cx('ticketName')}>
-                                        {stat.name}:
-                                    </span>
-                                    <span className={cx('ticketCount')}>
-                                        {stat.count} vé
-                                    </span>
-                                </div>
-                            ))}
-                        </div>
-                    )}
                 </div>
+                {/* ĐÃ BỎ HẲN THẺ "SỐ VÉ ĐÃ QUÉT" KHỎI GIAO DIỆN */}
             </div>
 
             <div className={cx('chartSection')}>
